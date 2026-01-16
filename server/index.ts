@@ -201,7 +201,7 @@ app.delete('/masses/:id', async (req, res) => {
   }
 });
 
-const PORT = 3001;
-app.listen(PORT, () => {
-  console.log(`🚀 Server ready at: http://localhost:${PORT}`);
+const PORT = process.env.PORT || 3001;
+app.listen(Number(PORT), '0.0.0.0', () => {
+  console.log(`🚀 Server ready at: http://0.0.0.0:${PORT}`);
 });
