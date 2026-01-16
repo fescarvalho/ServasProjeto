@@ -1,0 +1,89 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+/* --- ESTILOS DE IMPRESSÃO (PDF) --- */
+@media print {
+  /* Esconde tudo que não é essencial */
+  .no-print, button, input, select, .header-hero, form {
+    display: none !important;
+  }
+
+  /* Ajusta o fundo e cores para o papel */
+  body, .container, .card {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Cabeçalho especial para o PDF */
+  .print-header {
+    display: block !important;
+    text-align: center;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #333;
+    padding-bottom: 20px;
+  }
+
+  /* Ajusta a grade para lista */
+  .card {
+    border-bottom: 1px solid #ddd !important;
+    padding: 15px 0 !important;
+    page-break-inside: avoid; /* Não deixa cortar uma missa no meio da folha */
+  }
+
+  /* Mostra as funções em texto preto */
+  .tag-role {
+    border: 1px solid #333;
+    color: black !important;
+    background: white !important;
+  }
+}
+
+/* Esconde o cabeçalho de impressão na tela normal */
+.print-header {
+  display: none;
+}
