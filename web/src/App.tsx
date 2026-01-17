@@ -26,6 +26,8 @@ function App() {
     e.preventDefault();
     try {
       const response = await api.post("/login", { email, password });
+      console.log("RESPOSTA DO SERVIDOR:", response.data);
+      console.log("CARGO (ROLE):", response.data.role);
       setUser(response.data); // O backend deve enviar { id, name, email, role }
       setError("");
     } catch (err) {

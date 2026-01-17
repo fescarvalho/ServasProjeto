@@ -1,6 +1,6 @@
 import { ArrowLeft, Download, Flower } from "lucide-react";
 import html2pdf from "html2pdf.js";
-import { Mass, FUNCOES } from "../types";
+import { Mass, FUNCOES } from "../types/types";
 
 interface DocumentProps {
   masses: Mass[];
