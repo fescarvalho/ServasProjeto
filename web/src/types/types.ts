@@ -25,4 +25,8 @@ export interface Mass {
   maxServers: number;
   deadline?: string;
   signups: Signup[];
+
+  _count?: {
+    signups: number;
+  };
 }

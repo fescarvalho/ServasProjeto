@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Flower, Calendar, FileText, User, Clock, AlertTriangle } from "lucide-react";
-import { Mass, UserData } from "../types";
+import { Mass, UserData } from "../types/types";
 import { OfficialDocument } from "./OfficialDocument";
 import "./css/UserPanel.css";
 interface UserPanelProps {
@@ -146,7 +146,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
         <div className="container-responsive" style={{ marginTop: "-10px" }}>
           <div style={{ display: "grid", gap: 20, paddingBottom: 40 }}>
             {masses.map((mass) => {
-              const vagasRestantes = mass.maxServers - mass._count.signups;
+              const vagasRestantes = mass.maxServers - mass._count!.signups;
               const jaEstouInscrita = mass.signups.some((s) => s.userId === user.id);
               const minhaFuncao = mass.signups.find((s) => s.userId === user.id)?.role;
               const prazoEncerrado = isExpired(mass.deadline);
@@ -244,7 +244,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                       <User size={18} />
                       <span style={{ fontSize: "0.9rem" }}>
                         <strong style={{ color: "#e91e63" }}>
-                          {mass._count.signups}
+                          {mass._count!.signups}
                         </strong>{" "}
                         / {mass.maxServers} vagas
                       </span>
@@ -260,17 +260,17 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                         background: prazoEncerrado
                           ? "#e0e0e0"
                           : jaEstouInscrita
-                          ? "white"
-                          : vagasRestantes > 0
-                          ? "#e91e63"
-                          : "#e0e0e0",
+                            ? "white"
+                            : vagasRestantes > 0
+                              ? "#e91e63"
+                              : "#e0e0e0",
                         color: prazoEncerrado
                           ? "#888"
                           : jaEstouInscrita
-                          ? "#d32f2f"
-                          : vagasRestantes > 0
-                          ? "white"
-                          : "#888",
+                            ? "#d32f2f"
+                            : vagasRestantes > 0
+                              ? "white"
+                              : "#888",
                         border:
                           jaEstouInscrita && !prazoEncerrado
                             ? "1px solid #d32f2f"
@@ -280,10 +280,10 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                       {prazoEncerrado
                         ? "Prazo Encerrado"
                         : jaEstouInscrita
-                        ? "Desistir"
-                        : vagasRestantes > 0
-                        ? "Servir"
-                        : "Lotado"}
+                          ? "Desistir"
+                          : vagasRestantes > 0
+                            ? "Servir"
+                            : "Lotado"}
                     </button>
                   </div>
 
