@@ -10,7 +10,7 @@ import {
   Save,
 } from "lucide-react";
 import { api } from "../services/api";
-import { Mass, FUNCOES } from "../types";
+import { Mass, FUNCOES } from "../types/types";
 import { ScaleModal } from "./ScaleModal";
 import { OfficialDocument } from "./OfficialDocument";
 import "./css/AdminPanel.css"; // <--- Importante: O CSS que criamos

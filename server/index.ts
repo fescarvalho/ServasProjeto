@@ -61,8 +61,13 @@ app.post("/login", async (req, res) => {
       return res.status(404).json({ error: "Usuário não encontrado" });
     }
 
-    if (user.password !== password) {
-      return res.status(401).json({ error: "Senha incorreta" });
+    if (user && user.password === password) {
+      res.json({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role, // <--- ESSA LINHA É FUNDAMENTAL!
+      });
     }
 
     return res.json(user);
