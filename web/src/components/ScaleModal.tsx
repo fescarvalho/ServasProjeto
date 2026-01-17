@@ -8,7 +8,7 @@ interface ScaleModalProps {
 
 export function ScaleModal({ masses, onClose }: ScaleModalProps) {
   const generateText = () => {
-    let fullText = "*🌸 ESCALA DAS SERVAS 🌸*\n\n";
+    let fullText = "*🌸 GRUPO DE SERVAS SANTA TEREZINHA 🌸*\n\n";
     masses.forEach((mass) => {
       const d = new Date(mass.date);
       const dia = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });

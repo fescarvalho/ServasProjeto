@@ -86,7 +86,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
         <div className="header-icon-wrapper">
           <Flower size={32} strokeWidth={2} color="white" />
         </div>
-        <h1>Escala das Servas</h1>
+        <h1>GRUPO DE SERVAS SANTA TEREZINHA</h1>
         <p>"Servir com alegria."</p>
       </div>
 
