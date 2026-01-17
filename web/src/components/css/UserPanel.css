@@ -1,163 +1,311 @@
-/* UserPanel.css */
-
-/* --- 1. Container e Estrutura --- */
-.container-responsive {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 0 15px; /* Margem lateral para não colar no celular */
+/* Variáveis de Cor para fácil manutenção */
+:root {
+  --primary-rose: #e91e63;
+  --primary-rose-light: #fce4ec;
+  --primary-rose-dark: #c2185b;
+  --text-dark: #333;
+  --text-gray: #666;
+  --bg-light: #f8f9fa;
+  --white: #ffffff;
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-hover: 0 8px 24px rgba(233, 30, 99, 0.15);
+  --radius-lg: 16px;
+  --radius-md: 12px;
 }
 
+/* Container Principal */
+.user-panel-container {
+  background-color: var(--bg-light);
+  min-height: 100vh;
+  padding-bottom: 40px;
+}
+
+/* --- CABEÇALHO HERO --- */
 .header-hero {
-  /* Seus estilos de fundo aqui... */
-  padding-bottom: 80px;
+  background: linear-gradient(135deg, #e91e63 0%, #ff6090 100%);
+  color: white;
+  padding: 40px 20px 60px; /* Mais espaço embaixo para as abas */
   text-align: center;
+  border-bottom-left-radius: 30px;
+  border-bottom-right-radius: 30px;
+  margin-bottom: -30px; /* Para as abas subirem */
+  box-shadow: 0 4px 20px rgba(233, 30, 99, 0.2);
 }
 
-/* --- 2. Menu de Botões (Abas) --- */
+.header-icon-wrapper {
+  background: rgba(255, 255, 255, 0.2);
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 15px;
+  backdrop-filter: blur(5px);
+}
+
+.header-hero h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.header-hero p {
+  opacity: 0.9;
+  font-size: 0.95rem;
+  font-style: italic;
+  margin-top: 5px;
+}
+
+/* --- MENU DE ABAS --- */
 .menu-tabs {
   display: flex;
   justify-content: center;
   gap: 10px;
-  margin-top: -30px; /* Puxa para cima do header */
-  margin-bottom: 20px;
-  flex-wrap: wrap; /* Importante: permite quebrar linha se não couber */
+  background: white;
+  padding: 10px;
+  border-radius: 50px;
+  box-shadow: var(--shadow-md);
+  max-width: fit-content;
+  margin: 0 auto 30px;
+  position: relative;
+  z-index: 10;
 }
 
 .tab-btn {
-  flex: 1;
-  min-width: 120px; /* Tamanho mínimo para não esmagar */
-  padding: 15px;
-  border-radius: 12px;
   border: none;
+  background: transparent;
+  padding: 10px 20px;
+  border-radius: 30px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-gray);
   cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
-  font-weight: bold;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
 }
 
-/* --- 3. Cards das Missas --- */
+.tab-btn:hover {
+  background-color: #f0f0f0;
+}
+
+.tab-btn.active {
+  background-color: var(--primary-rose);
+  color: white;
+  box-shadow: 0 4px 10px rgba(233, 30, 99, 0.3);
+}
+
+.tab-btn.logout {
+  color: #d32f2f;
+}
+.tab-btn.logout:hover {
+  background-color: #ffebee;
+}
+
+/* --- CARDS DAS MISSAS --- */
 .mass-card {
-  background: white;
-  border-radius: 16px;
+  background: var(--white);
+  border-radius: var(--radius-lg);
   padding: 20px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 15px;
 }
 
+.mass-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-hover);
+  border-color: rgba(233, 30, 99, 0.1);
+}
+
+.mass-card.disabled {
+  opacity: 0.7;
+  background-color: #fafafa;
+}
+
+/* Cabeçalho do Card */
 .card-header {
   display: flex;
-  justify-content: space-between;
   align-items: flex-start;
+  gap: 15px;
 }
 
+/* Badge de Data (Quadrado Bonito) */
 .date-badge {
-  background: var(--rose-primary, #e91e63);
-  color: white;
-  padding: 10px 15px;
-  border-radius: 12px;
-  text-align: center;
+  background: var(--primary-rose-light);
+  color: var(--primary-rose);
+  border-radius: var(--radius-md);
+  padding: 10px;
   min-width: 60px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
+.date-day {
+  font-size: 1.4rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.date-month {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+/* Informações da Missa */
+.mass-info h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text-dark);
+  text-transform: capitalize;
+}
+
+.mass-name {
+  color: var(--primary-rose);
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 2px;
+}
+
+.mass-time {
+  color: var(--text-gray);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+/* Tag da Função */
+.tag-role {
+  background: linear-gradient(45deg, #673ab7, #9c27b0);
+  color: white;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+  align-self: flex-start;
+  margin-left: auto; /* Empurra para a direita */
+  box-shadow: 0 2px 5px rgba(103, 58, 183, 0.2);
+}
+
+/* Rodapé do Card */
 .card-footer {
+  margin-top: auto;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-top: 1px solid #f0f0f0;
-  padding-top: 15px;
 }
 
+.vagas-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-gray);
+  font-size: 0.9rem;
+  background: #f5f5f5;
+  padding: 6px 12px;
+  border-radius: 20px;
+}
+
+/* --- BOTÕES DE AÇÃO --- */
 .btn-action {
   padding: 10px 24px;
-  border-radius: 8px;
-  font-weight: bold;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 0.9rem;
   border: none;
   cursor: pointer;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
-.pdf-preview-container {
-  width: 100%;
-  overflow-x: auto; /* Permite scroll lateral se a folha for maior que a tela */
-  padding: 20px 0;
+/* Botão Servir (Padrão) */
+.btn-action.servir {
+  background-color: var(--primary-rose);
+  color: white;
+  box-shadow: 0 4px 10px rgba(233, 30, 99, 0.25);
+}
+.btn-action.servir:hover {
+  background-color: var(--primary-rose-dark);
+  transform: scale(1.02);
+}
+
+/* Botão Desistir */
+.btn-action.desistir {
+  background-color: white;
+  border: 1px solid #ef5350;
+  color: #ef5350;
+}
+.btn-action.desistir:hover {
+  background-color: #ffebee;
+}
+
+/* Botão Lotado/Encerrado */
+.btn-action.disabled {
+  background-color: #e0e0e0;
+  color: #9e9e9e;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Cronômetro Badge */
+.timer-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #ffebee;
+  color: #c62828;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
   display: flex;
-  justify-content: center;
-  background-color: #525659; /* Cor de fundo estilo leitor de PDF */
+  align-items: center;
+  gap: 4px;
 }
 
-.pdf-page {
-  width: 210mm; /* Largura padrão A4 */
-  min-height: 297mm;
-  padding: 20mm;
-  margin: 10px;
-  background: white;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-  box-sizing: border-box;
-  transform-origin: top center;
+.timer-badge.expired {
+  background: #eee;
+  color: #777;
 }
 
-/* --- 📱 A MÁGICA DO MOBILE (Media Query) --- */
-@media (max-width: 768px) {
-  /* No celular, os botões do menu ficam um embaixo do outro ou grade */
-  .menu-tabs {
-    gap: 8px;
+/* Responsivo */
+@media (max-width: 480px) {
+  .card-header {
+    align-items: flex-start;
   }
-
-  .tab-btn {
-    padding: 12px;
-    font-size: 0.9rem;
+  .date-badge {
+    min-width: 50px;
+    padding: 8px;
   }
-
-  /* O Rodapé do card vira coluna: Info em cima, Botão grandão embaixo */
   .card-footer {
     flex-direction: column;
     gap: 15px;
-    align-items: flex-start;
+    align-items: stretch;
   }
-
-  .info-vagas {
-    width: 100%;
-    margin-bottom: 5px;
-  }
-
   .btn-action {
-    width: 100%; /* Botão ocupa a largura toda no dedo */
     justify-content: center;
-    padding: 14px; /* Mais fácil de clicar */
-    font-size: 1rem;
   }
-  .pdf-page {
-    /* Reduz a escala da folha para caber na largura do celular */
-    transform: scale(0.4); /* Ajuste esse valor conforme necessário */
-    margin-bottom: -400px; /* Compensa o espaço vazio deixado pelo scale */
-  }
-
-  .pdf-preview-container {
-    padding: 0;
-    justify-content: flex-start;
-  }
-}
-
-/* Regra de Impressão (Mantém o tamanho real no papel) */
-@media print {
-  .pdf-preview-container {
-    background: none;
-    padding: 0;
-  }
-  .pdf-page {
-    transform: scale(1) !important;
-    margin: 0 !important;
-    box-shadow: none !important;
-    width: 100% !important;
-  }
-  .no-print {
-    display: none !important;
+  .vagas-info {
+    justify-content: center;
   }
 }

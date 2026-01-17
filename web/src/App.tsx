@@ -1,54 +1,84 @@
 import { useEffect, useState } from "react";
 import { Flower } from "lucide-react";
 import { api } from "./services/api";
-import { Mass, UserData } from "../src/types/types";
+import { Mass, UserData } from "./types/types";
 import { AdminPanel } from "./components/AdminPanel";
 import { UserPanel } from "./components/UserPanel";
 
 function App() {
-  const [user, setUser] = useState<UserData | null>(null);
+  // 1. CORREÇÃO: Inicialização "Lazy" (Preguiçosa) do Estado
+  // O React executa isso apenas uma vez, antes da primeira renderização.
+  const [user, setUser] = useState<UserData | null>(() => {
+    const storedUser = localStorage.getItem("servas_user");
+    if (storedUser) {
+      try {
+        return JSON.parse(storedUser);
+      } catch (error) {
+        console.error("Erro ao ler usuário salvo:", error);
+        return null;
+      }
+    }
+    return null;
+  });
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [masses, setMasses] = useState<Mass[]>([]);
 
-  // Carrega as missas ao iniciar
+  // Função para buscar dados atualizados
   function fetchMasses() {
-    api.get("/masses").then((response) => setMasses(response.data));
+    api
+      .get("/masses")
+      .then((response) => setMasses(response.data))
+      .catch((err) => console.error("Erro ao buscar missas:", err));
   }
 
+  // 2. EFEITO DE INICIALIZAÇÃO
+  // Agora ele serve APENAS para buscar dados externos (API), não para setar estado local síncrono.
   useEffect(() => {
     fetchMasses();
   }, []);
 
-  // Faz o login e salva o usuário (agora com a ROLE vindo do backend)
+  // 3. LOGIN (Salva no navegador)
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     try {
       const response = await api.post("/login", { email, password });
-      console.log("RESPOSTA DO SERVIDOR:", response.data);
-      console.log("CARGO (ROLE):", response.data.role);
-      setUser(response.data); // O backend deve enviar { id, name, email, role }
+
+      const userData = response.data;
+      setUser(userData);
+
+      // SALVA O USUÁRIO NO NAVEGADOR
+      localStorage.setItem("servas_user", JSON.stringify(userData));
+
       setError("");
     } catch (err) {
-      console.log(err);
+      console.error(err);
       setError("E-mail ou senha incorretos.");
     }
   }
 
-  // Função para a serva se inscrever/desinscrever (passada para o UserPanel)
+  // 4. LOGOUT (Limpa o navegador)
+  function handleLogout() {
+    setUser(null);
+    localStorage.removeItem("servas_user"); // Apaga o registro
+    setEmail("");
+    setPassword("");
+  }
+
   async function handleToggleSignup(massId: string) {
     if (!user) return;
     try {
       await api.post("/toggle-signup", { userId: user.id, massId });
-      fetchMasses(); // Atualiza a lista após a ação
+      fetchMasses(); // Atualiza a lista imediatamente
     } catch (error) {
       console.log(error);
-      alert("Ação não permitida ou prazo encerrado.");
+      alert("Ação não permitida. Verifique se o prazo encerrou ou se está lotado.");
     }
   }
 
-  // --- TELA DE LOGIN (Se não houver usuário logado) ---
+  // --- TELA DE LOGIN ---
   if (!user) {
     return (
       <div
@@ -144,25 +174,19 @@ function App() {
     );
   }
 
-  // --- LÓGICA DE DECISÃO DE PAINEL ---
-
-  // AQUI ESTAVA O PROBLEMA: Substituímos a checagem de e-mail pela checagem de ROLE
+  // Verifica se é Admin pela regra 'ADMIN'
   const isAdmin = user.role === "ADMIN";
 
-  // Se for ADMIN, mostra o Painel Administrativo
   if (isAdmin) {
-    return (
-      <AdminPanel masses={masses} onUpdate={fetchMasses} onLogout={() => setUser(null)} />
-    );
+    return <AdminPanel masses={masses} onUpdate={fetchMasses} onLogout={handleLogout} />;
   }
 
-  // Se for USER, mostra o Painel de Usuário (Servas)
   return (
     <UserPanel
       masses={masses}
       user={user}
       onToggleSignup={handleToggleSignup}
-      onLogout={() => setUser(null)}
+      onLogout={handleLogout}
     />
   );
 }

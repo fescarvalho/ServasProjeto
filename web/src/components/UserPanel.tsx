@@ -1,5 +1,14 @@
 import { useState, useEffect } from "react";
-import { Flower, Calendar, FileText, User, Clock, AlertTriangle } from "lucide-react";
+import {
+  Flower,
+  Calendar,
+  FileText,
+  User,
+  Clock,
+  AlertTriangle,
+  LogOut,
+  Heart,
+} from "lucide-react";
 import { Mass, UserData } from "../types/types";
 import { OfficialDocument } from "./OfficialDocument";
 import "./css/UserPanel.css";
@@ -11,302 +20,212 @@ interface UserPanelProps {
   onLogout: () => void;
 }
 
-// --- COMPONENTE DE CRONÔMETRO ---
+// --- COMPONENTE DE CRONÔMETRO (Visual Badge) ---
 function CountdownTimer({ deadline }: { deadline: string }) {
   const [timeLeft, setTimeLeft] = useState("");
   const [expired, setExpired] = useState(false);
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    const calculateTime = () => {
       const now = new Date().getTime();
-      const distance = new Date(deadline).getTime() - now;
+      const deadlineDate = new Date(deadline);
+
+      if (deadlineDate.getHours() === 0 && deadlineDate.getMinutes() === 0) {
+        deadlineDate.setHours(23, 59, 59, 999);
+      }
+
+      const distance = deadlineDate.getTime() - now;
 
       if (distance < 0) {
         setExpired(true);
         setTimeLeft("ENCERRADO");
-        clearInterval(interval);
       } else {
         const days = Math.floor(distance / (1000 * 60 * 60 * 24));
         const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
-        setTimeLeft(
-          `${days}d ${hours.toString().padStart(2, "0")}h ${minutes
-            .toString()
-            .padStart(2, "0")}m ${seconds.toString().padStart(2, "0")}s`,
-        );
+        let timeString = "";
+        if (days > 0) timeString += `${days}d `;
+        timeString += `${hours}h ${minutes}m`;
+
+        setTimeLeft(timeString);
         setExpired(false);
       }
-    }, 1000);
+    };
 
+    calculateTime();
+    const interval = setInterval(calculateTime, 1000 * 60);
     return () => clearInterval(interval);
   }, [deadline]);
 
   if (expired) {
     return (
-      <span
-        style={{
-          color: "red",
-          fontWeight: "bold",
-          fontSize: "0.8rem",
-          display: "flex",
-          alignItems: "center",
-          gap: 4,
-        }}
-      >
-        <AlertTriangle size={14} /> INSCRIÇÕES ENCERRADAS
-      </span>
+      <div className="timer-badge expired">
+        <AlertTriangle size={12} /> Encerrado
+      </div>
     );
   }
 
   return (
-    <span
-      style={{
-        color: "#d32f2f",
-        fontWeight: "bold",
-        fontSize: "0.85rem",
-        display: "flex",
-        alignItems: "center",
-        gap: 4,
-        background: "#ffebee",
-        padding: "4px 8px",
-        borderRadius: 4,
-      }}
-    >
-      <Clock size={14} /> Encerra em: {timeLeft}
-    </span>
+    <div className="timer-badge">
+      <Clock size={12} /> {timeLeft}
+    </div>
   );
 }
 
 export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelProps) {
   const [activeTab, setActiveTab] = useState<"inscricoes" | "documento">("inscricoes");
 
-  // Verifica se o prazo acabou
   const isExpired = (deadline?: string) => {
     if (!deadline) return false;
-    return new Date() > new Date(deadline);
+    const agora = new Date();
+    const dataPrazo = new Date(deadline);
+    if (dataPrazo.getHours() === 0 && dataPrazo.getMinutes() === 0) {
+      dataPrazo.setHours(23, 59, 59, 999);
+    }
+    return agora > dataPrazo;
   };
 
   return (
-    <div>
-      {/* Header */}
+    <div className="user-panel-container">
+      {/* 1. Header Hero com Degradê */}
       <div className="header-hero no-print">
-        <div className="container-responsive">
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              color: "#e91e63",
-              marginBottom: 10,
-            }}
-          >
-            <Flower size={40} strokeWidth={1} />
-          </div>
-          <h1>Escala das Servas</h1>
-          <p>"Tudo é grande quando feito por amor."</p>
+        <div className="header-icon-wrapper">
+          <Flower size={40} strokeWidth={1.5} color="white" />
         </div>
+        <h1>Escala das Servas</h1>
+        <p>"Tudo é grande quando feito por amor."</p>
       </div>
 
-      {/* Menu de Abas */}
+      {/* 2. Menu Flutuante */}
       <div className="container-responsive no-print">
         <div className="menu-tabs">
           <button
             onClick={() => setActiveTab("inscricoes")}
-            className="tab-btn"
-            style={{
-              background: activeTab === "inscricoes" ? "white" : "rgba(255,255,255,0.6)",
-              color: activeTab === "inscricoes" ? "#e91e63" : "#666",
-            }}
+            className={`tab-btn ${activeTab === "inscricoes" ? "active" : ""}`}
           >
             <Calendar size={18} /> Inscrições
           </button>
 
           <button
             onClick={() => setActiveTab("documento")}
-            className="tab-btn"
-            style={{
-              background: activeTab === "documento" ? "white" : "rgba(255,255,255,0.6)",
-              color: activeTab === "documento" ? "#e91e63" : "#666",
-            }}
+            className={`tab-btn ${activeTab === "documento" ? "active" : ""}`}
           >
-            <FileText size={18} /> Escala
+            <FileText size={18} /> Escala Oficial
           </button>
 
-          <button
-            onClick={onLogout}
-            className="tab-btn"
-            style={{ background: "rgba(255,255,255,0.4)" }}
-          >
-            Sair
+          <button onClick={onLogout} className="tab-btn logout">
+            <LogOut size={18} /> Sair
           </button>
         </div>
       </div>
 
+      {/* 3. Conteúdo Principal */}
       {activeTab === "inscricoes" ? (
-        <div className="container-responsive" style={{ marginTop: "-10px" }}>
-          <div style={{ display: "grid", gap: 20, paddingBottom: 40 }}>
+        <div className="container-responsive">
+          <div style={{ display: "grid", gap: "20px", paddingBottom: "40px" }}>
             {masses.map((mass) => {
-              // --- CÁLCULOS DE SEGURANÇA ---
-              // Usamos ?? 0 para garantir que não quebre se _count for undefined
               const totalInscritos = mass._count?.signups ?? 0;
               const vagasRestantes = mass.maxServers - totalInscritos;
-
               const jaEstouInscrita = mass.signups.some((s) => s.userId === user.id);
               const minhaFuncao = mass.signups.find((s) => s.userId === user.id)?.role;
               const prazoEncerrado = isExpired(mass.deadline);
-
-              // Regra do Botão: Só desabilita se estiver CHEIO e eu estiver FORA (ou prazo acabou)
               const botaoDesabilitado =
-                prazoEncerrado || (!jaEstouInscrita && vagasRestantes <= 0);
+                (!jaEstouInscrita && prazoEncerrado) ||
+                (!jaEstouInscrita && vagasRestantes <= 0);
+
+              // Determina a classe do botão para estilização
+              let btnClass = "servir"; // Padrão
+              if (jaEstouInscrita) btnClass = "desistir";
+              if (botaoDesabilitado) btnClass = "disabled";
 
               return (
                 <div
                   key={mass.id}
-                  className="mass-card"
-                  style={{ opacity: prazoEncerrado ? 0.7 : 1 }}
+                  className={`mass-card ${prazoEncerrado && !jaEstouInscrita ? "disabled" : ""}`}
                 >
-                  {/* Countdown */}
-                  {mass.deadline && (
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "flex-end",
-                        marginBottom: -10,
-                      }}
-                    >
-                      <CountdownTimer deadline={mass.deadline} />
-                    </div>
+                  {/* Cronômetro no topo direito */}
+                  {mass.deadline && !prazoEncerrado && (
+                    <CountdownTimer deadline={mass.deadline} />
                   )}
 
-                  {/* Cabeçalho do Card (Data e Nome) */}
                   <div className="card-header">
-                    <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
-                      <div className="date-badge">
-                        <span
-                          style={{
-                            display: "block",
-                            fontSize: "1.2rem",
-                            fontWeight: "bold",
-                            lineHeight: 1,
-                          }}
-                        >
-                          {new Date(mass.date).toLocaleDateString("pt-BR", {
-                            day: "2-digit",
-                          })}
-                        </span>
-                        <span style={{ fontSize: "0.7rem", fontWeight: 600 }}>
-                          {new Date(mass.date)
-                            .toLocaleDateString("pt-BR", { month: "short" })
-                            .toUpperCase()}
-                        </span>
-                      </div>
+                    {/* Badge da Data */}
+                    <div className="date-badge">
+                      <span className="date-day">
+                        {new Date(mass.date).toLocaleDateString("pt-BR", {
+                          day: "2-digit",
+                        })}
+                      </span>
+                      <span className="date-month">
+                        {new Date(mass.date).toLocaleDateString("pt-BR", {
+                          month: "short",
+                        })}
+                      </span>
+                    </div>
 
-                      <div>
-                        {mass.name && (
-                          <div
-                            style={{
-                              color: "#e91e63",
-                              fontWeight: "bold",
-                              fontSize: "0.9rem",
-                            }}
-                          >
-                            {mass.name}
-                          </div>
-                        )}
-                        <h3
-                          style={{
-                            margin: 0,
-                            fontSize: "1.1rem",
-                            textTransform: "capitalize",
-                          }}
-                        >
-                          {new Date(mass.date).toLocaleDateString("pt-BR", {
-                            weekday: "long",
-                          })}
-                        </h3>
-                        <span style={{ color: "#888", fontSize: "0.9rem" }}>
-                          {new Date(mass.date).toLocaleTimeString("pt-BR", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
+                    {/* Informações da Missa */}
+                    <div className="mass-info">
+                      {mass.name && <div className="mass-name">{mass.name}</div>}
+                      <h3>
+                        {new Date(mass.date).toLocaleDateString("pt-BR", {
+                          weekday: "long",
+                        })}
+                      </h3>
+                      <div className="mass-time">
+                        <Clock size={14} />
+                        {new Date(mass.date).toLocaleTimeString("pt-BR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </div>
                     </div>
 
+                    {/* Badge se já tiver função */}
                     {jaEstouInscrita && minhaFuncao && (
                       <div className="tag-role">{minhaFuncao}</div>
                     )}
                   </div>
 
-                  {/* Rodapé do Card (Vagas e Botão) */}
                   <div className="card-footer">
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        color: "#666",
-                      }}
-                    >
-                      <User size={18} />
-                      <span style={{ fontSize: "0.9rem" }}>
-                        <strong style={{ color: "#e91e63" }}>{totalInscritos}</strong> /{" "}
-                        {mass.maxServers} vagas
-                      </span>
+                    {/* Contador de Vagas */}
+                    <div className="vagas-info">
+                      <User size={16} />
+                      <strong>{totalInscritos}</strong>
+                      <span>/ {mass.maxServers} vagas</span>
                     </div>
 
+                    {/* Botão de Ação */}
                     <button
-                      className="btn-action"
+                      className={`btn-action ${btnClass}`}
                       onClick={() => onToggleSignup(mass.id)}
                       disabled={botaoDesabilitado}
-                      style={{
-                        // Lógica de Cores do Botão
-                        background: prazoEncerrado
-                          ? "#e0e0e0" // Prazo acabou: Cinza
-                          : jaEstouInscrita
-                            ? "white" // Já estou inscrita: Branco (para destacar o texto vermelho)
-                            : vagasRestantes > 0
-                              ? "#e91e63" // Tem vaga: Rosa
-                              : "#e0e0e0", // Lotado: Cinza
-
-                        color: prazoEncerrado
-                          ? "#888"
-                          : jaEstouInscrita
-                            ? "#d32f2f" // Texto Vermelho (Desistir)
-                            : vagasRestantes > 0
-                              ? "white" // Texto Branco (Servir)
-                              : "#888", // Texto Cinza (Lotado)
-
-                        border:
-                          jaEstouInscrita && !prazoEncerrado
-                            ? "1px solid #d32f2f"
-                            : "none",
-
-                        cursor: botaoDesabilitado ? "not-allowed" : "pointer",
-                      }}
                     >
-                      {prazoEncerrado
-                        ? "Encerrado"
-                        : jaEstouInscrita
-                          ? "Desistir"
-                          : vagasRestantes > 0
-                            ? "Servir"
-                            : "Lotado"}
+                      {prazoEncerrado && !jaEstouInscrita ? (
+                        <>Encerrado</>
+                      ) : jaEstouInscrita ? (
+                        <>Desistir</>
+                      ) : vagasRestantes > 0 ? (
+                        <>
+                          <Heart size={16} fill="white" /> Servir
+                        </>
+                      ) : (
+                        <>Lotado</>
+                      )}
                     </button>
                   </div>
 
-                  {/* Mensagem de erro/aviso */}
-                  {prazoEncerrado && (
+                  {/* Mensagem discreta de encerramento */}
+                  {prazoEncerrado && !jaEstouInscrita && (
                     <div
                       style={{
                         textAlign: "center",
-                        fontSize: "0.8rem",
+                        fontSize: "0.75rem",
                         color: "#999",
-                        marginTop: -5,
+                        marginTop: "-10px",
                       }}
                     >
-                      Inscrições encerradas.
+                      Inscrições finalizadas.
                     </div>
                   )}
                 </div>
