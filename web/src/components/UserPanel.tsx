@@ -11,28 +11,24 @@ interface UserPanelProps {
   onLogout: () => void;
 }
 
-// --- FUNÇÃO AUXILIAR PARA AJUSTAR O PRAZO ---
-// Se for 00:00 (meia-noite cravada), assume que é prazo do dia todo (23:59).
-// Se tiver qualquer minuto ou hora (ex: 00:30), respeita o horário exato.
+// Helper para ajustar prazo de 00:00 para 23:59
 const getAdjustedDeadline = (deadlineString: string) => {
   const date = new Date(deadlineString);
-
-  // Verifica se é exatamente 00:00:00
-  if (date.getHours() === 0 && date.getMinutes() === 0 && date.getSeconds() === 0) {
+  // Se for meia-noite exata, joga para o fim do dia
+  if (date.getHours() === 0 && date.getMinutes() === 0) {
     date.setHours(23, 59, 59, 999);
   }
-
   return date;
 };
 
-// --- COMPONENTE DE CRONÔMETRO ---
+// Cronômetro
 function CountdownTimer({ deadline }: { deadline: string }) {
   const [timeLeft, setTimeLeft] = useState("");
 
   useEffect(() => {
     const calculateTime = () => {
       const now = new Date();
-      const deadlineDate = getAdjustedDeadline(deadline); // Usa a função inteligente
+      const deadlineDate = getAdjustedDeadline(deadline);
       const distance = deadlineDate.getTime() - now.getTime();
 
       if (distance < 0) {
@@ -41,20 +37,13 @@ function CountdownTimer({ deadline }: { deadline: string }) {
         const days = Math.floor(distance / (1000 * 60 * 60 * 24));
         const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((distance % (1000 * 60)) / 1000); // Adicionei segundos para precisão
 
-        if (days > 0) {
-          setTimeLeft(`${days}d ${hours}h`);
-        } else if (hours > 0) {
-          setTimeLeft(`${hours}h ${minutes}m`);
-        } else {
-          setTimeLeft(`${minutes}m ${seconds}s`); // Mostra segundos se faltar menos de 1h
-        }
+        if (days > 0) setTimeLeft(`${days}d ${hours}h`);
+        else setTimeLeft(`${hours}h ${minutes}m`);
       }
     };
-
     calculateTime();
-    const interval = setInterval(calculateTime, 1000); // Atualiza a cada segundo agora
+    const interval = setInterval(calculateTime, 1000 * 60);
     return () => clearInterval(interval);
   }, [deadline]);
 
@@ -68,14 +57,13 @@ function CountdownTimer({ deadline }: { deadline: string }) {
         right: 15,
         background: "#fff0f5",
         color: "#d81b60",
-        fontSize: "0.75rem",
+        fontSize: "0.7rem",
         fontWeight: "bold",
         padding: "4px 8px",
         borderRadius: "8px",
         display: "flex",
         alignItems: "center",
         gap: "4px",
-        zIndex: 2,
       }}
     >
       <Clock size={12} /> {timeLeft}
@@ -86,28 +74,23 @@ function CountdownTimer({ deadline }: { deadline: string }) {
 export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelProps) {
   const [activeTab, setActiveTab] = useState<"inscricoes" | "documento">("inscricoes");
 
-  // --- LÓGICA DE VALIDAÇÃO (Precisão de Horário) ---
   const isExpired = (deadline?: string) => {
     if (!deadline) return false;
-    const agora = new Date();
-    const dataPrazo = getAdjustedDeadline(deadline);
-
-    // Agora a comparação é exata (milessegundos)
-    return agora.getTime() > dataPrazo.getTime();
+    return new Date().getTime() > getAdjustedDeadline(deadline).getTime();
   };
 
   return (
     <div className="user-panel-container">
-      {/* 1. Header Hero */}
+      {/* Header */}
       <div className="header-hero no-print">
         <div className="header-icon-wrapper">
-          <Flower size={36} strokeWidth={2} color="white" />
+          <Flower size={32} strokeWidth={2} color="white" />
         </div>
         <h1>Escala das Servas</h1>
         <p>"Servir com alegria."</p>
       </div>
 
-      {/* 2. Menu Flutuante */}
+      {/* Abas */}
       <div className="container-tabs no-print">
         <div className="menu-tabs">
           <button
@@ -116,39 +99,33 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           >
             <Calendar size={16} /> Inscrições
           </button>
-
           <button
             onClick={() => setActiveTab("documento")}
             className={`tab-btn ${activeTab === "documento" ? "active" : ""}`}
           >
             <FileText size={16} /> Escala
           </button>
-
           <button onClick={onLogout} className="tab-btn logout">
             <LogOut size={16} />
           </button>
         </div>
       </div>
 
-      {/* 3. Conteúdo */}
+      {/* Lista */}
       {activeTab === "inscricoes" ? (
-        <div className="container-responsive" style={{ paddingTop: "20px" }}>
-          <div style={{ display: "grid", gap: "15px", paddingBottom: "40px" }}>
+        <div className="container-responsive">
+          <div style={{ padding: "0 15px" }}>
             {masses.map((mass) => {
               const totalInscritos = mass._count?.signups ?? 0;
               const vagasRestantes = mass.maxServers - totalInscritos;
               const jaEstouInscrita = mass.signups.some((s) => s.userId === user.id);
               const minhaFuncao = mass.signups.find((s) => s.userId === user.id)?.role;
 
-              // Verifica validade com a nova função precisa
               const prazoEncerrado = isExpired(mass.deadline);
               const lotado = vagasRestantes <= 0;
-
-              // Lógica de bloqueio do botão
               const botaoDesabilitado =
                 (!jaEstouInscrita && prazoEncerrado) || (!jaEstouInscrita && lotado);
 
-              // Classes de Estilo do Botão
               let btnClass = "servir";
               if (jaEstouInscrita) btnClass = "desistir";
               else if (botaoDesabilitado) btnClass = "disabled";
@@ -165,41 +142,27 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
 
                   <div className="card-header">
                     <div className="date-badge">
-                      <span className="date-day">{new Date(mass.date).getUTCDate()}</span>
+                      {/* Removi o UTC forçado para usar a data corrigida do backend */}
+                      <span className="date-day">{new Date(mass.date).getDate()}</span>
                       <span className="date-month">
                         {new Date(mass.date)
-                          .toLocaleDateString("pt-BR", {
-                            month: "short",
-                            timeZone: "UTC",
-                          })
+                          .toLocaleDateString("pt-BR", { month: "short" })
                           .replace(".", "")}
                       </span>
                     </div>
 
                     <div className="mass-info">
-                      {mass.name && (
-                        <div
-                          style={{
-                            color: "#e91e63",
-                            fontWeight: "bold",
-                            fontSize: "0.8rem",
-                          }}
-                        >
-                          {mass.name}
-                        </div>
-                      )}
                       <h3>
                         {new Date(mass.date).toLocaleDateString("pt-BR", {
                           weekday: "long",
-                          timeZone: "UTC",
                         })}
                       </h3>
                       <div className="mass-time">
                         <Clock size={14} />
+                        {/* Exibe a hora normal (agora que o backend salvou certo) */}
                         {new Date(mass.date).toLocaleTimeString("pt-BR", {
                           hour: "2-digit",
                           minute: "2-digit",
-                          timeZone: "UTC",
                         })}
                       </div>
                     </div>
@@ -223,12 +186,12 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                   )}
 
                   <div className="card-footer">
-                    <div className="vagas-info">
-                      <User size={16} />
-                      <span style={{ fontWeight: "bold", color: "#333" }}>
-                        {totalInscritos}
-                      </span>
-                      <span>/ {mass.maxServers}</span>
+                    <div
+                      className="vagas-info"
+                      style={{ color: "#666", fontSize: "0.9rem" }}
+                    >
+                      <User size={16} style={{ marginRight: 4 }} />
+                      <strong>{totalInscritos}</strong> / {mass.maxServers} vagas
                     </div>
 
                     <button
@@ -237,11 +200,11 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                       disabled={botaoDesabilitado}
                     >
                       {jaEstouInscrita ? (
-                        <>Desistir</>
+                        "Desistir"
                       ) : prazoEncerrado ? (
-                        <>Encerrado</>
+                        "Encerrado"
                       ) : lotado ? (
-                        <>Lotado</>
+                        "Lotado"
                       ) : (
                         <>
                           <Heart size={16} fill="white" /> Servir

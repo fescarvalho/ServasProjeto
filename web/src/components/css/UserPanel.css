@@ -1,48 +1,44 @@
 :root {
-  --primary-rose: #961a44;
-  --primary-rose-light: #fce4ec;
-  --bg-light: #f4f7f6;
-  --white: #ffffff;
-  --text-dark: #2c3e50;
-  --text-gray: #95a5a6;
-  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.05);
-  --radius: 16px;
+  --primary-rose: #a21e4a;
+  --bg-light: #f8f9fa;
+  --text-dark: #333;
 }
 
+/* Fundo da Página */
 body {
   background-color: var(--bg-light);
+  margin: 0;
+}
+.user-panel-container {
+  min-height: 100vh;
+  padding-bottom: 40px;
 }
 
-/* --- HERO HEADER --- */
+/* --- HERO HEADER (Topo Rosa) --- */
 .header-hero {
-  background: linear-gradient(135deg, #911641 0%, #9f1e49 100%);
-  color: white; /* Texto Branco Forçado */
-  padding: 30px 20px 70px; /* Espaço extra embaixo para as abas encaixarem */
+  background: linear-gradient(135deg, #5d112a 0%, #a12c57 100%);
+  color: white;
+  padding: 30px 20px 60px; /* Espaço extra embaixo para as abas */
   text-align: center;
-  border-bottom-left-radius: 35px;
-  border-bottom-right-radius: 35px;
-  box-shadow: 0 10px 20px rgba(233, 30, 99, 0.2);
-  position: relative;
-  z-index: 1;
+  border-bottom-left-radius: 30px;
+  border-bottom-right-radius: 30px;
+  box-shadow: 0 4px 15px rgba(233, 30, 99, 0.3);
 }
 
 .header-hero h1 {
   margin: 10px 0 5px;
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: white; /* Garantia de cor */
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-size: 1.5rem;
+  color: white;
 }
-
 .header-hero p {
-  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  opacity: 0.9;
   font-size: 0.9rem;
   font-style: italic;
-  margin: 0;
 }
 
 .header-icon-wrapper {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.2);
   width: 60px;
   height: 60px;
   border-radius: 50%;
@@ -50,75 +46,63 @@ body {
   align-items: center;
   justify-content: center;
   margin: 0 auto;
-  backdrop-filter: blur(4px);
-  border: 2px solid rgba(255, 255, 255, 0.3);
 }
 
-/* --- MENU DE ABAS (CORRIGIDO) --- */
+/* --- MENU DE ABAS (Flutuante) --- */
 .container-tabs {
-  margin-top: -35px; /* Sobe para ficar em cima do header */
-  padding: 0 15px;
-  position: relative;
-  z-index: 10;
+  margin-top: -30px; /* Sobe por cima do rosa */
+  padding: 0 20px;
+  margin-bottom: 20px;
 }
 
 .menu-tabs {
   background: white;
-  padding: 6px;
+  padding: 5px;
   border-radius: 50px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
   display: flex;
-  justify-content: space-between; /* Distribui espaço igualmente */
-  gap: 5px;
+  justify-content: space-between;
 }
 
 .tab-btn {
-  flex: 1; /* Faz os botões terem o mesmo tamanho */
+  flex: 1; /* Divide espaço igual */
   border: none;
   background: transparent;
   padding: 10px 0;
   border-radius: 40px;
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--text-gray);
+  color: #777;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  transition: all 0.3s ease;
-  white-space: nowrap; /* Impede quebra de texto */
+  transition: all 0.2s;
 }
 
 .tab-btn.active {
   background-color: var(--primary-rose);
   color: white;
-  box-shadow: 0 4px 12px rgba(233, 30, 99, 0.3);
+  box-shadow: 0 2px 8px rgba(233, 30, 99, 0.3);
 }
-
 .tab-btn.logout {
-  color: #e74c3c;
-  flex: 0.6; /* Botão sair um pouco menor */
+  color: #d32f2f;
+  flex: 0.5;
 }
 
 /* --- CARDS --- */
 .mass-card {
   background: white;
-  border-radius: var(--radius);
+  border-radius: 16px;
   padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: var(--shadow-card);
-  border: 1px solid rgba(0, 0, 0, 0.02);
-  transition: transform 0.2s;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.03);
 }
-
-.mass-card:active {
-  transform: scale(0.98);
-}
-
 .mass-card.disabled {
-  background-color: #fcfcfc;
-  border: 1px solid #eee;
+  opacity: 0.8;
+  background: #fafafa;
 }
 
 .card-header {
@@ -129,17 +113,16 @@ body {
 }
 
 .date-badge {
-  background: var(--primary-rose-light);
-  color: var(--primary-rose);
+  background: #fce4ec;
+  color: #c2185b;
   border-radius: 12px;
   padding: 8px 12px;
   text-align: center;
-  min-width: 55px;
+  min-width: 50px;
 }
-
 .date-day {
   display: block;
-  font-size: 1.3rem;
+  font-size: 1.4rem;
   font-weight: 800;
   line-height: 1;
 }
@@ -152,12 +135,11 @@ body {
 .mass-info h3 {
   margin: 0;
   font-size: 1.1rem;
-  color: var(--text-dark);
   text-transform: capitalize;
+  color: #333;
 }
-
 .mass-time {
-  color: var(--text-gray);
+  color: #666;
   font-size: 0.9rem;
   display: flex;
   align-items: center;
@@ -165,25 +147,16 @@ body {
   margin-top: 4px;
 }
 
-/* --- FOOTER DO CARD --- */
 .card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid #eee;
   padding-top: 15px;
-}
-
-.vagas-info {
-  font-size: 0.9rem;
-  color: var(--text-gray);
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 6px;
 }
 
 .btn-action {
-  padding: 10px 20px;
+  padding: 8px 20px;
   border-radius: 30px;
   border: none;
   font-weight: 600;
@@ -192,22 +165,18 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  transition: all 0.2s;
 }
-
 .btn-action.servir {
   background: var(--primary-rose);
   color: white;
-  box-shadow: 0 4px 10px rgba(233, 30, 99, 0.2);
 }
 .btn-action.desistir {
   background: white;
-  border: 1px solid #e74c3c;
-  color: #e74c3c;
+  border: 1px solid #d32f2f;
+  color: #d32f2f;
 }
 .btn-action.disabled {
-  background: #e0e0e0;
-  color: #a0a0a0;
+  background: #eee;
+  color: #999;
   cursor: not-allowed;
-  box-shadow: none;
 }

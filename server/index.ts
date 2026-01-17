@@ -7,10 +7,10 @@ import { PrismaClient } from "@prisma/client";
 const app = express();
 const prisma = new PrismaClient();
 
-// Configuração do CORS para aceitar seu Frontend na Vercel
+// Configuração do CORS
 app.use(
   cors({
-    origin: "*", // Libera para todos (ideal para testes iniciais)
+    origin: "*", // Libera para todos (ajuste para seu domínio em produção)
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
@@ -48,7 +48,7 @@ app.get("/masses", async (req, res) => {
   res.json(masses);
 });
 
-// Rota de Login Simples
+// Rota de Login (CORRIGIDA)
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -61,16 +61,18 @@ app.post("/login", async (req, res) => {
       return res.status(404).json({ error: "Usuário não encontrado" });
     }
 
-    if (user && user.password === password) {
-      res.json({
+    if (user.password === password) {
+      // ✅ ADICIONADO O RETURN AQUI PARA PARAR A EXECUÇÃO
+      return res.json({
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role, // <--- ESSA LINHA É FUNDAMENTAL!
+        role: user.role, // Importante para o painel Admin
       });
     }
 
-    return res.json(user);
+    // Se chegou aqui, a senha estava errada
+    return res.status(401).json({ error: "Senha incorreta" });
   } catch (error) {
     return res.status(500).json({ error: "Erro interno no servidor" });
   }
@@ -80,18 +82,16 @@ app.post("/toggle-signup", async (req, res) => {
   const { userId, massId } = req.body;
 
   try {
-    // 1. Busca a missa e quem já está inscrito nela
     const mass = await prisma.mass.findUnique({
       where: { id: massId },
-      include: { signups: true }, // Traz a lista de inscritos
+      include: { signups: true },
     });
 
     if (!mass) return res.status(404).json({ error: "Missa não encontrada" });
 
-    // 2. Verifica se a serva JÁ está inscrita
     const existingSignup = mass.signups.find((s) => s.userId === userId);
 
-    // --- CENÁRIO A: ELA JÁ ESTÁ NA LISTA (QUER SAIR) ---
+    // CENÁRIO A: SAIR
     if (existingSignup) {
       await prisma.signup.delete({
         where: { id: existingSignup.id },
@@ -99,15 +99,11 @@ app.post("/toggle-signup", async (req, res) => {
       return res.json({ message: "Inscrição removida com sucesso" });
     }
 
-    // --- CENÁRIO B: ELA QUER ENTRAR (AQUI É O PULO DO GATO) ---
-
-    // Verifica se já lotou
+    // CENÁRIO B: ENTRAR
     if (mass.signups.length >= mass.maxServers) {
-      // ⛔ AQUI ACONTECE O BLOQUEIO!
       return res.status(400).json({ error: "Limite de vagas atingido." });
     }
 
-    // Se tem vaga, deixa entrar
     await prisma.signup.create({
       data: { userId, massId },
     });
@@ -133,12 +129,19 @@ app.patch("/signup/:id/role", async (req, res) => {
   }
 });
 
+// EDITAR MISSA (CORRIGIDO FUSO HORÁRIO)
 app.put("/masses/:id", async (req, res) => {
   const { id } = req.params;
   const { date, time, maxServers, name, deadline } = req.body;
 
   try {
-    const dataCompleta = new Date(`${date}T${time}:00`);
+    // Mesma lógica de correção manual
+    const [ano, mes, dia] = date.split("-").map(Number);
+    const [hora, minuto] = time.split(":").map(Number);
+
+    const dataCompleta = new Date(Date.UTC(ano, mes - 1, dia, hora, minuto));
+    dataCompleta.setUTCHours(dataCompleta.getUTCHours() + 3);
+
     const dataLimite = deadline ? new Date(deadline) : null;
 
     const updatedMass = await prisma.mass.update({
@@ -157,11 +160,23 @@ app.put("/masses/:id", async (req, res) => {
   }
 });
 
+// CRIAR MISSA (CORRIGIDO FUSO HORÁRIO)
 app.post("/masses", async (req, res) => {
   const { date, time, maxServers, name, deadline } = req.body;
 
   try {
-    const dataCompleta = new Date(`${date}T${time}:00`);
+    // 1. Quebra as strings "2023-01-20" e "19:00" em números
+    const [ano, mes, dia] = date.split("-").map(Number);
+    const [hora, minuto] = time.split(":").map(Number);
+
+    // 2. Cria a data em UTC Puro (Ignora se o servidor está no Brasil ou China)
+    // Mês no JS começa em 0, por isso "mes - 1"
+    const dataCompleta = new Date(Date.UTC(ano, mes - 1, dia, hora, minuto));
+
+    // 3. Adiciona 3 horas para compensar o Brasil (UTC-3)
+    // 19:00 Brasil viram 22:00 UTC no banco.
+    dataCompleta.setUTCHours(dataCompleta.getUTCHours() + 3);
+
     const dataLimite = deadline ? new Date(deadline) : null;
 
     let scale = await prisma.scale.findFirst();
@@ -187,7 +202,6 @@ app.post("/masses", async (req, res) => {
     res.status(500).json({ error: "Erro ao criar missa" });
   }
 });
-
 app.delete("/masses/:id", async (req, res) => {
   const { id } = req.params;
   try {
@@ -201,8 +215,6 @@ app.delete("/masses/:id", async (req, res) => {
 });
 
 // --- A MÁGICA PARA VERCEL ---
-
-// Só inicia o servidor na porta se NÃO estivermos na Vercel (Produção)
 if (process.env.NODE_ENV !== "production") {
   const PORT = process.env.PORT || 3001;
   app.listen(Number(PORT), "0.0.0.0", () => {
@@ -210,5 +222,4 @@ if (process.env.NODE_ENV !== "production") {
   });
 }
 
-// Exporta o app para a Vercel executar como Serverless Function
 export default app;

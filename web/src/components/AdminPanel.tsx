@@ -13,7 +13,7 @@ import { api } from "../services/api";
 import { Mass, FUNCOES } from "../types/types";
 import { ScaleModal } from "./ScaleModal";
 import { OfficialDocument } from "./OfficialDocument";
-import "./css/AdminPanel.css"; // <--- Importante: O CSS que criamos
+import "./css/AdminPanel.css";
 
 interface AdminPanelProps {
   masses: Mass[];
@@ -38,16 +38,27 @@ export function AdminPanel({ masses, onUpdate, onLogout }: AdminPanelProps) {
     return <OfficialDocument masses={masses} onBack={() => setViewMode("dashboard")} />;
   }
 
-  // Lógica de Edição (Mantida igual)
+  // --- LÓGICA DE EDIÇÃO (CORRIGIDA) ---
   function handleStartEdit(mass: Mass) {
     const d = new Date(mass.date);
     setEditingId(mass.id);
-    setNewDate(d.toISOString().split("T")[0]);
+
+    // CORREÇÃO: Converte a data UTC do banco para a Data Local para preencher o input
+    // Isso evita que dia 20 vire dia 19 ao editar
+    const localDate = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+      .toISOString()
+      .split("T")[0];
+
+    setNewDate(localDate);
+
+    // Hora
     setNewTime(d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
+
     setNewName(mass.name || "");
     setNewMax(mass.maxServers);
 
     if (mass.deadline) {
+      // Ajuste de fuso para o prazo também
       const deadlineDate = new Date(mass.deadline);
       const offset = deadlineDate.getTimezoneOffset() * 60000;
       const localISOTime = new Date(deadlineDate.getTime() - offset)
@@ -70,7 +81,7 @@ export function AdminPanel({ masses, onUpdate, onLogout }: AdminPanelProps) {
     setNewDeadline("");
   }
 
-  // Lógica de Envio (Mantida igual)
+  // Lógica de Envio
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!newDate) return;
@@ -89,7 +100,7 @@ export function AdminPanel({ masses, onUpdate, onLogout }: AdminPanelProps) {
       onUpdate();
       handleCancelEdit();
     } catch (error) {
-      console.error("Erro na operação:", error); // O erro agora é utilizado
+      console.error("Erro na operação:", error);
       alert("Ocorreu um erro ao processar sua solicitação.");
     }
   }
@@ -139,7 +150,7 @@ export function AdminPanel({ masses, onUpdate, onLogout }: AdminPanelProps) {
         </div>
       </div>
 
-      {/* --- FORMULÁRIO (Card Rosa) --- */}
+      {/* --- FORMULÁRIO --- */}
       <div
         className="new-mass-card no-print"
         style={{

@@ -1,247 +1,319 @@
-import { ArrowLeft, Download, Flower } from "lucide-react";
-import html2pdf from "html2pdf.js";
-import { Mass, FUNCOES } from "../types/types";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { Download, ArrowLeft, Flower } from "lucide-react";
+import { Mass } from "../types/types";
 
-interface DocumentProps {
+interface OfficialDocumentProps {
   masses: Mass[];
   onBack?: () => void;
 }
 
-export function OfficialDocument({ masses, onBack }: DocumentProps) {
-  const handleDownloadPDF = () => {
-    const element = document.getElementById("documento-pdf");
-    if (!element) return;
+export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
+  const generatePDF = () => {
+    const doc = new jsPDF();
 
-    // Removemos temporariamente as transformações de escala para o download sair perfeito
-    const originalStyle = element.style.transform;
-    element.style.transform = "none";
+    // --- CABEÇALHO DO PDF (Mais delicado) ---
+    // Adiciona uma linha rosa fina no topo
+    doc.setDrawColor(233, 30, 99);
+    doc.setLineWidth(1.5);
+    doc.line(14, 15, 196, 15);
 
-    const opt = {
-      margin: 0,
-      filename: "Escala_Servas.pdf",
-      image: { type: "jpeg" as const, quality: 0.98 },
-      html2canvas: {
-        scale: 2,
-        useCORS: true,
-        letterRendering: true,
-      },
-      jsPDF: {
-        unit: "mm" as const,
-        format: "a4" as const,
-        orientation: "portrait" as const,
-      },
-    };
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.setTextColor(233, 30, 99); // Rosa
+    doc.text("Escala das Servas", 105, 25, { align: "center" });
 
-    html2pdf()
-      .set(opt)
-      .from(element)
-      .save()
-      .then(() => {
-        // Restaura o estilo de visualização após o download
-        element.style.transform = originalStyle;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString("pt-BR")}`, 105, 32, {
+      align: "center",
+    });
+
+    // --- PROCESSAMENTO DAS LINHAS ---
+    const tableRows = masses.map((mass) => {
+      // Formatação de Data
+      const dataObj = new Date(mass.date);
+      const diaMes = dataObj.toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
       });
+      // Dia da semana (Primeira letra maiúscula)
+      const diaSemana = dataObj
+        .toLocaleDateString("pt-BR", { weekday: "long" })
+        .replace(/^\w/, (c) => c.toUpperCase());
+
+      const hora = dataObj.toLocaleTimeString("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      // Busca Funções
+      const cerimoniaria =
+        mass.signups.find((s) => s.role === "Cerimoniária")?.user.name || "-";
+      const librifera =
+        mass.signups.find((s) => s.role === "Librífera")?.user.name || "-";
+
+      const listaAuxiliares = mass.signups
+        .filter((s) => s.role === "Auxiliar" || !s.role)
+        .map((s) => s.user.name);
+
+      const auxiliares = listaAuxiliares.length > 0 ? listaAuxiliares.join(", ") : "-";
+
+      // Retorna a linha
+      return [
+        `${diaMes}\n${diaSemana}`, // Coluna Data com Dia da Semana
+        hora,
+        cerimoniaria,
+        librifera,
+        auxiliares,
+      ];
+    });
+
+    // --- CRIAÇÃO DA TABELA (Estilo Clean) ---
+    autoTable(doc, {
+      startY: 40,
+      head: [["Data", "Hora", "Cerimoniária", "Librífera", "Auxiliares"]],
+      body: tableRows,
+      theme: "grid", // Tema com linhas finas
+      styles: {
+        fontSize: 10,
+        cellPadding: 5,
+        valign: "middle",
+        textColor: [60, 60, 60], // Cinza escuro elegante
+        lineColor: [230, 230, 230], // Linhas bem clarinhas
+        lineWidth: 0.1,
+      },
+      headStyles: {
+        fillColor: [233, 30, 99], // Rosa Principal
+        textColor: 255,
+        fontStyle: "bold",
+        halign: "center", // Centraliza cabeçalho
+      },
+      columnStyles: {
+        0: { cellWidth: 30, halign: "center" }, // Data
+        1: { cellWidth: 20, halign: "center" }, // Hora
+        2: { cellWidth: 35 }, // Cerimoniária
+        3: { cellWidth: 35 }, // Librífera
+        4: { cellWidth: "auto" }, // Auxiliares
+      },
+      alternateRowStyles: {
+        fillColor: [255, 250, 251], // Um rosa quase branco, muito sutil
+      },
+    });
+
+    // Rodapé fofo
+    const pageHeight = doc.internal.pageSize.height;
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text('"Servir com alegria"', 105, pageHeight - 10, { align: "center" });
+
+    doc.save("escala-servas.pdf");
   };
 
   return (
     <div
       style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        padding: "20px 10px",
-        background: "#555",
-        minHeight: "100vh",
-        width: "100%",
-        boxSizing: "border-box",
-        overflowX: "hidden", // Evita que a página inteira balance
+        padding: "20px",
+        maxWidth: "900px",
+        margin: "0 auto",
+        fontFamily: "sans-serif",
       }}
     >
       <div
-        className="no-print"
         style={{
-          marginBottom: 20,
+          background: "white",
+          padding: "40px",
+          borderRadius: "24px",
+          boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
           textAlign: "center",
-          display: "flex",
-          gap: 10,
-          flexWrap: "wrap",
-          justifyContent: "center",
+          border: "1px solid #fff0f5", // Borda rosa muito sutil
         }}
       >
-        {onBack && (
-          <button
-            onClick={onBack}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              padding: "10px 20px",
-              background: "white",
-              border: "none",
-              borderRadius: 8,
-              cursor: "pointer",
-              fontWeight: "bold",
-            }}
-          >
-            <ArrowLeft size={18} /> Voltar
-          </button>
-        )}
-        <button
-          onClick={handleDownloadPDF}
+        {/* Ícone de Flor Decorativo */}
+        <div
           style={{
+            background: "#fce4ec",
+            width: "60px",
+            height: "60px",
+            borderRadius: "50%",
             display: "flex",
             alignItems: "center",
-            gap: 10,
-            padding: "10px 24px",
-            background: "#ffeb3b",
-            color: "black",
-            border: "none",
-            borderRadius: 8,
-            cursor: "pointer",
-            fontWeight: "bold",
-            boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
+            justifyContent: "center",
+            margin: "0 auto 20px",
+            color: "#e91e63",
           }}
         >
-          <Download size={18} /> BAIXAR PDF AGORA
-        </button>
-      </div>
+          <Flower size={32} />
+        </div>
 
-      {/* Wrapper de Scroll para Mobile */}
-      <div
-        style={{
-          width: "100%",
-          display: "flex",
-          justifyContent: "center",
-          overflowX: "auto", // Permite ver a folha arrastando para o lado no celular
-          paddingBottom: "40px",
-        }}
-      >
+        <h2 style={{ color: "#333", marginBottom: "8px", fontSize: "1.8rem" }}>
+          Escala Oficial
+        </h2>
+        <p style={{ color: "#888", marginBottom: "30px", fontSize: "0.95rem" }}>
+          Visualize a lista detalhada ou baixe o PDF para impressão.
+        </p>
+
+        {/* Botões de Ação */}
         <div
-          id="documento-pdf"
           style={{
-            background: "white",
-            width: "210mm",
-            minHeight: "297mm",
-            padding: "20mm",
-            boxShadow: "0 0 20px rgba(0,0,0,0.5)",
-            color: "black",
-            fontFamily: '"Times New Roman", serif',
-            boxSizing: "border-box",
-            flexShrink: 0, // Impede que o flexbox tente "esmagar" a folha
+            display: "flex",
+            gap: "12px",
+            justifyContent: "center",
+            marginBottom: "40px",
           }}
         >
-          {/* Header */}
-          <div
-            style={{
-              textAlign: "center",
-              marginBottom: "30px",
-              borderBottom: "2px solid black",
-              paddingBottom: "20px",
-            }}
-          >
-            <div
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="btn-action"
               style={{
-                color: "black",
-                marginBottom: 10,
+                background: "white",
+                color: "#555",
+                border: "1px solid #eee",
+                padding: "12px 24px",
+                borderRadius: "50px",
+                cursor: "pointer",
                 display: "flex",
-                justifyContent: "center",
+                alignItems: "center",
+                gap: "8px",
+                fontWeight: 600,
+                transition: "all 0.2s",
+                boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
               }}
             >
-              <Flower size={50} strokeWidth={1} />
-            </div>
-            <h1 style={{ margin: 0, fontSize: "24pt", textTransform: "uppercase" }}>
-              Grupo de Servas Santa Terezinha
-            </h1>
-            <p style={{ margin: "5px 0 0 0", fontSize: "14pt", fontStyle: "italic" }}>
-              Paróquia Santuário Diocesano Nossa Senhora da Natividade
-            </p>
-          </div>
+              <ArrowLeft size={18} /> Voltar
+            </button>
+          )}
 
-          {/* Conteúdo */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-            {masses.map((mass) => {
-              const d = new Date(mass.date);
-              const dia = d.toLocaleDateString("pt-BR", {
-                day: "2-digit",
-                month: "long",
-              });
-              const sem = d.toLocaleDateString("pt-BR", { weekday: "long" });
-              const hora = d.toLocaleTimeString("pt-BR", {
-                hour: "2-digit",
-                minute: "2-digit",
-              });
-
-              return (
-                <div
-                  key={mass.id}
-                  style={{
-                    marginBottom: "15px",
-                    borderBottom: "1px dashed #ccc",
-                    paddingBottom: "15px",
-                    pageBreakInside: "avoid",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "baseline",
-                      marginBottom: "10px",
-                    }}
-                  >
-                    <h3 style={{ margin: 0, fontSize: "14pt" }}>
-                      {dia}{" "}
-                      <span style={{ fontSize: "11pt", fontWeight: "normal" }}>
-                        ({sem})
-                      </span>
-                    </h3>
-                    <span style={{ fontWeight: "bold", fontSize: "14pt" }}>{hora}</span>
-                  </div>
-
-                  {mass.name && (
-                    <div
-                      style={{
-                        fontStyle: "italic",
-                        marginBottom: "8px",
-                        fontSize: "12pt",
-                      }}
-                    >
-                      {mass.name}
-                    </div>
-                  )}
-
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
-                      gap: "10px",
-                    }}
-                  >
-                    {FUNCOES.map((funcao) => {
-                      const serva = mass.signups.find((s) => s.role === funcao);
-                      return (
-                        <div key={funcao} style={{ fontSize: "12pt" }}>
-                          <span style={{ fontWeight: "bold" }}>{funcao}:</span>{" "}
-                          {serva ? serva.user.name : "___________"}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Footer */}
-          <div
+          <button
+            onClick={generatePDF}
+            className="btn-action"
             style={{
-              marginTop: "50px",
-              textAlign: "center",
-              fontSize: "10pt",
-              color: "#666",
+              background: "linear-gradient(45deg, #e91e63, #ff4081)",
+              color: "white",
+              border: "none",
+              padding: "12px 30px",
+              borderRadius: "50px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              fontWeight: 600,
+              boxShadow: "0 4px 15px rgba(233, 30, 99, 0.3)",
+              transition: "transform 0.2s",
             }}
           >
-            <p>"Tudo é grande quando feito por amor."</p>
-          </div>
+            <Download size={18} /> Baixar PDF
+          </button>
+        </div>
+
+        {/* --- TABELA DE PRÉ-VISUALIZAÇÃO (Estilo Aesthetic) --- */}
+        <div
+          style={{
+            overflowX: "auto",
+            textAlign: "left",
+            borderRadius: "12px",
+            border: "1px solid #eee",
+          }}
+        >
+          <table
+            style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}
+          >
+            <thead>
+              <tr style={{ background: "#fdf2f6", color: "#c2185b" }}>
+                <th style={{ padding: "16px", fontWeight: "700" }}>Data</th>
+                <th style={{ padding: "16px", fontWeight: "700" }}>Hora</th>
+                <th style={{ padding: "16px", fontWeight: "700" }}>Cerimoniária</th>
+                <th style={{ padding: "16px", fontWeight: "700" }}>Librífera</th>
+                <th style={{ padding: "16px", fontWeight: "700" }}>Auxiliares</th>
+              </tr>
+            </thead>
+            <tbody>
+              {masses.map((mass, index) => {
+                const dataObj = new Date(mass.date);
+                // Funções
+                const cerimoniaria =
+                  mass.signups.find((s) => s.role === "Cerimoniária")?.user.name || "-";
+                const librifera =
+                  mass.signups.find((s) => s.role === "Librífera")?.user.name || "-";
+                const auxiliares = mass.signups
+                  .filter((s) => s.role === "Auxiliar" || !s.role)
+                  .map((s) => s.user.name)
+                  .join(", ");
+
+                return (
+                  <tr
+                    key={mass.id}
+                    style={{
+                      borderBottom: "1px solid #f5f5f5",
+                      background: index % 2 === 0 ? "white" : "#fffbfc", // Alternar cor muito sutil
+                    }}
+                  >
+                    <td style={{ padding: "16px", verticalAlign: "top" }}>
+                      <div
+                        style={{ fontWeight: "bold", color: "#333", fontSize: "1rem" }}
+                      >
+                        {dataObj.toLocaleDateString("pt-BR", {
+                          day: "2-digit",
+                          month: "2-digit",
+                        })}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: "0.75rem",
+                          color: "#e91e63",
+                          fontWeight: "600",
+                          textTransform: "uppercase",
+                          marginTop: "4px",
+                          letterSpacing: "0.5px",
+                        }}
+                      >
+                        {dataObj
+                          .toLocaleDateString("pt-BR", { weekday: "short" })
+                          .replace(".", "")}
+                      </div>
+                    </td>
+                    <td
+                      style={{
+                        padding: "16px",
+                        color: "#666",
+                        fontWeight: "500",
+                        verticalAlign: "middle",
+                      }}
+                    >
+                      {dataObj.toLocaleTimeString("pt-BR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </td>
+                    <td
+                      style={{ padding: "16px", color: "#444", verticalAlign: "middle" }}
+                    >
+                      {cerimoniaria}
+                    </td>
+                    <td
+                      style={{ padding: "16px", color: "#444", verticalAlign: "middle" }}
+                    >
+                      {librifera}
+                    </td>
+
+                    {/* Auxiliares agora em cinza, sem destaque rosa */}
+                    <td
+                      style={{
+                        padding: "16px",
+                        color: "#555",
+                        verticalAlign: "middle",
+                        lineHeight: "1.4",
+                      }}
+                    >
+                      {auxiliares || <span style={{ color: "#ccc" }}>-</span>}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
