@@ -80,41 +80,41 @@ app.post("/toggle-signup", async (req, res) => {
   const { userId, massId } = req.body;
 
   try {
+    // 1. Busca a missa e quem já está inscrito nela
     const mass = await prisma.mass.findUnique({
       where: { id: massId },
-      include: { _count: { select: { signups: true } } },
+      include: { signups: true }, // Traz a lista de inscritos
     });
 
     if (!mass) return res.status(404).json({ error: "Missa não encontrada" });
 
-    if (mass.deadline) {
-      const agora = new Date();
-      const limite = new Date(mass.deadline);
+    // 2. Verifica se a serva JÁ está inscrita
+    const existingSignup = mass.signups.find((s) => s.userId === userId);
 
-      if (agora > limite) {
-        return res.status(400).json({
-          error: "O prazo encerrou. Não é mais possível alterar sua inscrição.",
-        });
-      }
+    // --- CENÁRIO A: ELA JÁ ESTÁ NA LISTA (QUER SAIR) ---
+    if (existingSignup) {
+      await prisma.signup.delete({
+        where: { id: existingSignup.id },
+      });
+      return res.json({ message: "Inscrição removida com sucesso" });
     }
 
-    const existingSignup = await prisma.signup.findUnique({
-      where: { userId_massId: { userId, massId } },
+    // --- CENÁRIO B: ELA QUER ENTRAR (AQUI É O PULO DO GATO) ---
+
+    // Verifica se já lotou
+    if (mass.signups.length >= mass.maxServers) {
+      // ⛔ AQUI ACONTECE O BLOQUEIO!
+      return res.status(400).json({ error: "Limite de vagas atingido." });
+    }
+
+    // Se tem vaga, deixa entrar
+    await prisma.signup.create({
+      data: { userId, massId },
     });
 
-    if (existingSignup) {
-      await prisma.signup.delete({ where: { id: existingSignup.id } });
-      return res.json({ status: "removed" });
-    } else {
-      if (mass._count.signups >= mass.maxServers) {
-        return res.status(400).json({ error: "Missa lotada!" });
-      }
-
-      await prisma.signup.create({ data: { userId, massId } });
-      return res.json({ status: "added" });
-    }
+    return res.json({ message: "Inscrição realizada com sucesso" });
   } catch (error) {
-    return res.status(500).json({ error: "Erro ao atualizar inscrição" });
+    return res.status(500).json({ error: "Erro ao processar inscrição" });
   }
 });
 

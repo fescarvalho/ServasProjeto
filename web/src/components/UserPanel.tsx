@@ -3,6 +3,7 @@ import { Flower, Calendar, FileText, User, Clock, AlertTriangle } from "lucide-r
 import { Mass, UserData } from "../types/types";
 import { OfficialDocument } from "./OfficialDocument";
 import "./css/UserPanel.css";
+
 interface UserPanelProps {
   masses: Mass[];
   user: UserData;
@@ -146,10 +147,18 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
         <div className="container-responsive" style={{ marginTop: "-10px" }}>
           <div style={{ display: "grid", gap: 20, paddingBottom: 40 }}>
             {masses.map((mass) => {
-              const vagasRestantes = mass.maxServers - mass._count!.signups;
+              // --- CÁLCULOS DE SEGURANÇA ---
+              // Usamos ?? 0 para garantir que não quebre se _count for undefined
+              const totalInscritos = mass._count?.signups ?? 0;
+              const vagasRestantes = mass.maxServers - totalInscritos;
+
               const jaEstouInscrita = mass.signups.some((s) => s.userId === user.id);
               const minhaFuncao = mass.signups.find((s) => s.userId === user.id)?.role;
               const prazoEncerrado = isExpired(mass.deadline);
+
+              // Regra do Botão: Só desabilita se estiver CHEIO e eu estiver FORA (ou prazo acabou)
+              const botaoDesabilitado =
+                prazoEncerrado || (!jaEstouInscrita && vagasRestantes <= 0);
 
               return (
                 <div
@@ -233,7 +242,6 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                   {/* Rodapé do Card (Vagas e Botão) */}
                   <div className="card-footer">
                     <div
-                      className="info-vagas"
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -243,42 +251,43 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                     >
                       <User size={18} />
                       <span style={{ fontSize: "0.9rem" }}>
-                        <strong style={{ color: "#e91e63" }}>
-                          {mass._count!.signups}
-                        </strong>{" "}
-                        / {mass.maxServers} vagas
+                        <strong style={{ color: "#e91e63" }}>{totalInscritos}</strong> /{" "}
+                        {mass.maxServers} vagas
                       </span>
                     </div>
 
                     <button
                       className="btn-action"
                       onClick={() => onToggleSignup(mass.id)}
-                      disabled={
-                        prazoEncerrado || (!jaEstouInscrita && vagasRestantes <= 0)
-                      }
+                      disabled={botaoDesabilitado}
                       style={{
+                        // Lógica de Cores do Botão
                         background: prazoEncerrado
-                          ? "#e0e0e0"
+                          ? "#e0e0e0" // Prazo acabou: Cinza
                           : jaEstouInscrita
-                            ? "white"
+                            ? "white" // Já estou inscrita: Branco (para destacar o texto vermelho)
                             : vagasRestantes > 0
-                              ? "#e91e63"
-                              : "#e0e0e0",
+                              ? "#e91e63" // Tem vaga: Rosa
+                              : "#e0e0e0", // Lotado: Cinza
+
                         color: prazoEncerrado
                           ? "#888"
                           : jaEstouInscrita
-                            ? "#d32f2f"
+                            ? "#d32f2f" // Texto Vermelho (Desistir)
                             : vagasRestantes > 0
-                              ? "white"
-                              : "#888",
+                              ? "white" // Texto Branco (Servir)
+                              : "#888", // Texto Cinza (Lotado)
+
                         border:
                           jaEstouInscrita && !prazoEncerrado
                             ? "1px solid #d32f2f"
                             : "none",
+
+                        cursor: botaoDesabilitado ? "not-allowed" : "pointer",
                       }}
                     >
                       {prazoEncerrado
-                        ? "Prazo Encerrado"
+                        ? "Encerrado"
                         : jaEstouInscrita
                           ? "Desistir"
                           : vagasRestantes > 0
