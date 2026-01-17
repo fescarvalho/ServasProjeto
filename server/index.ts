@@ -1,57 +1,62 @@
 // server/index.ts
-import express from 'express';
-import cors from 'cors';
-import { PrismaClient } from '@prisma/client';
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import { PrismaClient } from "@prisma/client";
 
 const app = express();
 const prisma = new PrismaClient();
 
-app.use(express.json());
-app.use(cors());
+// Configuração do CORS para aceitar seu Frontend na Vercel
+app.use(
+  cors({
+    origin: "*", // Libera para todos (ideal para testes iniciais)
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 
-app.get('/', (req, res) => {
-  res.send('API com TypeScript rodando!');
+app.use(express.json());
+
+app.get("/", (req, res) => {
+  res.send("API com TypeScript rodando na Vercel! 🚀");
 });
 
 // Exemplo tipado
-app.post('/users', async (req, res) => {
+app.post("/users", async (req, res) => {
   const { name, email, password } = req.body;
 
   try {
     const user = await prisma.user.create({
-      data: { name, email, password }
+      data: { name, email, password },
     });
     res.json(user);
   } catch (error) {
-    res.status(500).json({ error: 'Erro ao criar usuário' });
+    res.status(500).json({ error: "Erro ao criar usuário" });
   }
 });
-app.get('/masses', async (req, res) => {
+
+app.get("/masses", async (req, res) => {
   const masses = await prisma.mass.findMany({
     include: {
       _count: { select: { signups: true } },
-      signups: { include: { user: true } }
+      signups: { include: { user: true } },
     },
-    orderBy: { date: 'asc' }
+    orderBy: { date: "asc" },
   });
-  
-  // Esse log vai te mostrar no terminal se o "name" está vindo
-  console.log("DADOS ENVIADOS:", JSON.stringify(masses, null, 2));
-  
+
   res.json(masses);
 });
 
 // Rota de Login Simples
-app.post('/login', async (req, res) => {
+app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Busca o usuário pelo email
     const user = await prisma.user.findUnique({
-      where: { email }
+      where: { email },
     });
 
-    // Verificações básicas
     if (!user) {
       return res.status(404).json({ error: "Usuário não encontrado" });
     }
@@ -60,68 +65,62 @@ app.post('/login', async (req, res) => {
       return res.status(401).json({ error: "Senha incorreta" });
     }
 
-    // Se deu tudo certo, devolve os dados do usuário
     return res.json(user);
-
   } catch (error) {
     return res.status(500).json({ error: "Erro interno no servidor" });
   }
 });
 
-app.post('/toggle-signup', async (req, res) => {
+app.post("/toggle-signup", async (req, res) => {
   const { userId, massId } = req.body;
 
   try {
-    // Busca a missa para verificar o prazo antes de qualquer ação
     const mass = await prisma.mass.findUnique({
       where: { id: massId },
-      include: { _count: { select: { signups: true } } }
+      include: { _count: { select: { signups: true } } },
     });
 
     if (!mass) return res.status(404).json({ error: "Missa não encontrada" });
 
-    // 🛑 TRAVA DE PRAZO PARA QUALQUER ALTERAÇÃO (ENTRAR OU SAIR)
     if (mass.deadline) {
       const agora = new Date();
       const limite = new Date(mass.deadline);
-      
+
       if (agora > limite) {
-        return res.status(400).json({ error: "O prazo encerrou. Não é mais possível alterar sua inscrição." });
+        return res.status(400).json({
+          error: "O prazo encerrou. Não é mais possível alterar sua inscrição.",
+        });
       }
     }
 
-    // Se o prazo estiver OK, prosseguimos com a lógica de Inscrição/Desistência
     const existingSignup = await prisma.signup.findUnique({
-      where: { userId_massId: { userId, massId } }
+      where: { userId_massId: { userId, massId } },
     });
 
     if (existingSignup) {
-      // REMOVER INSCRIÇÃO
       await prisma.signup.delete({ where: { id: existingSignup.id } });
-      return res.json({ status: 'removed' });
+      return res.json({ status: "removed" });
     } else {
-      // ADICIONAR INSCRIÇÃO
       if (mass._count.signups >= mass.maxServers) {
         return res.status(400).json({ error: "Missa lotada!" });
       }
 
       await prisma.signup.create({ data: { userId, massId } });
-      return res.json({ status: 'added' });
+      return res.json({ status: "added" });
     }
-
   } catch (error) {
     return res.status(500).json({ error: "Erro ao atualizar inscrição" });
   }
 });
 
-app.patch('/signup/:id/role', async (req, res) => {
-  const { id } = req.params; // ID da inscrição (Signup)
-  const { role } = req.body; // A função (texto)
+app.patch("/signup/:id/role", async (req, res) => {
+  const { id } = req.params;
+  const { role } = req.body;
 
   try {
     const updatedSignup = await prisma.signup.update({
       where: { id },
-      data: { role } // Atualiza só o campo role
+      data: { role },
     });
     res.json(updatedSignup);
   } catch (error) {
@@ -129,7 +128,7 @@ app.patch('/signup/:id/role', async (req, res) => {
   }
 });
 
-app.put('/masses/:id', async (req, res) => {
+app.put("/masses/:id", async (req, res) => {
   const { id } = req.params;
   const { date, time, maxServers, name, deadline } = req.body;
 
@@ -143,8 +142,8 @@ app.put('/masses/:id', async (req, res) => {
         date: dataCompleta,
         maxServers: Number(maxServers),
         name: name || null,
-        deadline: dataLimite
-      }
+        deadline: dataLimite,
+      },
     });
 
     res.json(updatedMass);
@@ -153,9 +152,7 @@ app.put('/masses/:id', async (req, res) => {
   }
 });
 
-// 1. ROTA PARA CRIAR MISSA
-app.post('/masses', async (req, res) => {
-
+app.post("/masses", async (req, res) => {
   const { date, time, maxServers, name, deadline } = req.body;
 
   try {
@@ -165,7 +162,7 @@ app.post('/masses', async (req, res) => {
     let scale = await prisma.scale.findFirst();
     if (!scale) {
       scale = await prisma.scale.create({
-        data: { name: "Geral", openDate: new Date(), closeDate: new Date() }
+        data: { name: "Geral", openDate: new Date(), closeDate: new Date() },
       });
     }
 
@@ -175,8 +172,8 @@ app.post('/masses', async (req, res) => {
         maxServers: Number(maxServers),
         scaleId: scale.id,
         name: name || null,
-        deadline: dataLimite //
-      }
+        deadline: dataLimite,
+      },
     });
 
     res.json(newMass);
@@ -186,22 +183,27 @@ app.post('/masses', async (req, res) => {
   }
 });
 
-// 2. ROTA PARA DELETAR MISSA
-app.delete('/masses/:id', async (req, res) => {
+app.delete("/masses/:id", async (req, res) => {
   const { id } = req.params;
   try {
-    // Primeiro deleta as inscrições (faxina)
     await prisma.signup.deleteMany({ where: { massId: id } });
-    // Depois deleta a missa
     await prisma.mass.delete({ where: { id } });
-    
+
     res.json({ status: "deleted" });
   } catch (error) {
     res.status(500).json({ error: "Erro ao deletar missa" });
   }
 });
 
-const PORT = process.env.PORT || 3001;
-app.listen(Number(PORT), '0.0.0.0', () => {
-  console.log(`🚀 Server ready at: http://0.0.0.0:${PORT}`);
-});
+// --- A MÁGICA PARA VERCEL ---
+
+// Só inicia o servidor na porta se NÃO estivermos na Vercel (Produção)
+if (process.env.NODE_ENV !== "production") {
+  const PORT = process.env.PORT || 3001;
+  app.listen(Number(PORT), "0.0.0.0", () => {
+    console.log(`🚀 Server ready at: http://localhost:${PORT}`);
+  });
+}
+
+// Exporta o app para a Vercel executar como Serverless Function
+export default app;

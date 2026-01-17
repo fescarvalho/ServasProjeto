@@ -1,9 +1,19 @@
-import { useState } from 'react';
-import { Shield, FileText, Share2, Edit, PlusCircle, X, Trash2 } from 'lucide-react';
-import { api } from '../services/api';
-import { Mass, FUNCOES } from '../types';
-import { ScaleModal } from './ScaleModal';
-import { OfficialDocument } from './OfficialDocument';
+import { useState } from "react";
+import {
+  Shield,
+  FileText,
+  Share2,
+  Edit,
+  PlusCircle,
+  X,
+  Trash2,
+  Save,
+} from "lucide-react";
+import { api } from "../services/api";
+import { Mass, FUNCOES } from "../types";
+import { ScaleModal } from "./ScaleModal";
+import { OfficialDocument } from "./OfficialDocument";
+import "./css/AdminPanel.css"; // <--- Importante: O CSS que criamos
 
 interface AdminPanelProps {
   masses: Mass[];
@@ -12,143 +22,345 @@ interface AdminPanelProps {
 }
 
 export function AdminPanel({ masses, onUpdate, onLogout }: AdminPanelProps) {
-  const [newDate, setNewDate] = useState('');
-  const [newTime, setNewTime] = useState('');
-  const [newName, setNewName] = useState('');
+  // Estados
+  const [newDate, setNewDate] = useState("");
+  const [newTime, setNewTime] = useState("");
+  const [newName, setNewName] = useState("");
   const [newMax, setNewMax] = useState(4);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'dashboard' | 'pdf'>('dashboard');
-  const [showTextModal, setShowTextModal] = useState(false);
-  const [newDeadline, setNewDeadline] = useState('');
+  const [newDeadline, setNewDeadline] = useState("");
 
-  if (viewMode === 'pdf') {
-    return <OfficialDocument masses={masses} onBack={() => setViewMode('dashboard')} />;
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"dashboard" | "pdf">("dashboard");
+  const [showTextModal, setShowTextModal] = useState(false);
+
+  // Se for modo PDF, retorna o componente de documento
+  if (viewMode === "pdf") {
+    return <OfficialDocument masses={masses} onBack={() => setViewMode("dashboard")} />;
   }
 
+  // Lógica de Edição (Mantida igual)
   function handleStartEdit(mass: Mass) {
     const d = new Date(mass.date);
     setEditingId(mass.id);
-    setNewDate(d.toISOString().split('T')[0]);
-    setNewTime(d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}));
-    setNewName(mass.name || '');
+    setNewDate(d.toISOString().split("T")[0]);
+    setNewTime(d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
+    setNewName(mass.name || "");
     setNewMax(mass.maxServers);
-    
-    // Se tiver deadline, preenche o campo. O input datetime-local pede formato YYYY-MM-DDTHH:MM
+
     if (mass.deadline) {
       const deadlineDate = new Date(mass.deadline);
-      // Truque para ajustar fuso horário local no input
       const offset = deadlineDate.getTimezoneOffset() * 60000;
-      const localISOTime = (new Date(deadlineDate.getTime() - offset)).toISOString().slice(0, 16);
+      const localISOTime = new Date(deadlineDate.getTime() - offset)
+        .toISOString()
+        .slice(0, 16);
       setNewDeadline(localISOTime);
     } else {
-      setNewDeadline('');
+      setNewDeadline("");
     }
-    
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function handleCancelEdit() { 
-    setEditingId(null); setNewDate(''); setNewTime(''); setNewName(''); setNewMax(4); setNewDeadline(''); 
+  function handleCancelEdit() {
+    setEditingId(null);
+    setNewDate("");
+    setNewTime("");
+    setNewName("");
+    setNewMax(4);
+    setNewDeadline("");
   }
 
+  // Lógica de Envio (Mantida igual)
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!newDate) return;
     try {
-      const payload = { 
-        date: newDate, 
-        time: newTime, 
-        maxServers: newMax, 
+      const payload = {
+        date: newDate,
+        time: newTime,
+        maxServers: newMax,
         name: newName,
-        deadline: newDeadline || null // Envia o prazo
+        deadline: newDeadline || null,
       };
-      
+
       if (editingId) await api.put(`/masses/${editingId}`, payload);
-      else await api.post('/masses', payload);
-      
-      onUpdate(); handleCancelEdit();
-    } catch (error) { alert("Erro"); }
+      else await api.post("/masses", payload);
+
+      onUpdate();
+      handleCancelEdit();
+    } catch (error) {
+      console.error("Erro na operação:", error); // O erro agora é utilizado
+      alert("Ocorreu um erro ao processar sua solicitação.");
+    }
   }
 
-  async function handleDeleteMass(id: string) { if (confirm("Apagar?")) { await api.delete(`/masses/${id}`); onUpdate(); } }
-  async function handleChangeRole(signupId: string, newRole: string) { await api.patch(`/signup/${signupId}/role`, { role: newRole }); onUpdate(); }
+  async function handleDeleteMass(id: string) {
+    if (confirm("Tem certeza que deseja apagar esta missa?")) {
+      await api.delete(`/masses/${id}`);
+      onUpdate();
+    }
+  }
+
+  async function handleChangeRole(signupId: string, newRole: string) {
+    await api.patch(`/signup/${signupId}/role`, { role: newRole });
+    onUpdate();
+  }
 
   return (
-    <div className="container" style={{ maxWidth: '800px', padding: 20 }}>
-      {showTextModal && <ScaleModal masses={masses} onClose={() => setShowTextModal(false)} />}
+    <div className="admin-container">
+      {showTextModal && (
+        <ScaleModal masses={masses} onClose={() => setShowTextModal(false)} />
+      )}
 
-      <div className="no-print" style={{ background: '#333', color: 'white', padding: 20, borderRadius: 12, marginBottom: 30, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Shield size={24} />
-          <div><h2 style={{ margin: 0, fontSize: 18, color: 'white' }}>Painel Admin</h2><p style={{ margin: 0, fontSize: 12, opacity: 0.7 }}>Gerenciamento</p></div>
+      {/* --- HEADER --- */}
+      <div className="admin-header no-print">
+        <div className="header-brand">
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <Shield size={28} />
+            <div>
+              <h1>Painel Admin</h1>
+              <span>Gerenciamento</span>
+            </div>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-           <button onClick={() => setViewMode('pdf')} style={{ background: 'white', color: '#333', border: 'none', padding: '8px 12px', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontWeight: 'bold' }}>
-             <FileText size={16} /> Ver PDF Oficial
-           </button>
-           <button onClick={() => setShowTextModal(true)} style={{ background: '#25D366', color: 'white', border: 'none', padding: '8px 12px', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontWeight: 'bold' }}>
-             <Share2 size={16} /> WhatsApp
-           </button>
-           <button onClick={onLogout} style={{ background: '#555', color: 'white', border: 'none', padding: '8px 12px', borderRadius: 6, cursor: 'pointer' }}>Sair</button>
+
+        <div className="header-actions">
+          <button className="btn-header btn-white" onClick={() => setViewMode("pdf")}>
+            <FileText size={16} /> VER PDF
+          </button>
+
+          <button className="btn-header btn-green" onClick={() => setShowTextModal(true)}>
+            <Share2 size={16} /> WHATSAPP
+          </button>
+
+          <button className="btn-header btn-dark" onClick={onLogout}>
+            <X size={16} /> SAIR
+          </button>
         </div>
       </div>
 
-      <div className="card no-print" style={{ background: editingId ? '#fff8e1' : '#fff0f3', borderColor: editingId ? '#ffc107' : 'var(--rose-primary)' }}>
-         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
-          <h3 style={{ margin: 0, color: editingId ? '#d39e00' : 'var(--rose-dark)', display: 'flex', alignItems: 'center', gap: 8 }}>{editingId ? <><Edit size={20} /> Editando</> : <><PlusCircle size={20} /> Nova Missa</>}</h3>
-          {editingId && <button onClick={handleCancelEdit} style={{ background: 'transparent', border: '1px solid #d39e00', color: '#d39e00', padding: '5px 10px', borderRadius: 5, cursor: 'pointer' }}><X size={14} /> Cancelar</button>}
+      {/* --- FORMULÁRIO (Card Rosa) --- */}
+      <div
+        className="new-mass-card no-print"
+        style={{
+          borderColor: editingId ? "#F59E0B" : "#FFCDD2",
+          background: editingId ? "#FFFBEB" : "#FFF5F5",
+        }}
+      >
+        <div
+          className="section-title"
+          style={{ color: editingId ? "#B45309" : "#C62828" }}
+        >
+          {editingId ? <Edit size={20} /> : <PlusCircle size={20} />}
+          <span>{editingId ? "Editando Missa" : "Nova Missa"}</span>
+
+          {editingId && (
+            <button
+              onClick={handleCancelEdit}
+              style={{
+                marginLeft: "auto",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "#666",
+                fontSize: "0.8rem",
+                textDecoration: "underline",
+              }}
+            >
+              Cancelar Edição
+            </button>
+          )}
         </div>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <div style={{ flex: 2, minWidth: 200 }}><label style={{ fontSize: 12, fontWeight: 600, color: '#666' }}>Nome</label><input type="text" value={newName} onChange={e => setNewName(e.target.value)} style={{ padding: 10 }} /></div>
-          <div style={{ flex: 1, minWidth: 120 }}><label style={{ fontSize: 12, fontWeight: 600, color: '#666' }}>Data Missa</label><input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} style={{ padding: 10 }} /></div>
-          <div style={{ flex: 1, minWidth: 90 }}><label style={{ fontSize: 12, fontWeight: 600, color: '#666' }}>Hora</label><input type="time" value={newTime} onChange={e => setNewTime(e.target.value)} style={{ padding: 10 }} /></div>
-          
-          {/* CAMPO DE PRAZO LIMITE ADICIONADO AQUI */}
-          <div style={{ flex: 1.5, minWidth: 160 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#d32f2f' }}>Prazo Inscrição (Opcional)</label>
-            <input 
-              type="datetime-local" 
-              value={newDeadline} 
-              onChange={e => setNewDeadline(e.target.value)} 
-              style={{ padding: 10, borderColor: '#d32f2f', color: '#d32f2f', width: '100%' }} 
+
+        <form onSubmit={handleSubmit} className="form-grid">
+          {/* Nome */}
+          <div className="form-group full-width">
+            <label>Nome (Opcional)</label>
+            <input
+              className="form-input"
+              type="text"
+              placeholder="Ex: Missa de Cinzas"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
             />
           </div>
 
-          <div style={{ width: 80 }}><label style={{ fontSize: 12, fontWeight: 600, color: '#666' }}>Vagas</label><input type="number" value={newMax} onChange={e => setNewMax(Number(e.target.value))} style={{ padding: 10 }} /></div>
-          <button type="submit" className="btn-primary" style={{ padding: '12px 20px', border: 'none', height: 46, cursor: 'pointer', background: editingId ? '#ffc107' : 'var(--rose-primary)', color: editingId ? '#333' : 'white' }}>{editingId ? "Salvar" : "Criar"}</button>
+          {/* Data */}
+          <div className="form-group">
+            <label>Data</label>
+            <input
+              className="form-input"
+              type="date"
+              value={newDate}
+              onChange={(e) => setNewDate(e.target.value)}
+              required
+            />
+          </div>
+
+          {/* Hora */}
+          <div className="form-group">
+            <label>Hora</label>
+            <input
+              className="form-input"
+              type="time"
+              value={newTime}
+              onChange={(e) => setNewTime(e.target.value)}
+              required
+            />
+          </div>
+
+          {/* Prazo */}
+          <div className="form-group full-width">
+            <label style={{ color: "#d32f2f" }}>Prazo de Inscrição (Opcional)</label>
+            <input
+              className="form-input"
+              type="datetime-local"
+              value={newDeadline}
+              onChange={(e) => setNewDeadline(e.target.value)}
+              style={{ borderColor: "#ef9a9a", color: "#c62828" }}
+            />
+          </div>
+
+          {/* Vagas */}
+          <div className="form-group">
+            <label>Vagas</label>
+            <input
+              className="form-input"
+              type="number"
+              value={newMax}
+              onChange={(e) => setNewMax(Number(e.target.value))}
+              min="1"
+            />
+          </div>
+
+          {/* Botão Submit */}
+          <button
+            type="submit"
+            className="btn-create"
+            style={{
+              background: editingId ? "#F59E0B" : "#D37474",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+            }}
+          >
+            {editingId ? (
+              <>
+                <Save size={18} /> SALVAR ALTERAÇÕES
+              </>
+            ) : (
+              "CRIAR MISSA"
+            )}
+          </button>
         </form>
       </div>
 
-      <div style={{ display: 'grid', gap: 20 }}>
-        {masses.map(mass => (
-          <div key={mass.id} style={{ background: 'white', padding: 20, borderRadius: 12, border: '1px solid #ddd', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', position: 'relative' }}>
-            <div className="no-print" style={{ position: 'absolute', top: 15, right: 15, display: 'flex', gap: 10 }}>
-              <button onClick={() => handleStartEdit(mass)} style={{ background: 'transparent', border: 'none', color: '#ffc107', cursor: 'pointer' }}><Edit size={20} /></button>
-              <button onClick={() => handleDeleteMass(mass.id)} style={{ background: 'transparent', border: 'none', color: '#ccc', cursor: 'pointer' }}><Trash2 size={20} /></button>
+      {/* --- LISTA DE MISSAS --- */}
+      <div className="mass-list">
+        {masses.map((mass) => (
+          <div key={mass.id} className="mass-list-item">
+            {/* Esquerda: Informações e Tabela */}
+            <div style={{ flex: 1 }}>
+              <div style={{ marginBottom: 15 }}>
+                {mass.name && (
+                  <div
+                    style={{
+                      fontSize: "0.8rem",
+                      fontWeight: "bold",
+                      color: "#e91e63",
+                      textTransform: "uppercase",
+                      marginBottom: 4,
+                    }}
+                  >
+                    {mass.name}
+                  </div>
+                )}
+                <h3 style={{ margin: 0, fontSize: "1.2rem", color: "#333" }}>
+                  {new Date(mass.date).toLocaleString("pt-BR", {
+                    weekday: "long",
+                    day: "2-digit",
+                    month: "long",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </h3>
+              </div>
+
+              {/* Tabela de Inscritas */}
+              {mass.signups.length === 0 ? (
+                <p style={{ color: "#999", fontSize: "0.9rem", fontStyle: "italic" }}>
+                  Nenhuma serva inscrita.
+                </p>
+              ) : (
+                <div style={{ overflowX: "auto" }}>
+                  <table
+                    style={{
+                      width: "100%",
+                      borderCollapse: "collapse",
+                      fontSize: "0.9rem",
+                    }}
+                  >
+                    <tbody>
+                      {mass.signups.map((signup) => (
+                        <tr key={signup.id} style={{ borderBottom: "1px solid #f0f0f0" }}>
+                          <td
+                            style={{ padding: "8px 0", fontWeight: 600, color: "#444" }}
+                          >
+                            {signup.user.name}
+                          </td>
+                          <td style={{ padding: "8px 0", textAlign: "right" }}>
+                            <select
+                              value={signup.role || "Auxiliar"}
+                              onChange={(e) =>
+                                handleChangeRole(signup.id, e.target.value)
+                              }
+                              style={{
+                                padding: "4px 8px",
+                                borderRadius: 6,
+                                border: "1px solid #ddd",
+                                background: "white",
+                                fontSize: "0.85rem",
+                              }}
+                            >
+                              {FUNCOES.map((f) => (
+                                <option key={f} value={f}>
+                                  {f}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
-            {mass.name && <h4 style={{ margin: '0 0 5px 0', color: 'var(--rose-dark)', fontSize: 14, textTransform: 'uppercase', letterSpacing: 1 }}>{mass.name}</h4>}
-            <h3 style={{ margin: '0 0 15px 0', borderBottom: '1px solid #eee', paddingBottom: 10, color: '#333' }}>
-              {new Date(mass.date).toLocaleString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })}
-            </h3>
-            {mass.signups.length === 0 ? <p style={{ color: '#999', fontSize: 14 }}>Nenhuma serva inscrita.</p> : (
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <tbody>
-                  {mass.signups.map(signup => (
-                    <tr key={signup.id} style={{ borderTop: '1px solid #f0f0f0' }}>
-                      <td style={{ padding: 10, fontWeight: 600 }}>{signup.user.name}</td>
-                      <td style={{ padding: 10 }}>
-                        <select value={signup.role || "Auxiliar"} onChange={(e) => handleChangeRole(signup.id, e.target.value)} style={{ padding: 8, borderRadius: 6, border: '1px solid #ccc', width: '100%' }}>
-                          {FUNCOES.map(f => <option key={f} value={f}>{f}</option>)}
-                        </select>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+
+            {/* Direita: Botões de Ação */}
+            <div className="mass-actions">
+              <button
+                className="icon-btn"
+                style={{ color: "#F59E0B" }}
+                onClick={() => handleStartEdit(mass)}
+                title="Editar Missa"
+              >
+                <Edit size={22} />
+              </button>
+
+              <button
+                className="icon-btn"
+                style={{ color: "#EF4444" }}
+                onClick={() => handleDeleteMass(mass.id)}
+                title="Excluir Missa"
+              >
+                <Trash2 size={22} />
+              </button>
+            </div>
           </div>
         ))}
       </div>
     </div>
-  )
+  );
 }

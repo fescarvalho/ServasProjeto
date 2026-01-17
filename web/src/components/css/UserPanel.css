@@ -1,0 +1,163 @@
+/* UserPanel.css */
+
+/* --- 1. Container e Estrutura --- */
+.container-responsive {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 15px; /* Margem lateral para não colar no celular */
+}
+
+.header-hero {
+  /* Seus estilos de fundo aqui... */
+  padding-bottom: 80px;
+  text-align: center;
+}
+
+/* --- 2. Menu de Botões (Abas) --- */
+.menu-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: -30px; /* Puxa para cima do header */
+  margin-bottom: 20px;
+  flex-wrap: wrap; /* Importante: permite quebrar linha se não couber */
+}
+
+.tab-btn {
+  flex: 1;
+  min-width: 120px; /* Tamanho mínimo para não esmagar */
+  padding: 15px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+
+/* --- 3. Cards das Missas --- */
+.mass-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.date-badge {
+  background: var(--rose-primary, #e91e63);
+  color: white;
+  padding: 10px 15px;
+  border-radius: 12px;
+  text-align: center;
+  min-width: 60px;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #f0f0f0;
+  padding-top: 15px;
+}
+
+.btn-action {
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pdf-preview-container {
+  width: 100%;
+  overflow-x: auto; /* Permite scroll lateral se a folha for maior que a tela */
+  padding: 20px 0;
+  display: flex;
+  justify-content: center;
+  background-color: #525659; /* Cor de fundo estilo leitor de PDF */
+}
+
+.pdf-page {
+  width: 210mm; /* Largura padrão A4 */
+  min-height: 297mm;
+  padding: 20mm;
+  margin: 10px;
+  background: white;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+  box-sizing: border-box;
+  transform-origin: top center;
+}
+
+/* --- 📱 A MÁGICA DO MOBILE (Media Query) --- */
+@media (max-width: 768px) {
+  /* No celular, os botões do menu ficam um embaixo do outro ou grade */
+  .menu-tabs {
+    gap: 8px;
+  }
+
+  .tab-btn {
+    padding: 12px;
+    font-size: 0.9rem;
+  }
+
+  /* O Rodapé do card vira coluna: Info em cima, Botão grandão embaixo */
+  .card-footer {
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-start;
+  }
+
+  .info-vagas {
+    width: 100%;
+    margin-bottom: 5px;
+  }
+
+  .btn-action {
+    width: 100%; /* Botão ocupa a largura toda no dedo */
+    justify-content: center;
+    padding: 14px; /* Mais fácil de clicar */
+    font-size: 1rem;
+  }
+  .pdf-page {
+    /* Reduz a escala da folha para caber na largura do celular */
+    transform: scale(0.4); /* Ajuste esse valor conforme necessário */
+    margin-bottom: -400px; /* Compensa o espaço vazio deixado pelo scale */
+  }
+
+  .pdf-preview-container {
+    padding: 0;
+    justify-content: flex-start;
+  }
+}
+
+/* Regra de Impressão (Mantém o tamanho real no papel) */
+@media print {
+  .pdf-preview-container {
+    background: none;
+    padding: 0;
+  }
+  .pdf-page {
+    transform: scale(1) !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    width: 100% !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

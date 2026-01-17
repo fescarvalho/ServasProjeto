@@ -17,19 +17,19 @@ model User {
 
 model Scale {
   id        String   @id @default(uuid())
-  name      String   // Ex: "Janeiro - Semana 3"
+  name      String // Ex: "Janeiro - Semana 3"
   openDate  DateTime // Quando abre
   closeDate DateTime // Prazo final para edição
   masses    Mass[]
 }
 
 model Mass {
-  id         String   @id @default(uuid())
+  id         String    @id @default(uuid())
   date       DateTime
   name       String?
   deadline   DateTime?
-  maxServers Int      @default(4)
-  scale      Scale    @relation(fields: [scaleId], references: [id])
+  maxServers Int       @default(4)
+  scale      Scale     @relation(fields: [scaleId], references: [id])
   scaleId    String
   signups    Signup[]
 }

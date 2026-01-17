@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Flower, Calendar, FileText, User, Clock, AlertTriangle } from 'lucide-react';
-import { Mass, UserData } from '../types';
-import { OfficialDocument } from './OfficialDocument';
-
+import { useState, useEffect } from "react";
+import { Flower, Calendar, FileText, User, Clock, AlertTriangle } from "lucide-react";
+import { Mass, UserData } from "../types";
+import { OfficialDocument } from "./OfficialDocument";
+import "./css/UserPanel.css";
 interface UserPanelProps {
   masses: Mass[];
   user: UserData;
@@ -29,8 +29,12 @@ function CountdownTimer({ deadline }: { deadline: string }) {
         const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-        
-        setTimeLeft(`${days}d ${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${seconds.toString().padStart(2,'0')}s`);
+
+        setTimeLeft(
+          `${days}d ${hours.toString().padStart(2, "0")}h ${minutes
+            .toString()
+            .padStart(2, "0")}m ${seconds.toString().padStart(2, "0")}s`,
+        );
         setExpired(false);
       }
     }, 1000);
@@ -39,18 +43,43 @@ function CountdownTimer({ deadline }: { deadline: string }) {
   }, [deadline]);
 
   if (expired) {
-    return <span style={{ color: 'red', fontWeight: 'bold', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4 }}><AlertTriangle size={14} /> INSCRIÇÕES ENCERRADAS</span>;
+    return (
+      <span
+        style={{
+          color: "red",
+          fontWeight: "bold",
+          fontSize: "0.8rem",
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+        }}
+      >
+        <AlertTriangle size={14} /> INSCRIÇÕES ENCERRADAS
+      </span>
+    );
   }
 
   return (
-    <span style={{ color: '#d32f2f', fontWeight: 'bold', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 4, background: '#ffebee', padding: '4px 8px', borderRadius: 4 }}>
+    <span
+      style={{
+        color: "#d32f2f",
+        fontWeight: "bold",
+        fontSize: "0.85rem",
+        display: "flex",
+        alignItems: "center",
+        gap: 4,
+        background: "#ffebee",
+        padding: "4px 8px",
+        borderRadius: 4,
+      }}
+    >
       <Clock size={14} /> Encerra em: {timeLeft}
     </span>
   );
 }
 
 export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelProps) {
-  const [activeTab, setActiveTab] = useState<'inscricoes' | 'documento'>('inscricoes');
+  const [activeTab, setActiveTab] = useState<"inscricoes" | "documento">("inscricoes");
 
   // Verifica se o prazo acabou
   const isExpired = (deadline?: string) => {
@@ -60,109 +89,225 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
 
   return (
     <div>
+      {/* Header */}
       <div className="header-hero no-print">
-        <div className="container">
-          <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--rose-primary)', marginBottom: 10 }}><Flower size={40} strokeWidth={1} /></div>
+        <div className="container-responsive">
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              color: "#e91e63",
+              marginBottom: 10,
+            }}
+          >
+            <Flower size={40} strokeWidth={1} />
+          </div>
           <h1>Escala das Servas</h1>
           <p>"Tudo é grande quando feito por amor."</p>
         </div>
       </div>
-      
-      <div className="container no-print" style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: '-60px', marginBottom: 20 }}>
-          <button onClick={() => setActiveTab('inscricoes')} style={{ flex: 1, padding: '15px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: activeTab === 'inscricoes' ? 'white' : 'rgba(255,255,255,0.5)', color: activeTab === 'inscricoes' ? 'var(--rose-primary)' : '#666', fontWeight: 'bold', boxShadow: activeTab === 'inscricoes' ? '0 5px 15px rgba(0,0,0,0.1)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+
+      {/* Menu de Abas */}
+      <div className="container-responsive no-print">
+        <div className="menu-tabs">
+          <button
+            onClick={() => setActiveTab("inscricoes")}
+            className="tab-btn"
+            style={{
+              background: activeTab === "inscricoes" ? "white" : "rgba(255,255,255,0.6)",
+              color: activeTab === "inscricoes" ? "#e91e63" : "#666",
+            }}
+          >
             <Calendar size={18} /> Inscrições
           </button>
-          <button onClick={() => setActiveTab('documento')} style={{ flex: 1, padding: '15px', borderRadius: '12px', border: 'none', cursor: 'pointer', background: activeTab === 'documento' ? 'white' : 'rgba(255,255,255,0.5)', color: activeTab === 'documento' ? 'var(--rose-primary)' : '#666', fontWeight: 'bold', boxShadow: activeTab === 'documento' ? '0 5px 15px rgba(0,0,0,0.1)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            <FileText size={18} /> Documento PDF
+
+          <button
+            onClick={() => setActiveTab("documento")}
+            className="tab-btn"
+            style={{
+              background: activeTab === "documento" ? "white" : "rgba(255,255,255,0.6)",
+              color: activeTab === "documento" ? "#e91e63" : "#666",
+            }}
+          >
+            <FileText size={18} /> Escala
           </button>
-           <button onClick={onLogout} style={{ padding: '15px', borderRadius: '12px', border: 'none', background: 'rgba(255,255,255,0.3)', cursor: 'pointer', color: '#555' }}>Sair</button>
+
+          <button
+            onClick={onLogout}
+            className="tab-btn"
+            style={{ background: "rgba(255,255,255,0.4)" }}
+          >
+            Sair
+          </button>
+        </div>
       </div>
 
-      {activeTab === 'inscricoes' ? (
-         <div className="container" style={{ marginTop: '-20px' }}>
-            <div style={{ display: 'grid', gap: 20 }}>
-                {masses.map(mass => {
-                    const vagasRestantes = mass.maxServers - mass._count.signups;
-                    const jaEstouInscrita = mass.signups.some(s => s.userId === user.id);
-                    const minhaFuncao = mass.signups.find(s => s.userId === user.id)?.role;
-                    const prazoEncerrado = isExpired(mass.deadline);
+      {activeTab === "inscricoes" ? (
+        <div className="container-responsive" style={{ marginTop: "-10px" }}>
+          <div style={{ display: "grid", gap: 20, paddingBottom: 40 }}>
+            {masses.map((mass) => {
+              const vagasRestantes = mass.maxServers - mass._count.signups;
+              const jaEstouInscrita = mass.signups.some((s) => s.userId === user.id);
+              const minhaFuncao = mass.signups.find((s) => s.userId === user.id)?.role;
+              const prazoEncerrado = isExpired(mass.deadline);
 
-                    return (
-                    <div key={mass.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '15px', opacity: prazoEncerrado ? 0.7 : 1 }}>
-                        
-                        {mass.deadline && (
-                          <div style={{ marginBottom: -10, display: 'flex', justifyContent: 'flex-end' }}>
-                            <CountdownTimer deadline={mass.deadline} />
-                          </div>
-                        )}
+              return (
+                <div
+                  key={mass.id}
+                  className="mass-card"
+                  style={{ opacity: prazoEncerrado ? 0.7 : 1 }}
+                >
+                  {/* Countdown */}
+                  {mass.deadline && (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        marginBottom: -10,
+                      }}
+                    >
+                      <CountdownTimer deadline={mass.deadline} />
+                    </div>
+                  )}
 
-                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                          <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                              <div style={{ background: 'var(--rose-primary)', color: 'white', padding: '10px 15px', borderRadius: '12px', textAlign: 'center', minWidth: '60px' }}>
-                              <span style={{ display: 'block', fontSize: '1.2rem', fontWeight: 'bold', lineHeight: 1 }}>{new Date(mass.date).toLocaleDateString('pt-BR', { day: '2-digit' })}</span>
-                              <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>{new Date(mass.date).toLocaleDateString('pt-BR', { month: 'short' }).toUpperCase()}</span>
-                              </div>
-                              <div>
-                              {mass.name && <div style={{ color: 'var(--rose-primary)', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: 2 }}>{mass.name}</div>}
-                              <h3 style={{ margin: 0, fontSize: '1.1rem', textTransform: 'capitalize' }}>{new Date(mass.date).toLocaleDateString('pt-BR', { weekday: 'long' })}</h3>
-                              <span style={{ color: 'var(--text-light)', fontSize: '0.9rem' }}>Horário: {new Date(mass.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
-                              </div>
-                          </div>
-                          {jaEstouInscrita && minhaFuncao && <div className="tag-role">{minhaFuncao}</div>}
-                        </div>
-                        
-                        <div style={{ height: '1px', background: '#f0f0f0', width: '100%' }}></div>
-                        
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-light)' }}>
-                              <User size={18} />
-                              <span style={{ fontSize: '0.9rem' }}><strong style={{ color: 'var(--rose-primary)' }}>{mass._count.signups}</strong> / {mass.maxServers} vagas</span>
-                          </div>
-                          
-                          {/* BOTÃO DE AÇÃO */}
-                          <button 
-                            onClick={() => onToggleSignup(mass.id)}
-                            // 🛑 BLOQUEIO TOTAL SE PRAZO ENCERRADO
-                            disabled={prazoEncerrado || (!jaEstouInscrita && vagasRestantes <= 0)}
+                  {/* Cabeçalho do Card (Data e Nome) */}
+                  <div className="card-header">
+                    <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
+                      <div className="date-badge">
+                        <span
+                          style={{
+                            display: "block",
+                            fontSize: "1.2rem",
+                            fontWeight: "bold",
+                            lineHeight: 1,
+                          }}
+                        >
+                          {new Date(mass.date).toLocaleDateString("pt-BR", {
+                            day: "2-digit",
+                          })}
+                        </span>
+                        <span style={{ fontSize: "0.7rem", fontWeight: 600 }}>
+                          {new Date(mass.date)
+                            .toLocaleDateString("pt-BR", { month: "short" })
+                            .toUpperCase()}
+                        </span>
+                      </div>
+
+                      <div>
+                        {mass.name && (
+                          <div
                             style={{
-                              // Se prazo encerrado -> cinza para todo mundo
-                              background: prazoEncerrado 
-                                ? '#e0e0e0' 
-                                : (jaEstouInscrita ? 'white' : (vagasRestantes > 0 ? 'var(--rose-primary)' : '#e0e0e0')),
-                              
-                              color: prazoEncerrado 
-                                ? '#888' 
-                                : (jaEstouInscrita ? 'var(--danger)' : (vagasRestantes > 0 ? 'white' : '#888')),
-                              
-                              border: jaEstouInscrita && !prazoEncerrado ? '1px solid var(--danger)' : 'none',
-                              
-                              padding: '10px 24px',
-                              cursor: (!prazoEncerrado && (jaEstouInscrita || vagasRestantes > 0)) ? 'pointer' : 'not-allowed',
-                              display: 'flex', alignItems: 'center', gap: 8
+                              color: "#e91e63",
+                              fontWeight: "bold",
+                              fontSize: "0.9rem",
                             }}
                           >
-                             {prazoEncerrado 
-                                ? "Prazo Encerrado" 
-                                : (jaEstouInscrita ? "Desistir" : (vagasRestantes > 0 ? "Servir" : "Lotado"))
-                             }
-                          </button>
-                        </div>
-                        
-                        {/* MENSAGEM EXTRA SE ACABOU O PRAZO */}
-                        {prazoEncerrado && (
-                           <div style={{ textAlign: 'center', fontSize: '0.8rem', color: '#999', marginTop: -5 }}>
-                             Inscrições encerradas. Contate a admin se necessário.
-                           </div>
+                            {mass.name}
+                          </div>
                         )}
-
+                        <h3
+                          style={{
+                            margin: 0,
+                            fontSize: "1.1rem",
+                            textTransform: "capitalize",
+                          }}
+                        >
+                          {new Date(mass.date).toLocaleDateString("pt-BR", {
+                            weekday: "long",
+                          })}
+                        </h3>
+                        <span style={{ color: "#888", fontSize: "0.9rem" }}>
+                          {new Date(mass.date).toLocaleTimeString("pt-BR", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
                     </div>
-                    )
-                })}
-            </div>
-         </div>
+
+                    {jaEstouInscrita && minhaFuncao && (
+                      <div className="tag-role">{minhaFuncao}</div>
+                    )}
+                  </div>
+
+                  {/* Rodapé do Card (Vagas e Botão) */}
+                  <div className="card-footer">
+                    <div
+                      className="info-vagas"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        color: "#666",
+                      }}
+                    >
+                      <User size={18} />
+                      <span style={{ fontSize: "0.9rem" }}>
+                        <strong style={{ color: "#e91e63" }}>
+                          {mass._count.signups}
+                        </strong>{" "}
+                        / {mass.maxServers} vagas
+                      </span>
+                    </div>
+
+                    <button
+                      className="btn-action"
+                      onClick={() => onToggleSignup(mass.id)}
+                      disabled={
+                        prazoEncerrado || (!jaEstouInscrita && vagasRestantes <= 0)
+                      }
+                      style={{
+                        background: prazoEncerrado
+                          ? "#e0e0e0"
+                          : jaEstouInscrita
+                          ? "white"
+                          : vagasRestantes > 0
+                          ? "#e91e63"
+                          : "#e0e0e0",
+                        color: prazoEncerrado
+                          ? "#888"
+                          : jaEstouInscrita
+                          ? "#d32f2f"
+                          : vagasRestantes > 0
+                          ? "white"
+                          : "#888",
+                        border:
+                          jaEstouInscrita && !prazoEncerrado
+                            ? "1px solid #d32f2f"
+                            : "none",
+                      }}
+                    >
+                      {prazoEncerrado
+                        ? "Prazo Encerrado"
+                        : jaEstouInscrita
+                        ? "Desistir"
+                        : vagasRestantes > 0
+                        ? "Servir"
+                        : "Lotado"}
+                    </button>
+                  </div>
+
+                  {/* Mensagem de erro/aviso */}
+                  {prazoEncerrado && (
+                    <div
+                      style={{
+                        textAlign: "center",
+                        fontSize: "0.8rem",
+                        color: "#999",
+                        marginTop: -5,
+                      }}
+                    >
+                      Inscrições encerradas.
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       ) : (
-         <OfficialDocument masses={masses} />
+        <OfficialDocument masses={masses} />
       )}
     </div>
-  )
+  );
 }
