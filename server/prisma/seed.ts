@@ -3,69 +3,76 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Iniciando semeio de dados (Seed)...");
+  console.log("🌱 Iniciando o seed...");
 
-  // Limpa dados antigos
-  await prisma.signup.deleteMany();
-  await prisma.mass.deleteMany();
-  await prisma.scale.deleteMany();
-  await prisma.user.deleteMany();
+  // 1. Criar Usuário Admin
+  const adminEmail = "coordenador@serva.com";
 
-  // 1. Criar o ADMIN (Use upsert para garantir que ele exista ou atualize)
-  await prisma.user.upsert({
-    where: { email: "coordenador@serva.com" }, // Seu e-mail de admin
-    update: { role: "santaterezinha" },
+  const admin = await prisma.user.upsert({
+    where: { email: adminEmail },
+    update: {},
     create: {
-      name: "Admin",
-      email: "coordenador@serva.com",
-      password: "santaterezinha",
-      role: "ADMIN", // <--- Importante: ADMIN em maiúsculo
+      name: "Coordenador",
+      email: adminEmail,
+      role: "ADMIN",
+      password: "123456", // <--- ADICIONADO (Obrigatório)
+    },
+  });
+  console.log(`👤 Admin garantido: ${admin.email}`);
+
+  // 2. Criar Usuário Serva
+  const userEmail = "maria@serva.com";
+  await prisma.user.upsert({
+    where: { email: userEmail },
+    update: {},
+    create: {
+      name: "Maria Serva",
+      email: userEmail,
+      role: "USER",
+      password: "123456", // <--- ADICIONADO (Obrigatório)
     },
   });
 
-  // 2. Criar a Serva de Teste
-  const serva = await prisma.user.create({
+  // 3. Criar Missas (Sem tabela Scale)
+  const today = new Date();
+
+  // Missa 1: Próximo Domingo (Pública)
+  const date1 = new Date(today);
+  date1.setDate(today.getDate() + (7 - today.getDay()));
+  date1.setHours(10, 0, 0, 0);
+
+  await prisma.mass.create({
     data: {
-      name: "Serva Teste",
-      email: "teste@serva.com",
-      password: "123",
-      role: "USER", // <--- ADICIONE ESTA LINHA! (Mesmo com default, é bom ser explícito)
+      date: date1,
+      name: "Missa Dominical",
+      maxServers: 4,
+      published: true,
     },
   });
 
-  // 3. Criar uma Escala
-  const escala = await prisma.scale.create({
+  // Missa 2: Daqui a 2 semanas (Rascunho)
+  const date2 = new Date(today);
+  date2.setDate(today.getDate() + 14);
+  date2.setHours(19, 0, 0, 0);
+
+  await prisma.mass.create({
     data: {
-      name: "Escala de Janeiro",
-      openDate: new Date(),
-      closeDate: new Date(new Date().setDate(new Date().getDate() + 7)),
+      date: date2,
+      name: "Missa Especial",
+      maxServers: 6,
+      published: false,
     },
   });
 
-  // 4. Criar Missas
-  await prisma.mass.createMany({
-    data: [
-      {
-        date: new Date("2026-01-25T19:00:00Z"),
-        maxServers: 4,
-        scaleId: escala.id,
-      },
-      {
-        date: new Date("2026-02-01T08:00:00Z"),
-        maxServers: 2,
-        scaleId: escala.id,
-      },
-    ],
-  });
-
-  console.log("✅ Dados inseridos com sucesso!");
+  console.log("✅ Missas criadas com sucesso!");
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
+  .then(async () => {
     await prisma.$disconnect();
+  })
+  .catch(async (e) => {
+    console.error(e);
+    await prisma.$disconnect();
+    process.exit(1);
   });
