@@ -1,16 +1,52 @@
-// server/index.ts
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { PrismaClient } from "@prisma/client";
+import jwt from "jsonwebtoken";
+import { Request, Response, NextFunction } from "express";
 
 const app = express();
 const prisma = new PrismaClient();
 
+// --- MIDDLEWARE DE AUTENTICAÇÃO ---
+function authMiddleware(req: Request, res: Response, next: NextFunction) {
+  // 1. Pegamos o valor cru do cabeçalho
+  const authHeader = req.headers.authorization;
+
+  // 2. VERIFICAÇÃO DE SEGURANÇA (Resolve o erro do TypeScript):
+  // Se não existir, OU se for uma lista (array), nós rejeitamos.
+  if (!authHeader || typeof authHeader !== "string") {
+    return res.status(401).json({ error: "Token não fornecido ou formato inválido" });
+  }
+
+  // Daqui para baixo, o TypeScript já sabe que 'authHeader' é obrigatóriamente uma STRING
+  const parts = authHeader.split(" ");
+
+  if (parts.length !== 2) {
+    return res.status(401).json({ error: "Erro no Token" });
+  }
+
+  const [scheme, token] = parts;
+
+  if (!/^Bearer$/i.test(scheme)) {
+    return res.status(401).json({ error: "Token malformatado" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { id: string };
+
+    (req as any).userId = decoded.id;
+
+    return next();
+  } catch (err) {
+    return res.status(401).json({ error: "Token inválido" });
+  }
+}
+
 // Configuração do CORS
 app.use(
   cors({
-    origin: "*", // Libera para todos (ajuste para seu domínio em produção)
+    origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
@@ -22,62 +58,66 @@ app.get("/", (req, res) => {
   res.send("API com TypeScript rodando na Vercel! 🚀");
 });
 
-// Exemplo tipado
-app.post("/users", async (req, res) => {
-  const { name, email, password } = req.body;
+// --- ROTA DE LISTAGEM (COM FILTRO DE RASCUNHO) ---
+// --- ROTA DE LISTAGEM (CORRIGIDA: MOSTRA TUDO PARA TODOS) ---
+app.get("/masses", authMiddleware, async (req, res) => {
+  // Não precisamos mais filtrar por usuário. Todo mundo vê a agenda.
 
-  try {
-    const user = await prisma.user.create({
-      data: { name, email, password },
-    });
-    res.json(user);
-  } catch (error) {
-    res.status(500).json({ error: "Erro ao criar usuário" });
-  }
-});
-
-app.get("/masses", async (req, res) => {
   const masses = await prisma.mass.findMany({
-    include: {
-      _count: { select: { signups: true } },
-      signups: { include: { user: true } },
-    },
+    // Removemos o 'where: whereClause'
+    include: { signups: { include: { user: true } } },
     orderBy: { date: "asc" },
   });
 
   res.json(masses);
 });
+// --- NOVA ROTA PATCH (PARA PUBLICAR/RASCUNHO) ---
+app.patch<{ id: string }>("/masses/:id", authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  const data = req.body;
 
-// Rota de Login (CORRIGIDA)
+  try {
+    const updatedMass = await prisma.mass.update({
+      where: { id: String(id) }, // Garante que é String
+      data: data,
+    });
+    res.json(updatedMass);
+  } catch (error) {
+    res.status(500).json({ error: "Erro ao atualizar status da missa" });
+  }
+});
+
+// Rota de Login
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
+    const user = await prisma.user.findUnique({ where: { email } });
 
-    if (!user) {
-      return res.status(404).json({ error: "Usuário não encontrado" });
-    }
+    if (!user) return res.status(404).json({ error: "Usuário não encontrado" });
 
     if (user.password === password) {
-      // ✅ ADICIONADO O RETURN AQUI PARA PARAR A EXECUÇÃO
+      // Gera o Token
+      const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET as string, {
+        expiresIn: "7d",
+      });
+
       return res.json({
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role, // Importante para o painel Admin
+        role: user.role,
+        token: token, // Envia o token para o frontend
       });
     }
 
-    // Se chegou aqui, a senha estava errada
     return res.status(401).json({ error: "Senha incorreta" });
   } catch (error) {
     return res.status(500).json({ error: "Erro interno no servidor" });
   }
 });
 
+// Entrar ou Sair da Escala
 app.post("/toggle-signup", async (req, res) => {
   const { userId, massId } = req.body;
 
@@ -114,6 +154,7 @@ app.post("/toggle-signup", async (req, res) => {
   }
 });
 
+// Definir função (Cerimoniária/Librífera)
 app.patch("/signup/:id/role", async (req, res) => {
   const { id } = req.params;
   const { role } = req.body;
@@ -129,13 +170,12 @@ app.patch("/signup/:id/role", async (req, res) => {
   }
 });
 
-// EDITAR MISSA (CORRIGIDO FUSO HORÁRIO)
+// Editar Missa
 app.put("/masses/:id", async (req, res) => {
   const { id } = req.params;
   const { date, time, maxServers, name, deadline } = req.body;
 
   try {
-    // Mesma lógica de correção manual
     const [ano, mes, dia] = date.split("-").map(Number);
     const [hora, minuto] = time.split(":").map(Number);
 
@@ -160,39 +200,27 @@ app.put("/masses/:id", async (req, res) => {
   }
 });
 
-// CRIAR MISSA (CORRIGIDO FUSO HORÁRIO)
+// CRIAR MISSA (CORRIGIDO: REMOVIDO SCALE)
 app.post("/masses", async (req, res) => {
   const { date, time, maxServers, name, deadline } = req.body;
 
   try {
-    // 1. Quebra as strings "2023-01-20" e "19:00" em números
     const [ano, mes, dia] = date.split("-").map(Number);
     const [hora, minuto] = time.split(":").map(Number);
 
-    // 2. Cria a data em UTC Puro (Ignora se o servidor está no Brasil ou China)
-    // Mês no JS começa em 0, por isso "mes - 1"
     const dataCompleta = new Date(Date.UTC(ano, mes - 1, dia, hora, minuto));
-
-    // 3. Adiciona 3 horas para compensar o Brasil (UTC-3)
-    // 19:00 Brasil viram 22:00 UTC no banco.
     dataCompleta.setUTCHours(dataCompleta.getUTCHours() + 3);
 
     const dataLimite = deadline ? new Date(deadline) : null;
 
-    let scale = await prisma.scale.findFirst();
-    if (!scale) {
-      scale = await prisma.scale.create({
-        data: { name: "Geral", openDate: new Date(), closeDate: new Date() },
-      });
-    }
-
+    // REMOVI A PARTE QUE CRIAVA "SCALE", POIS APAGAMOS ESSA TABELA
     const newMass = await prisma.mass.create({
       data: {
         date: dataCompleta,
         maxServers: Number(maxServers),
-        scaleId: scale.id,
         name: name || null,
         deadline: dataLimite,
+        published: false, // Começa sempre como Rascunho
       },
     });
 
@@ -202,6 +230,7 @@ app.post("/masses", async (req, res) => {
     res.status(500).json({ error: "Erro ao criar missa" });
   }
 });
+
 app.delete("/masses/:id", async (req, res) => {
   const { id } = req.params;
   try {
@@ -214,7 +243,7 @@ app.delete("/masses/:id", async (req, res) => {
   }
 });
 
-// --- A MÁGICA PARA VERCEL ---
+// --- SERVIDOR ---
 if (process.env.NODE_ENV !== "production") {
   const PORT = process.env.PORT || 3001;
   app.listen(Number(PORT), "0.0.0.0", () => {

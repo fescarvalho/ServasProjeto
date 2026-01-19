@@ -178,7 +178,14 @@ function App() {
   const isAdmin = user.role === "ADMIN";
 
   if (isAdmin) {
-    return <AdminPanel masses={masses} onUpdate={fetchMasses} onLogout={handleLogout} />;
+    return (
+      <AdminPanel
+        masses={masses}
+        user={user} // <--- ADICIONE ISSO (passa o usuário logado)
+        onUpdate={fetchMasses}
+        onLogout={handleLogout}
+      />
+    );
   }
 
   return (

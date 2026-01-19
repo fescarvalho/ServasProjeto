@@ -12,26 +12,20 @@ model User {
   email    String   @unique
   name     String
   password String
-  role     String   @default("USER")
+  role     String   @default("USER") // Perfeito!
   signups  Signup[]
 }
 
-model Scale {
-  id        String   @id @default(uuid())
-  name      String // Ex: "Janeiro - Semana 3"
-  openDate  DateTime // Quando abre
-  closeDate DateTime // Prazo final para edição
-  masses    Mass[]
-}
+// Removi o model Scale para não quebrar seu banco e seu frontend
 
 model Mass {
   id         String    @id @default(uuid())
   date       DateTime
   name       String?
+  published  Boolean   @default(false) // Perfeito!
   deadline   DateTime?
   maxServers Int       @default(4)
-  scale      Scale     @relation(fields: [scaleId], references: [id])
-  scaleId    String
+  // Removi a relação obrigatória com Scale
   signups    Signup[]
 }
 
@@ -41,7 +35,7 @@ model Signup {
   userId String
   mass   Mass    @relation(fields: [massId], references: [id])
   massId String
-  role   String? // A função que você vai definir depois (Vela, Cruz, etc)
+  role   String?
 
   @@unique([userId, massId])
 }

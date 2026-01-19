@@ -10,6 +10,13 @@ export interface Signup {
   };
 }
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
 export interface UserData {
   id: string;
   name: string;
@@ -24,6 +31,7 @@ export interface Mass {
   name?: string;
   maxServers: number;
   deadline?: string;
+  published: boolean;
   signups: Signup[];
 
   _count?: {
