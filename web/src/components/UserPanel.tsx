@@ -39,7 +39,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
   return (
     <div className="user-panel-container" style={{ width: "100%", overflowX: "hidden", position: "relative" }}>
       
-      {/* --- ESTILOS DE ANIMAÇÃO (PISCAR/PULSAR) --- */}
+      {/* Estilos de Animação */}
       <style>{`
         @keyframes pulse-alert {
           0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
@@ -71,25 +71,13 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
         </div>
       </div>
 
-      {/* --- MURAL DE AVISOS --- */}
+      {/* Mural de Avisos */}
       {notices.length > 0 && (
         <div className="no-print" style={{ margin: "15px 15px 5px 15px", display: "flex", flexDirection: "column", gap: "10px" }}>
           {notices.map(notice => (
-            <div 
-              key={notice.id} 
-              className="notice-animated"
-              style={{ 
-                background: "#fff9c4", borderLeft: "5px solid #ffc107", 
-                color: "#856404", padding: "15px", borderRadius: "8px",
-                display: "flex", alignItems: "center", gap: "12px",
-                boxShadow: "0 4px 6px rgba(0,0,0,0.1)"
-              }}
-            >
+            <div key={notice.id} className="notice-animated" style={{ background: "#fff9c4", borderLeft: "5px solid #ffc107", color: "#856404", padding: "15px", borderRadius: "8px", display: "flex", alignItems: "center", gap: "12px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>
               <div style={{ background: "#ffc107", padding: "8px", borderRadius: "50%", color: "white" }}><Megaphone size={20} fill="white" /></div>
-              <div>
-                <strong style={{ display: "block", fontSize: "0.8rem", textTransform: "uppercase", color: "#b08d55", marginBottom: "2px" }}>Atenção, servas!</strong>
-                <span style={{ fontSize: "1rem", fontWeight: "bold" }}>{notice.text}</span>
-              </div>
+              <div><strong style={{ display: "block", fontSize: "0.8rem", textTransform: "uppercase", color: "#b08d55", marginBottom: "2px" }}>Atenção, servas!</strong><span style={{ fontSize: "1rem", fontWeight: "bold" }}>{notice.text}</span></div>
             </div>
           ))}
         </div>
@@ -104,16 +92,38 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                 const vagasRestantes = mass.maxServers - totalInscritos;
                 const jaEstouInscrita = mass.signups.some((s) => s.userId === user.id);
                 const minhaFuncao = mass.signups.find((s) => s.userId === user.id)?.role;
+                
+                // LÓGICA DA TRAVA (NOVO!)
+                const estaAberto = mass.open; 
                 const prazoEncerrado = isExpired(mass.deadline);
                 const lotado = vagasRestantes <= 0;
-                const botaoDesabilitado = (!jaEstouInscrita && prazoEncerrado) || (!jaEstouInscrita && lotado);
+                
+                // Botão trava se: Não sou eu E (prazo acabou OU lotou OU não abriu ainda)
+                const botaoDesabilitado = (!jaEstouInscrita && prazoEncerrado) || (!jaEstouInscrita && lotado) || (!jaEstouInscrita && !estaAberto);
+
                 let btnClass = "servir";
-                if (jaEstouInscrita) btnClass = "desistir";
-                else if (botaoDesabilitado) btnClass = "disabled";
+                let btnText: React.ReactNode = <><Heart size={16} fill="white" /> Servir</>;
+
+                if (jaEstouInscrita) {
+                  btnClass = "desistir";
+                  btnText = "Desistir";
+                } else if (!estaAberto) {
+                  btnClass = "disabled";
+                  btnText = "Em Breve"; // Texto quando fechado
+                } else if (prazoEncerrado) {
+                  btnClass = "disabled";
+                  btnText = "Encerrado";
+                } else if (lotado) {
+                  btnClass = "disabled";
+                  btnText = "Lotado";
+                }
 
                 return (
-                  <div key={mass.id} className={`mass-card ${prazoEncerrado && !jaEstouInscrita ? "disabled" : ""}`} style={{ position: "relative" }}>
-                    {mass.deadline && !prazoEncerrado && <CountdownTimer deadline={mass.deadline} />}
+                  <div key={mass.id} className={`mass-card ${botaoDesabilitado && !jaEstouInscrita ? "disabled" : ""}`} style={{ position: "relative" }}>
+                    
+                    {/* Só mostra cronômetro se estiver ABERTO e no PRAZO */}
+                    {mass.deadline && !prazoEncerrado && estaAberto && <CountdownTimer deadline={mass.deadline} />}
+                    
                     <div className="card-header">
                       <div className="date-badge"><span className="date-day">{new Date(mass.date).getDate()}</span><span className="date-month">{new Date(mass.date).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}</span></div>
                       <div className="mass-info"><h3>{new Date(mass.date).toLocaleDateString("pt-BR", { weekday: "long" })}</h3><div className="mass-time"><Clock size={14} />{new Date(mass.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</div></div>
@@ -121,7 +131,9 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                     {jaEstouInscrita && minhaFuncao && <div style={{ background: "#e1bee7", color: "#7b1fa2", padding: "4px 10px", borderRadius: "8px", fontSize: "0.8rem", fontWeight: "bold", marginBottom: "15px", width: "fit-content" }}>Sua função: {minhaFuncao}</div>}
                     <div className="card-footer">
                       <div className="vagas-info" style={{ color: "#666", fontSize: "0.9rem" }}><User size={16} style={{ marginRight: 4 }} /><strong>{totalInscritos}</strong> / {mass.maxServers} vagas</div>
-                      <button className={`btn-action ${btnClass}`} onClick={() => onToggleSignup(mass.id)} disabled={botaoDesabilitado}>{jaEstouInscrita ? "Desistir" : prazoEncerrado ? "Encerrado" : lotado ? "Lotado" : <><Heart size={16} fill="white" /> Servir</>}</button>
+                      <button className={`btn-action ${btnClass}`} onClick={() => onToggleSignup(mass.id)} disabled={botaoDesabilitado}>
+                        {btnText}
+                      </button>
                     </div>
                   </div>
                 );

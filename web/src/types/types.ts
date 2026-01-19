@@ -46,3 +46,14 @@ export interface Notice {
   active: boolean;
   createdAt: string;
 }
+
+export interface Mass {
+  id: string;
+  date: string;
+  name?: string;
+  deadline?: string;
+  maxServers: number;
+  published: boolean;
+  open: boolean; 
+  signups: Signup[];
+}

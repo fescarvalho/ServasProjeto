@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { Shield, FileText, Share2, Edit, PlusCircle, X, Trash2, Filter, User as UserIcon, CheckCircle, Lock, Trophy } from "lucide-react";
+import { Shield, FileText, Share2, Edit, PlusCircle, X, Trash2, Filter, User as UserIcon, CheckCircle, Lock, LockOpen, Trophy } from "lucide-react";
 import { api } from "../services/api";
 import { Mass, FUNCOES, User } from "../types/types";
 import { ScaleModal } from "./ScaleModal";
 import { OfficialDocument } from "./OfficialDocument";
 import { MonthlyReport } from "./MonthlyReport";
-import { GeneralRankingModal } from "./GeneralRankingModal"; // Importado
-import { NoticeBoard } from "./NoticeBoard"; // Importado
+import { GeneralRankingModal } from "./GeneralRankingModal";
+import { NoticeBoard } from "./NoticeBoard";
 import "./css/AdminPanel.css";
 
 interface AdminPanelProps {
@@ -19,7 +19,6 @@ interface AdminPanelProps {
 export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps) {
   const isAdmin = user.role === "ADMIN";
 
-  // Estados
   const [newDate, setNewDate] = useState("");
   const [newTime, setNewTime] = useState("");
   const [newName, setNewName] = useState("");
@@ -41,7 +40,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
 
   if (viewMode === "pdf" && isAdmin) return <OfficialDocument masses={filteredMasses} onBack={() => setViewMode("dashboard")} />;
 
-  // Funções CRUD
+  // --- Funções CRUD ---
   function handleStartEdit(mass: Mass) {
     const d = new Date(mass.date); setEditingId(mass.id);
     const localDate = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split("T")[0];
@@ -52,6 +51,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   }
   function handleCancelEdit() { setEditingId(null); setNewDate(""); setNewTime(""); setNewName(""); setNewMax(4); setNewDeadline(""); }
   async function handleTogglePublish(id: string, currentStatus: boolean) { try { await api.patch(`/masses/${id}`, { published: !currentStatus }); onUpdate(); } catch (error) { alert("Erro ao alterar status."); } }
+  async function handleToggleOpen(id: string, currentOpen: boolean) { try { await api.patch(`/masses/${id}/toggle-open`, { open: !currentOpen }); onUpdate(); } catch (error) { alert("Erro ao alterar cadeado."); } }
   async function handleSubmit(e: React.FormEvent) { e.preventDefault(); if (!newDate) return; try { const payload = { date: newDate, time: newTime, maxServers: newMax, name: newName, deadline: newDeadline || null }; if (editingId) await api.put(`/masses/${editingId}`, payload); else await api.post("/masses", payload); onUpdate(); handleCancelEdit(); } catch (error) { alert("Erro ao salvar."); } }
   async function handleDeleteMass(id: string) { if (confirm("Apagar missa?")) { await api.delete(`/masses/${id}`); onUpdate(); } }
   async function handleChangeRole(signupId: string, newRole: string) { await api.patch(`/signup/${signupId}/role`, { role: newRole }); onUpdate(); }
@@ -63,7 +63,6 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
       {showTextModal && isAdmin && <ScaleModal masses={filteredMasses} onClose={() => setShowTextModal(false)} />}
       {showRankingModal && isAdmin && <GeneralRankingModal masses={masses} onClose={() => setShowRankingModal(false)} />}
 
-      {/* HEADER */}
       <div className="admin-header no-print">
         <div className="header-brand">
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -75,9 +74,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
           {isAdmin && (
             <>
               <MonthlyReport masses={filteredMasses} />
-              <button className="btn-header" onClick={() => setShowRankingModal(true)} style={{ background: "#fff8e1", color: "#f57f17", border: "1px solid #ffca28" }}>
-                <Trophy size={16} /> RANKING GERAL
-              </button>
+              <button className="btn-header" onClick={() => setShowRankingModal(true)} style={{ background: "#fff8e1", color: "#f57f17", border: "1px solid #ffca28" }}><Trophy size={16} /> RANKING GERAL</button>
               <button className="btn-header btn-white" onClick={() => setViewMode("pdf")}><FileText size={16} /> VER PDF</button>
               <button className="btn-header btn-green" onClick={() => setShowTextModal(true)}><Share2 size={16} /> WHATSAPP</button>
             </>
@@ -86,10 +83,8 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         </div>
       </div>
 
-      {/* COMPONENTE: MURAL DE AVISOS */}
       {isAdmin && <NoticeBoard />}
 
-      {/* COMPONENTE: FORMULÁRIO */}
       {isAdmin && (
         <div className="new-mass-card no-print" style={{ borderColor: editingId ? "#F59E0B" : "#FFCDD2", background: editingId ? "#FFFBEB" : "#FFF5F5" }}>
           <div className="section-title" style={{ color: editingId ? "#B45309" : "#C62828" }}>
@@ -107,7 +102,6 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         </div>
       )}
 
-      {/* FILTROS */}
       <div className="filter-section no-print" style={{ background: "#fff", padding: "20px", borderRadius: "16px", marginBottom: "20px", boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#e91e63", fontWeight: "bold", marginBottom: "15px" }}><Filter size={18} /> Filtrar Datas</div>
         <div style={{ display: "flex", gap: "15px", alignItems: "flex-end", flexWrap: "wrap" }}>
@@ -117,7 +111,6 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         </div>
       </div>
 
-      {/* LISTA DE MISSAS */}
       <div className="mass-list">
         {filteredMasses.map((mass) => {
           const isPublished = mass.published;
@@ -131,9 +124,14 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div>{mass.name && <div className="mass-label">{mass.name}</div>}</div>
                     {isAdmin && (
-                      <button onClick={() => handleTogglePublish(mass.id, mass.published)} className="no-print" style={{ background: mass.published ? "#e8f5e9" : "#fff3e0", color: mass.published ? "#2e7d32" : "#ef6c00", border: mass.published ? "1px solid #c8e6c9" : "1px solid #ffe0b2", padding: "4px 12px", borderRadius: "20px", cursor: "pointer", fontSize: "0.75rem", fontWeight: "bold", display: "flex", alignItems: "center", gap: "5px", marginLeft: "10px" }}>
-                        {mass.published ? "● Pública" : "○ Rascunho"}
-                      </button>
+                      <div style={{ display: "flex", gap: "5px", marginLeft: "10px" }}>
+                        <button onClick={() => handleTogglePublish(mass.id, mass.published)} className="no-print" style={{ background: mass.published ? "#e8f5e9" : "#fff3e0", color: mass.published ? "#2e7d32" : "#ef6c00", border: mass.published ? "1px solid #c8e6c9" : "1px solid #ffe0b2", padding: "4px 8px", borderRadius: "20px", cursor: "pointer", fontSize: "0.75rem", fontWeight: "bold", display: "flex", alignItems: "center", gap: "5px" }}>
+                          {mass.published ? "● Pública" : "○ Rascunho"}
+                        </button>
+                        <button onClick={() => handleToggleOpen(mass.id, mass.open)} className="no-print" title={mass.open ? "Inscrições Abertas" : "Inscrições Fechadas"} style={{ background: mass.open ? "#e3f2fd" : "#eceff1", color: mass.open ? "#1976d2" : "#546e7a", border: mass.open ? "1px solid #90caf9" : "1px solid #cfd8dc", padding: "4px 8px", borderRadius: "20px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          {mass.open ? <LockOpen size={14} /> : <Lock size={14} />}
+                        </button>
+                      </div>
                     )}
                   </div>
                   <h3 className="mass-date-title">{new Date(mass.date).toLocaleString("pt-BR", { weekday: "long", day: "2-digit", month: "long", hour: "2-digit", minute: "2-digit" })}</h3>

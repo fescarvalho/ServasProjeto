@@ -1,19 +1,20 @@
 import { X, Trophy, Flower } from "lucide-react";
 import { Mass } from "../types/types";
 
-interface RankingModalProps {
+interface GeneralRankingModalProps {
   masses: Mass[];
   onClose: () => void;
 }
 
-export function GeneralRankingModal({ masses, onClose }: RankingModalProps) {
+export function GeneralRankingModal({ masses, onClose }: GeneralRankingModalProps) {
   const scores: Record<string, number> = {};
   
   masses.forEach(mass => {
     mass.signups.forEach(signup => {
+      // @ts-ignore
+      const name = signup.user?.name || "Serva Desconhecida";
+      // Só conta se o Admin deu presença (Check verde)
       if (signup.present) {
-        // @ts-ignore
-        const name = signup.user?.name || "Serva Desconhecida";
         scores[name] = (scores[name] || 0) + 1;
       }
     });

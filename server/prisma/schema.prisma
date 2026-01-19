@@ -25,7 +25,7 @@ model Mass {
   published  Boolean   @default(false) // Perfeito!
   deadline   DateTime?
   maxServers Int       @default(4)
-  // Removi a relação obrigatória com Scale
+  open        Boolean  @default(false)
   signups    Signup[]
 }
 

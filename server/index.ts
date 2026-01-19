@@ -173,7 +173,7 @@ app.patch("/signup/:id/role", async (req, res) => {
 // Editar Missa
 app.put("/masses/:id", async (req, res) => {
   const { id } = req.params;
-  const { date, time, maxServers, name, deadline } = req.body;
+  const { date, time, maxServers, name, deadline, open } = req.body;
 
   try {
     const [ano, mes, dia] = date.split("-").map(Number);
@@ -184,25 +184,33 @@ app.put("/masses/:id", async (req, res) => {
 
     const dataLimite = deadline ? new Date(deadline) : null;
 
+    // CORREÇÃO AQUI: Adicionamos ': any' para o TypeScript aceitar novos campos
+    const dadosParaAtualizar: any = {
+      date: dataCompleta,
+      maxServers: Number(maxServers),
+      name: name || null,
+      deadline: dataLimite,
+    };
+
+    // Agora ele aceita adicionar o 'open' se ele existir
+    if (open !== undefined) {
+      dadosParaAtualizar.open = Boolean(open);
+    }
+
     const updatedMass = await prisma.mass.update({
       where: { id },
-      data: {
-        date: dataCompleta,
-        maxServers: Number(maxServers),
-        name: name || null,
-        deadline: dataLimite,
-      },
+      data: dadosParaAtualizar,
     });
 
     res.json(updatedMass);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Erro ao atualizar missa" });
   }
 });
-
 // CRIAR MISSA (CORRIGIDO: REMOVIDO SCALE)
 app.post("/masses", async (req, res) => {
-  const { date, time, maxServers, name, deadline } = req.body;
+  const { date, time, maxServers, name, deadline, open } = req.body;
 
   try {
     const [ano, mes, dia] = date.split("-").map(Number);
@@ -219,8 +227,9 @@ app.post("/masses", async (req, res) => {
         date: dataCompleta,
         maxServers: Number(maxServers),
         name: name || null,
-        deadline: dataLimite,
+        deadline: deadline ? new Date(deadline) : null,
         published: false, // Começa sempre como Rascunho
+        open: Boolean(open)
       },
     });
 
@@ -241,6 +250,17 @@ app.delete("/masses/:id", async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: "Erro ao deletar missa" });
   }
+});
+
+// Alternar se a inscrição está aberta ou fechada
+app.patch("/masses/:id/toggle-open", async (req, res) => {
+  const { id } = req.params;
+  const { open } = req.body;
+  const mass = await prisma.mass.update({
+    where: { id },
+    data: { open },
+  });
+  res.json(mass);
 });
 
 // Rota para confirmar/desconfirmar presença
