@@ -4,7 +4,6 @@ const prisma = new PrismaClient();
 
 async function main() {
   console.log("🌱 Iniciando o seed...");
-
   // 1. Criar Usuário Admin
   const adminEmail = "coordenador@serva.com";
 
