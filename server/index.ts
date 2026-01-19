@@ -243,6 +243,53 @@ app.delete("/masses/:id", async (req, res) => {
   }
 });
 
+// Rota para confirmar/desconfirmar presença
+app.patch("/signup/:id/toggle-presence", async (req, res) => {
+  const { id } = req.params;
+  try {
+    // 1. Busca o estado atual
+    const existing = await prisma.signup.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ error: "Inscrição não encontrada" });
+
+    // 2. Inverte o valor (se era false vira true, e vice-versa)
+    const updated = await prisma.signup.update({
+      where: { id },
+      data: { present: !existing.present },
+    });
+    
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: "Erro ao confirmar presença" });
+  }
+});
+
+
+// --- ROTAS DE AVISOS (MURAL) ---
+
+// 1. Listar Avisos Ativos
+app.get("/notices", async (req, res) => {
+  const notices = await prisma.notice.findMany({
+    where: { active: true },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json(notices);
+});
+
+// 2. Criar Novo Aviso
+app.post("/notices", async (req, res) => {
+  const { text } = req.body;
+  const notice = await prisma.notice.create({
+    data: { text, active: true },
+  });
+  res.json(notice);
+});
+
+// 3. Apagar Aviso
+app.delete("/notices/:id", async (req, res) => {
+  const { id } = req.params;
+  await prisma.notice.delete({ where: { id } });
+  res.json({ success: true });
+});
 // --- SERVIDOR ---
 if (process.env.NODE_ENV !== "production") {
   const PORT = process.env.PORT || 3001;

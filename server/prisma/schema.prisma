@@ -34,8 +34,16 @@ model Signup {
   user   User    @relation(fields: [userId], references: [id])
   userId String
   mass   Mass    @relation(fields: [massId], references: [id])
+  present   Boolean  @default(false)
   massId String
   role   String?
 
   @@unique([userId, massId])
+}
+
+model Notice {
+  id        String   @id @default(uuid())
+  text      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
 }

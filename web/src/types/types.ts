@@ -8,6 +8,7 @@ export interface Signup {
   user: {
     name: string;
   };
+  present: boolean;
 }
 
 export interface User {
@@ -37,4 +38,11 @@ export interface Mass {
   _count?: {
     signups: number;
   };
+}
+
+export interface Notice {
+  id: string;
+  text: string;
+  active: boolean;
+  createdAt: string;
 }
