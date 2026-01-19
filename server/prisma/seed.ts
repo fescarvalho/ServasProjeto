@@ -6,7 +6,6 @@ async function main() {
   console.log("🌱 Iniciando o seed...");
   // 1. Criar Usuário Admin
   const adminEmail = "coordenador@serva.com";
-
   const admin = await prisma.user.upsert({
     where: { email: adminEmail },
     update: {},
