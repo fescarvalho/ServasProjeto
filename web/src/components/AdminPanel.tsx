@@ -1,13 +1,12 @@
-import { useState, useEffect } from "react";
-import {
-  Shield, FileText, Share2, Edit, PlusCircle, X, Trash2, Filter, 
-  User as UserIcon, CheckCircle, Lock, Megaphone, Trophy, Flower
-} from "lucide-react";
+import { useState } from "react";
+import { Shield, FileText, Share2, Edit, PlusCircle, X, Trash2, Filter, User as UserIcon, CheckCircle, Lock, Trophy } from "lucide-react";
 import { api } from "../services/api";
-import { Mass, FUNCOES, User, Notice } from "../types/types";
+import { Mass, FUNCOES, User } from "../types/types";
 import { ScaleModal } from "./ScaleModal";
 import { OfficialDocument } from "./OfficialDocument";
 import { MonthlyReport } from "./MonthlyReport";
+import { GeneralRankingModal } from "./GeneralRankingModal"; // Importado
+import { NoticeBoard } from "./NoticeBoard"; // Importado
 import "./css/AdminPanel.css";
 
 interface AdminPanelProps {
@@ -15,97 +14,6 @@ interface AdminPanelProps {
   user: User;
   onUpdate: () => void;
   onLogout: () => void;
-}
-
-// --- MODAL DE RANKING GERAL (NOVO) ---
-function GeneralRankingModal({ masses, onClose }: { masses: Mass[], onClose: () => void }) {
-  // 1. Calcular Pontuação Total de Cada Serva
-  const scores: Record<string, number> = {};
-  
-  masses.forEach(mass => {
-    mass.signups.forEach(signup => {
-      // Só conta se o Admin deu presença (Check verde)
-      if (signup.present) {
-        // @ts-ignore
-        const name = signup.user?.name || "Serva Desconhecida";
-        scores[name] = (scores[name] || 0) + 1;
-      }
-    });
-  });
-
-  // 2. Ordenar do Maior para o Menor
-  const ranking = Object.entries(scores)
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count);
-
-  // Helper para definir o ícone/nível
-  const getBadge = (count: number) => {
-    if (count >= 15) return { icon: <Flower size={20} fill="#e91e63" stroke="#880e4f" />, name: "Rosa de Amor", color: "#fce4ec", border: "#c2185b" }; // Rosa
-    if (count >= 5) return { icon: <Flower size={20} fill="#f48fb1" />, name: "Botão de Rosa", color: "#fff0f5", border: "#ec407a" }; // Botão
-    return { icon: <Flower size={20} />, name: "Semente da Fé", color: "#e8f5e9", border: "#81c784" }; // Semente
-  };
-
-  return (
-    <div style={{
-      position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-      background: "rgba(0,0,0,0.6)", zIndex: 9999,
-      display: "flex", alignItems: "center", justifyContent: "center", padding: "20px"
-    }}>
-      <div style={{
-        background: "white", width: "100%", maxWidth: "450px",
-        borderRadius: "20px", padding: "25px", position: "relative",
-        boxShadow: "0 10px 25px rgba(0,0,0,0.3)", maxHeight: "85vh", overflowY: "auto"
-      }}>
-        <button onClick={onClose} style={{ position: "absolute", top: "15px", right: "15px", background: "none", border: "none", cursor: "pointer", color: "#666" }}>
-          <X size={24} />
-        </button>
-
-        <div style={{ textAlign: "center", marginBottom: "20px" }}>
-          <div style={{ background: "#fff8e1", width: "60px", height: "60px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px auto", color: "#fbc02d" }}>
-            <Trophy size={32} />
-          </div>
-          <h2 style={{ color: "#333", margin: 0 }}>Ranking Geral de Selos</h2>
-          <p style={{ color: "#666", fontSize: "0.9rem" }}>Total acumulado de presenças confirmadas</p>
-        </div>
-
-        {ranking.length === 0 ? (
-          <div style={{ textAlign: "center", color: "#999", padding: "20px" }}>
-            Nenhuma presença confirmada no sistema ainda.
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            {ranking.map((item, index) => {
-              const badge = getBadge(item.count);
-              return (
-                <div key={item.name} style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  background: "white", border: `1px solid #eee`,
-                  padding: "10px 15px", borderRadius: "12px",
-                  boxShadow: "0 2px 5px rgba(0,0,0,0.02)"
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <span style={{ fontWeight: "bold", color: "#999", minWidth: "20px" }}>{index + 1}º</span>
-                    <div>
-                      <div style={{ fontWeight: "bold", color: "#333" }}>{item.name}</div>
-                      <div style={{ fontSize: "0.75rem", display: "flex", alignItems: "center", gap: "4px", color: badge.border }}>
-                        {badge.icon} {badge.name}
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ 
-                    background: badge.color, color: badge.border, 
-                    fontWeight: "bold", padding: "5px 10px", borderRadius: "20px", fontSize: "0.9rem"
-                  }}>
-                    {item.count}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
-  );
 }
 
 export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps) {
@@ -120,18 +28,9 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"dashboard" | "pdf">("dashboard");
   const [showTextModal, setShowTextModal] = useState(false);
-  const [showRankingModal, setShowRankingModal] = useState(false); // <--- Estado do Modal de Ranking
+  const [showRankingModal, setShowRankingModal] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  
-  // Estado dos Avisos
-  const [notices, setNotices] = useState<Notice[]>([]);
-  const [newNoticeText, setNewNoticeText] = useState("");
-
-  useEffect(() => { loadNotices(); }, []);
-  async function loadNotices() { const res = await api.get("/notices"); setNotices(res.data); }
-  async function handleAddNotice(e: React.FormEvent) { e.preventDefault(); if (!newNoticeText.trim()) return; await api.post("/notices", { text: newNoticeText }); setNewNoticeText(""); loadNotices(); }
-  async function handleDeleteNotice(id: string) { if (confirm("Apagar este aviso?")) { await api.delete(`/notices/${id}`); loadNotices(); } }
 
   const filteredMasses = masses.filter((mass) => {
     const massDate = new Date(mass.date).toISOString().split("T")[0];
@@ -140,9 +39,9 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     return true;
   });
 
-  if (viewMode === "pdf" && isAdmin) { return <OfficialDocument masses={filteredMasses} onBack={() => setViewMode("dashboard")} />; }
+  if (viewMode === "pdf" && isAdmin) return <OfficialDocument masses={filteredMasses} onBack={() => setViewMode("dashboard")} />;
 
-  // Funções de CRUD (Missa, Signups, etc)
+  // Funções CRUD
   function handleStartEdit(mass: Mass) {
     const d = new Date(mass.date); setEditingId(mass.id);
     const localDate = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split("T")[0];
@@ -176,16 +75,9 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
           {isAdmin && (
             <>
               <MonthlyReport masses={filteredMasses} />
-              
-              {/* BOTÃO DO RANKING GERAL (NOVO) */}
-              <button 
-                className="btn-header" 
-                onClick={() => setShowRankingModal(true)}
-                style={{ background: "#fff8e1", color: "#f57f17", border: "1px solid #ffca28" }}
-              >
+              <button className="btn-header" onClick={() => setShowRankingModal(true)} style={{ background: "#fff8e1", color: "#f57f17", border: "1px solid #ffca28" }}>
                 <Trophy size={16} /> RANKING GERAL
               </button>
-
               <button className="btn-header btn-white" onClick={() => setViewMode("pdf")}><FileText size={16} /> VER PDF</button>
               <button className="btn-header btn-green" onClick={() => setShowTextModal(true)}><Share2 size={16} /> WHATSAPP</button>
             </>
@@ -194,30 +86,10 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         </div>
       </div>
 
-      {/* MURAL DE AVISOS */}
-      {isAdmin && (
-        <div className="no-print" style={{ background: "#fff3cd", padding: "15px", borderRadius: "12px", marginBottom: "20px", border: "1px solid #ffeeba" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#856404", fontWeight: "bold", marginBottom: "10px" }}>
-            <Megaphone size={18} /> Mural de Avisos
-          </div>
-          <form onSubmit={handleAddNotice} style={{ display: "flex", gap: "10px", marginBottom: "15px" }}>
-            <input type="text" placeholder="Escreva um aviso..." value={newNoticeText} onChange={(e) => setNewNoticeText(e.target.value)} style={{ flex: 1, padding: "8px", borderRadius: "6px", border: "1px solid #ddd" }} />
-            <button type="submit" style={{ background: "#856404", color: "white", border: "none", padding: "0 15px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>POSTAR</button>
-          </form>
-          {notices.length > 0 && (
-            <ul style={{ listStyle: "none", padding: 0 }}>
-              {notices.map(notice => (
-                <li key={notice.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "white", padding: "8px 12px", borderRadius: "6px", marginBottom: "5px", border: "1px solid #eee" }}>
-                  <span>{notice.text}</span>
-                  <button onClick={() => handleDeleteNotice(notice.id)} style={{ background: "none", border: "none", color: "#c62828", cursor: "pointer" }}><Trash2 size={16} /></button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+      {/* COMPONENTE: MURAL DE AVISOS */}
+      {isAdmin && <NoticeBoard />}
 
-      {/* FORMULÁRIO (Admin) */}
+      {/* COMPONENTE: FORMULÁRIO */}
       {isAdmin && (
         <div className="new-mass-card no-print" style={{ borderColor: editingId ? "#F59E0B" : "#FFCDD2", background: editingId ? "#FFFBEB" : "#FFF5F5" }}>
           <div className="section-title" style={{ color: editingId ? "#B45309" : "#C62828" }}>
