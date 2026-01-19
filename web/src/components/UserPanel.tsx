@@ -231,7 +231,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
       </div>
 
       <footer className="app-footer no-print" style={{ width: "100%", boxSizing: "border-box" }}>
-        <p>Desenvolvido por <a href="https://www.linkedin.com/in/seu-perfil" target="_blank" rel="noopener noreferrer" style={{ color: "#e91e63", textDecoration: "none", fontWeight: "bold" }}>Eduardo Gomes</a></p>
+        <p>Desenvolvido por <a href="https://www.linkedin.com/in/fecarvalhodev/" target="_blank" rel="noopener noreferrer" style={{ color: "#e91e63", textDecoration: "none", fontWeight: "bold" }}>Fernando Carvalho</a></p>
         <p style={{ marginTop: "5px", opacity: 0.7 }}>&copy; {new Date().getFullYear()} Grupo de Servas Santa Terezinha</p>
       </footer>
     </div>
