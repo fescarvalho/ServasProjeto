@@ -32,7 +32,6 @@ async function main() {
       password: "123456", // <--- ADICIONADO (Obrigatório)
     },
   });
-
   // 3. Criar Missas (Sem tabela Scale)
   const today = new Date();
 
