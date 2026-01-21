@@ -7,15 +7,15 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: "autoUpdate", // Atualiza o app automaticamente quando você fizer deploy
+      registerType: "prompt", // <--- MUDANÇA AQUI: Agora ele espera o usuário confirmar
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "masked-icon.svg"],
       manifest: {
         name: "Escala das Servas",
         short_name: "Servas do Altar",
         description: "Gerenciamento da escala das servas do altar.",
-        theme_color: "#e91e63", // Aquele rosa bonito do seu tema
+        theme_color: "#e91e63",
         background_color: "#ffffff",
-        display: "standalone", // Faz parecer app nativo (sem barra de URL)
+        display: "standalone",
         icons: [
           {
             src: "pwa-192x192.png",

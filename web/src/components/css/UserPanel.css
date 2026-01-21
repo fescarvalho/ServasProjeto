@@ -1,5 +1,5 @@
 :root {
-  --primary-rose: #a21e4a;
+  --primary-rose: #91163f;
   --bg-light: #f8f9fa;
   --text-dark: #b0acac;
 }
@@ -16,7 +16,7 @@ body {
 
 /* --- HERO HEADER (Topo Rosa) --- */
 .header-hero {
-  background: linear-gradient(135deg, #5d112a 0%, #a12c57 100%);
+  background: linear-gradient(135deg, #5d112a 0%, #a32553 100%);
   color: white;
   padding: 30px 20px 60px; /* Espaço extra embaixo para as abas */
   text-align: center;
@@ -35,6 +35,7 @@ body {
   opacity: 0.9;
   font-size: 0.9rem;
   font-style: italic;
+  color: rgb(209, 207, 207);
 }
 
 .header-icon-wrapper {
