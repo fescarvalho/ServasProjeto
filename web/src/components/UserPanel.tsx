@@ -57,7 +57,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
 
       <div className="header-hero no-print" style={{ width: "100%", boxSizing: "border-box" }}>
         <div className="header-icon-wrapper"><Flower size={32} strokeWidth={2} color="white" /></div>
-        <h1>GRUPO DE SERVAS SANTA TEREZINHA</h1>
+        <h1>GRUPO DE SERVAS <br/> SANTA TEREZINHA</h1>
         <p>"Servir com alegria."</p>
       </div>
 
