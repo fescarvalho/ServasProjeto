@@ -6,8 +6,7 @@ import { AdminPanel } from "./components/AdminPanel";
 import { UserPanel } from "./components/UserPanel";
 
 function App() {
-  // 1. CORREÇÃO: Inicialização "Lazy" (Preguiçosa) do Estado
-  // O React executa isso apenas uma vez, antes da primeira renderização.
+  // 1. Inicialização do Usuário (Lazy load do localStorage)
   const [user, setUser] = useState<UserData | null>(() => {
     const storedUser = localStorage.getItem("servas_user");
     if (storedUser) {
@@ -25,44 +24,56 @@ function App() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [masses, setMasses] = useState<Mass[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // Função para buscar dados atualizados
-  function fetchMasses() {
-    api
-      .get("/masses")
-      .then((response) => setMasses(response.data))
-      .catch((err) => console.error("Erro ao buscar missas:", err));
+  // Função centralizada para buscar dados
+  async function fetchMasses() {
+    try {
+      setLoading(true);
+      const response = await api.get("/masses");
+      // Ordena por data (mais próximas primeiro)
+      const sorted = response.data.sort((a: Mass, b: Mass) => 
+        new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
+      setMasses(sorted);
+    } catch (err) {
+      console.error("Erro ao buscar missas:", err);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  // 2. EFEITO DE INICIALIZAÇÃO
-  // Agora ele serve APENAS para buscar dados externos (API), não para setar estado local síncrono.
+  // Busca dados ao iniciar se o usuário já estiver logado
   useEffect(() => {
-    fetchMasses();
+    if (user) {
+      fetchMasses();
+    }
   }, []);
 
-  // 3. LOGIN (Salva no navegador)
+  // Login corrigido: busca as missas imediatamente após o sucesso
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     try {
       const response = await api.post("/login", { email, password });
-
       const userData = response.data;
+      
       setUser(userData);
-
-      // SALVA O USUÁRIO NO NAVEGADOR
       localStorage.setItem("servas_user", JSON.stringify(userData));
-
       setError("");
+
+      // Força o carregamento dos dados logo após o login
+      await fetchMasses(); 
+
     } catch (err) {
       console.error(err);
       setError("E-mail ou senha incorretos.");
     }
   }
 
-  // 4. LOGOUT (Limpa o navegador)
   function handleLogout() {
     setUser(null);
-    localStorage.removeItem("servas_user"); // Apaga o registro
+    setMasses([]); // Limpa a lista para segurança e reset visual
+    localStorage.removeItem("servas_user");
     setEmail("");
     setPassword("");
   }
@@ -71,9 +82,8 @@ function App() {
     if (!user) return;
     try {
       await api.post("/toggle-signup", { userId: user.id, massId });
-      fetchMasses(); // Atualiza a lista imediatamente
+      fetchMasses(); 
     } catch (error) {
-      console.log(error);
       alert("Ação não permitida. Verifique se o prazo encerrou ou se está lotado.");
     }
   }
@@ -81,91 +91,19 @@ function App() {
   // --- TELA DE LOGIN ---
   if (!user) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#f5f5f5",
-        }}
-      >
-        <div
-          className="card"
-          style={{
-            width: "100%",
-            maxWidth: "350px",
-            textAlign: "center",
-            background: "white",
-            padding: "40px",
-            borderRadius: "12px",
-            boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
-          }}
-        >
-          <div
-            style={{
-              color: "var(--rose-primary)",
-              marginBottom: 20,
-              display: "flex",
-              justifyContent: "center",
-            }}
-          >
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f5f5f5" }}>
+        <div className="card" style={{ width: "100%", maxWidth: "350px", textAlign: "center", background: "white", padding: "40px", borderRadius: "12px", boxShadow: "0 4px 15px rgba(0,0,0,0.1)" }}>
+          <div style={{ color: "#e91e63", marginBottom: 20, display: "flex", justifyContent: "center" }}>
             <Flower size={48} strokeWidth={1.5} />
           </div>
           <h2 style={{ marginBottom: 10, color: "#333" }}>Bem-vinda, Serva</h2>
-          <p style={{ color: "#666", fontSize: "0.9rem", marginBottom: 30 }}>
-            Faça login para ver a escala
-          </p>
+          <p style={{ color: "#666", fontSize: "0.9rem", marginBottom: 30 }}>Faça login para ver a escala</p>
 
           <form onSubmit={handleLogin}>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Seu E-mail"
-              style={{
-                marginBottom: 15,
-                width: "100%",
-                padding: "12px",
-                borderRadius: "8px",
-                border: "1px solid #ddd",
-                boxSizing: "border-box",
-              }}
-            />
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Sua Senha"
-              style={{
-                marginBottom: 25,
-                width: "100%",
-                padding: "12px",
-                borderRadius: "8px",
-                border: "1px solid #ddd",
-                boxSizing: "border-box",
-              }}
-            />
-
-            {error && (
-              <p style={{ color: "#d32f2f", fontSize: "0.9rem", marginBottom: 15 }}>
-                {error}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              className="btn-primary"
-              style={{
-                width: "100%",
-                padding: "14px",
-                border: "none",
-                cursor: "pointer",
-                borderRadius: "8px",
-                fontWeight: "bold",
-                fontSize: "1rem",
-              }}
-            >
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Seu E-mail" style={{ marginBottom: 15, width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #ddd", boxSizing: "border-box" }} />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Sua Senha" style={{ marginBottom: 25, width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #ddd", boxSizing: "border-box" }} />
+            {error && <p style={{ color: "#d32f2f", fontSize: "0.9rem", marginBottom: 15 }}>{error}</p>}
+            <button type="submit" style={{ width: "100%", padding: "14px", border: "none", cursor: "pointer", borderRadius: "8px", fontWeight: "bold", fontSize: "1rem", background: "#e91e63", color: "white" }}>
               ENTRAR
             </button>
           </form>
@@ -174,27 +112,39 @@ function App() {
     );
   }
 
-  // Verifica se é Admin pela regra 'ADMIN'
-  const isAdmin = user.role === "ADMIN";
-
-  if (isAdmin) {
+  // --- TELA DE CARREGAMENTO VISUAL (SPINNER) ---
+  if (loading && masses.length === 0) {
     return (
-      <AdminPanel
-        masses={masses}
-        user={user} // <--- ADICIONE ISSO (passa o usuário logado)
-        onUpdate={fetchMasses}
-        onLogout={handleLogout}
-      />
+      <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", height: "100vh", background: "#f5f5f5" }}>
+        <style>{`
+          .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #e91e63;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+          }
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+        <div className="loader"></div>
+        <p style={{ color: "#666", fontWeight: "500", marginTop: "15px" }}>Buscando escala...</p>
+      </div>
     );
   }
 
+  // --- RENDERIZAÇÃO DOS PAINÉIS ---
   return (
-    <UserPanel
-      masses={masses}
-      user={user}
-      onToggleSignup={handleToggleSignup}
-      onLogout={handleLogout}
-    />
+    <>
+      {user.role === "ADMIN" ? (
+        <AdminPanel masses={masses} user={user} onUpdate={fetchMasses} onLogout={handleLogout} />
+      ) : (
+        <UserPanel masses={masses} user={user} onToggleSignup={handleToggleSignup} onLogout={handleLogout} />
+      )}
+    </>
   );
 }
 
