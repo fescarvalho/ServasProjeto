@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Shield, FileText, Share2, Edit, PlusCircle, X, Trash2, Filter, User as UserIcon, CheckCircle, Lock, LockOpen, Trophy } from "lucide-react";
+import { Shield, FileText, Share2, Edit, PlusCircle, X, Trash2, Filter, User as UserIcon, CheckCircle, Lock, LockOpen, Trophy, BarChart2 } from "lucide-react";
 import { api } from "../services/api";
 import { Mass, FUNCOES, User } from "../types/types";
 import { ScaleModal } from "./ScaleModal";
 import { OfficialDocument } from "./OfficialDocument";
-import { MonthlyReport } from "./MonthlyReport";
+// Removi o MonthlyReport pois o StatisticsModal substitui ele com mais detalhes, 
+// mas se quiser manter os dois, pode deixar. Vou usar o novo StatisticsModal.
+import { StatisticsModal } from "./StatisticsModal"; 
 import { GeneralRankingModal } from "./GeneralRankingModal";
 import { NoticeBoard } from "./NoticeBoard";
 import "./css/AdminPanel.css";
@@ -26,8 +28,13 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [newDeadline, setNewDeadline] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"dashboard" | "pdf">("dashboard");
+  
+  // Modais
   const [showTextModal, setShowTextModal] = useState(false);
   const [showRankingModal, setShowRankingModal] = useState(false);
+  const [showStatsModal, setShowStatsModal] = useState(false); // <--- NOVO STATE
+
+  // Filtros
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
@@ -60,8 +67,10 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
 
   return (
     <div className="admin-container">
+      {/* MODAIS */}
       {showTextModal && isAdmin && <ScaleModal masses={filteredMasses} onClose={() => setShowTextModal(false)} />}
       {showRankingModal && isAdmin && <GeneralRankingModal masses={masses} onClose={() => setShowRankingModal(false)} />}
+      {showStatsModal && isAdmin && <StatisticsModal masses={masses} onClose={() => setShowStatsModal(false)} />}
 
       <div className="admin-header no-print">
         <div className="header-brand">
@@ -73,7 +82,15 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         <div className="header-actions" style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center" }}>
           {isAdmin && (
             <>
-              <MonthlyReport masses={filteredMasses} />
+              {/* BOTÃO RELATÓRIO MENSAL */}
+              <button 
+                className="btn-header" 
+                onClick={() => setShowStatsModal(true)} 
+                style={{ background: "#e3f2fd", color: "#1565c0", border: "1px solid #90caf9" }}
+              >
+                <BarChart2 size={16} /> RELATÓRIO MENSAL
+              </button>
+
               <button className="btn-header" onClick={() => setShowRankingModal(true)} style={{ background: "#fff8e1", color: "#f57f17", border: "1px solid #ffca28" }}><Trophy size={16} /> RANKING GERAL</button>
               <button className="btn-header btn-white" onClick={() => setViewMode("pdf")}><FileText size={16} /> VER PDF</button>
               <button className="btn-header btn-green" onClick={() => setShowTextModal(true)}><Share2 size={16} /> WHATSAPP</button>
