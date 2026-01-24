@@ -16,7 +16,7 @@ import { OfficialDocument } from "./OfficialDocument";
 import { api } from "../services/api";
 import { RankingModal } from "./RankingModal";
 import { BadgesModal } from "./BadgesModal";
-import { CountdownTimer, getAdjustedDeadline } from "./CountdownTimer";
+import { CountdownTimer } from "./CountdownTimer";
 import "./css/UserPanel.css";
 
 interface UserPanelProps {
@@ -36,9 +36,14 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
     api.get("/notices").then((res) => setNotices(res.data));
   }, []);
 
-  const isExpired = (deadline?: string) => {
-    if (!deadline) return false;
-    return new Date().getTime() > getAdjustedDeadline(deadline).getTime();
+  // Verifica validade do prazo
+  const checkStatus = (massDate: string, deadline?: string) => {
+    const now = new Date();
+    if (deadline) {
+      return new Date(deadline) < now;
+    }
+    const massD = new Date(massDate);
+    return massD < now;
   };
 
   const confirmedScore = masses.reduce((acc, mass) => {
@@ -50,9 +55,16 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
   return (
     <div
       className="user-panel-container"
-      style={{ width: "100%", overflowX: "hidden", position: "relative" }}
+      style={{
+        width: "100%",
+        minHeight: "100vh",
+        overflowX: "hidden",
+        position: "relative",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: "#f5f5f5",
+      }}
     >
-      {/* Estilos de Animação */}
       <style>{`
         @keyframes pulse-alert {
           0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
@@ -63,6 +75,41 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           animation: pulse-alert 2s infinite;
           transition: all 0.3s ease;
         }
+
+        /* CARD ENCERRADO (CINZA) */
+        .card-inactive {
+          background-color: #f0f0f0 !important;
+          opacity: 0.8;
+          border: 1px solid #ddd !important;
+        }
+        .card-inactive .date-badge {
+          background-color: #e0e0e0 !important;
+          color: #757575 !important;
+        }
+        .card-inactive h3, .card-inactive .mass-time, .card-inactive .vagas-info {
+          color: #9e9e9e !important;
+        }
+
+        /* CARD DISPONÍVEL (DESTAQUE) */
+        .mass-highlight {
+          border: 2px solid #e91e63 !important;
+          box-shadow: 0 4px 20px rgba(233, 30, 99, 0.15) !important;
+          background-color: #fff !important;
+        }
+
+        /* FUNÇÃO PILL */
+        .role-pill {
+          background-color: #e1bee7 !important;
+          color: #7b1fa2 !important;
+          font-weight: bold;
+          border-radius: 8px;
+          padding: 6px 12px;
+          font-size: 0.85rem;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          margin-bottom: 15px;
+        }
       `}</style>
 
       {showBadges && (
@@ -72,6 +119,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
         <RankingModal masses={masses} onClose={() => setShowRanking(false)} />
       )}
 
+      {/* HEADER */}
       <div
         className="header-hero no-print"
         style={{ width: "100%", boxSizing: "border-box" }}
@@ -83,6 +131,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
         <p>"Servir com alegria."</p>
       </div>
 
+      {/* ABAS */}
       <div
         className="container-tabs no-print"
         style={{ width: "100%", boxSizing: "border-box" }}
@@ -150,7 +199,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
         </div>
       </div>
 
-      {/* Mural de Avisos */}
+      {/* AVISOS */}
       {notices.length > 0 && (
         <div
           className="no-print"
@@ -208,6 +257,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
         </div>
       )}
 
+      {/* CONTEÚDO */}
       <div style={{ flex: 1, width: "100%", boxSizing: "border-box" }}>
         {activeTab === "inscricoes" ? (
           <div className="container-responsive">
@@ -217,67 +267,80 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                 const vagasRestantes = mass.maxServers - totalInscritos;
                 const jaEstouInscrita = mass.signups.some((s) => s.userId === user.id);
 
-                // --- CORREÇÃO 1: Garante que se a função for vazia, usa "Auxiliar" ---
+                // Função: usa "Auxiliar" se não houver role definido
                 const minhaFuncao =
                   mass.signups.find((s) => s.userId === user.id)?.role || "Auxiliar";
 
-                // LÓGICA DA TRAVA
+                // Variáveis de Estado
                 const estaAberto = mass.open;
-                const prazoEncerrado = isExpired(mass.deadline);
+                const prazoEncerrado = checkStatus(mass.date, mass.deadline);
                 const lotado = vagasRestantes <= 0;
 
-                // --- CORREÇÃO 2: Define se a missa está "inativa" (para mudar cor) ---
-                const isInativa = prazoEncerrado || (lotado && !jaEstouInscrita);
-
-                // Botão trava se: Não sou eu E (prazo acabou OU lotou OU não abriu ainda)
-                const botaoDesabilitado =
-                  (!jaEstouInscrita && prazoEncerrado) ||
-                  (!jaEstouInscrita && lotado) ||
-                  (!jaEstouInscrita && !estaAberto);
-
+                // --- LÓGICA DO BOTÃO E ESTILO ---
                 let btnClass = "servir";
                 let btnText: React.ReactNode = (
                   <>
                     <Heart size={16} fill="white" /> Servir
                   </>
                 );
+                let botaoDesabilitado = false;
 
-                if (jaEstouInscrita) {
-                  btnClass = "desistir";
-                  btnText = "Desistir";
-                } else if (!estaAberto) {
-                  btnClass = "disabled";
-                  btnText = "Em Breve";
-                } else if (prazoEncerrado) {
+                // 1. Prioridade Máxima: Prazo Acabou = "Encerrado" para TODOS
+                if (prazoEncerrado) {
                   btnClass = "disabled";
                   btnText = "Encerrado";
-                } else if (lotado) {
+                  botaoDesabilitado = true;
+                }
+                // 2. Missa Fechada Manualmente = "Em Breve"
+                else if (!estaAberto) {
+                  btnClass = "disabled";
+                  btnText = "Em Breve";
+                  botaoDesabilitado = true;
+                }
+                // 3. Usuário Inscrito = "Desistir"
+                else if (jaEstouInscrita) {
+                  btnClass = "desistir";
+                  btnText = "Desistir";
+                  botaoDesabilitado = false; // Pode clicar para sair
+                }
+                // 4. Lotado e usuário fora = "Lotado"
+                else if (lotado) {
                   btnClass = "disabled";
                   btnText = "Lotado";
+                  botaoDesabilitado = true;
                 }
+                // 5. Caso padrão (Aberto, no prazo, com vaga, não inscrito) -> "Servir"
 
-                // Estilo da Data (Rosa se ativa, Cinza se inativa)
-                const dateBadgeStyle = isInativa
-                  ? { backgroundColor: "#f5f5f5", color: "#9e9e9e" } // Cinza
-                  : {}; // Usa o padrão do CSS (Rosa)
+                // --- CLASSES VISUAIS ---
+                // Inativa: Se prazo acabou OU (lotou e não estou nela)
+                const isInativa = prazoEncerrado || (lotado && !jaEstouInscrita);
+                // Destaque: Aberta, no prazo, com vaga, não inscrito
+                const isAvailable =
+                  estaAberto && !prazoEncerrado && !lotado && !jaEstouInscrita;
 
-                // Opacidade do Card (Mais apagado se inativo)
-                const cardOpacity = isInativa ? 0.7 : 1;
+                let cardClass = "";
+                if (isInativa) cardClass = "card-inactive";
+                else if (isAvailable) cardClass = "mass-highlight";
+
+                // BADGE DATA (Padrão, pois .card-inactive sobrescreve se necessário)
+                const defaultDateBadgeStyle = {
+                  backgroundColor: "#fce4ec",
+                  color: "#e91e63",
+                };
 
                 return (
                   <div
                     key={mass.id}
-                    className={`mass-card ${botaoDesabilitado && !jaEstouInscrita ? "disabled" : ""}`}
-                    style={{ position: "relative", opacity: cardOpacity }}
+                    className={`mass-card ${cardClass} ${botaoDesabilitado && !jaEstouInscrita ? "disabled" : ""}`}
+                    style={{ position: "relative" }}
                   >
-                    {/* Só mostra cronômetro se estiver ABERTO e no PRAZO */}
+                    {/* Timer: Apenas se disponível */}
                     {mass.deadline && !prazoEncerrado && estaAberto && (
                       <CountdownTimer deadline={mass.deadline} />
                     )}
 
                     <div className="card-header">
-                      {/* Aplicando o estilo condicional na data */}
-                      <div className="date-badge" style={dateBadgeStyle}>
+                      <div className="date-badge" style={defaultDateBadgeStyle}>
                         <span className="date-day">{new Date(mass.date).getDate()}</span>
                         <span className="date-month">
                           {new Date(mass.date)
@@ -286,15 +349,12 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                         </span>
                       </div>
                       <div className="mass-info">
-                        <h3 style={{ color: isInativa ? "#757575" : "inherit" }}>
+                        <h3>
                           {new Date(mass.date).toLocaleDateString("pt-BR", {
                             weekday: "long",
                           })}
                         </h3>
-                        <div
-                          className="mass-time"
-                          style={{ color: isInativa ? "#9e9e9e" : "inherit" }}
-                        >
+                        <div className="mass-time">
                           <Clock size={14} />
                           {new Date(mass.date).toLocaleTimeString("pt-BR", {
                             hour: "2-digit",
@@ -304,20 +364,10 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                       </div>
                     </div>
 
-                    {/* Exibe a função se estiver inscrita (Agora sempre aparece, pois tem o padrão "Auxiliar") */}
+                    {/* Função: Sempre visível se inscrita */}
                     {jaEstouInscrita && (
-                      <div
-                        style={{
-                          background: "#e1bee7",
-                          color: "#7b1fa2",
-                          padding: "4px 10px",
-                          borderRadius: "8px",
-                          fontSize: "0.8rem",
-                          fontWeight: "bold",
-                          marginBottom: "15px",
-                          width: "fit-content",
-                        }}
-                      >
+                      <div className="role-pill">
+                        <User size={14} />
                         Sua função: {minhaFuncao}
                       </div>
                     )}
@@ -364,8 +414,8 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           </a>
         </p>
         <p style={{ marginTop: "5px", opacity: 0.7 }}>
-          &copy; {new Date().getFullYear()} Santuario Diocesano Nossa Senhora da
-          Natividade
+          &copy; {new Date().getFullYear()} Santuário Diocesano Nossa Senhora da
+          Natividade - v2.2 (Encerrado)
         </p>
       </footer>
     </div>
