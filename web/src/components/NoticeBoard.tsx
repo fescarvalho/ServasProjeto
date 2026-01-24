@@ -1,53 +1,152 @@
-import { useState, useEffect } from "react";
-import { Megaphone, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { api } from "../services/api";
 import { Notice } from "../types/types";
+import { Trash2, Plus, Megaphone } from "lucide-react";
 
-export function NoticeBoard() {
+interface NoticeBoardProps {
+  readOnly?: boolean;
+}
+
+export function NoticeBoard({ readOnly = false }: NoticeBoardProps) {
   const [notices, setNotices] = useState<Notice[]>([]);
-  const [newNoticeText, setNewNoticeText] = useState("");
+  const [newNotice, setNewNotice] = useState("");
 
-  useEffect(() => { loadNotices(); }, []);
+  // --- O SEGREDO: Um "gatilho" numérico para forçar a atualização ---
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  async function loadNotices() {
-    const res = await api.get("/notices");
-    setNotices(res.data);
-  }
+  // 1. O useEffect depende do 'refreshKey'. Sempre que ele mudar, roda de novo.
+  useEffect(() => {
+    // Definimos a função AQUI DENTRO para evitar conflitos com o React
+    const loadNotices = async () => {
+      try {
+        const response = await api.get("/notices");
+        setNotices(response.data);
+      } catch (error) {
+        console.error("Erro ao buscar avisos", error);
+      }
+    };
+
+    loadNotices();
+  }, [refreshKey]); // <--- A mágica acontece aqui
 
   async function handleAddNotice(e: React.FormEvent) {
     e.preventDefault();
-    if (!newNoticeText.trim()) return;
-    await api.post("/notices", { text: newNoticeText });
-    setNewNoticeText("");
-    loadNotices();
-  }
-
-  async function handleDeleteNotice(id: string) {
-    if (confirm("Apagar este aviso?")) {
-      await api.delete(`/notices/${id}`);
-      loadNotices();
+    if (!newNotice) return;
+    try {
+      await api.post("/notices", { text: newNotice });
+      setNewNotice("");
+      // Em vez de chamar fetch(), apenas mudamos o gatilho
+      setRefreshKey((prev) => prev + 1);
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao criar aviso.");
     }
   }
 
+  async function handleDeleteNotice(id: string) {
+    if (confirm("Apagar aviso?")) {
+      try {
+        await api.delete(`/notices/${id}`);
+        // Em vez de chamar fetch(), apenas mudamos o gatilho
+        setRefreshKey((prev) => prev + 1);
+      } catch (error) {
+        console.error(error);
+        alert("Erro ao apagar.");
+      }
+    }
+  }
+
+  if (notices.length === 0 && readOnly) return null;
+
   return (
-    <div className="no-print" style={{ background: "#fff3cd", padding: "15px", borderRadius: "12px", marginBottom: "20px", border: "1px solid #ffeeba" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#856404", fontWeight: "bold", marginBottom: "10px" }}>
-        <Megaphone size={18} /> Mural de Avisos
+    <div
+      className="notice-board"
+      style={{
+        background: "#fff8e1",
+        border: "1px solid #ffecb3",
+        borderRadius: "12px",
+        padding: "20px",
+        marginBottom: "20px",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          marginBottom: "15px",
+          color: "#f57f17",
+        }}
+      >
+        <Megaphone size={24} />
+        <h3 style={{ margin: 0 }}>Mural de Avisos</h3>
       </div>
-      <form onSubmit={handleAddNotice} style={{ display: "flex", gap: "10px", marginBottom: "15px" }}>
-        <input type="text" placeholder="Escreva um aviso..." value={newNoticeText} onChange={(e) => setNewNoticeText(e.target.value)} style={{ flex: 1, padding: "8px", borderRadius: "6px", border: "1px solid #ddd" }} />
-        <button type="submit" style={{ background: "#856404", color: "white", border: "none", padding: "0 15px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>POSTAR</button>
-      </form>
-      {notices.length > 0 && (
-        <ul style={{ listStyle: "none", padding: 0 }}>
-          {notices.map(notice => (
-            <li key={notice.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "white", padding: "8px 12px", borderRadius: "6px", marginBottom: "5px", border: "1px solid #eee" }}>
-              <span>{notice.text}</span>
-              <button onClick={() => handleDeleteNotice(notice.id)} style={{ background: "none", border: "none", color: "#c62828", cursor: "pointer" }}><Trash2 size={16} /></button>
-            </li>
-          ))}
-        </ul>
+
+      {!readOnly && (
+        <form
+          onSubmit={handleAddNotice}
+          style={{ display: "flex", gap: "10px", marginBottom: "20px" }}
+        >
+          <input
+            type="text"
+            value={newNotice}
+            onChange={(e) => setNewNotice(e.target.value)}
+            placeholder="Digite um novo aviso..."
+            style={{
+              flex: 1,
+              padding: "10px",
+              borderRadius: "8px",
+              border: "1px solid #ddd",
+            }}
+          />
+          <button
+            type="submit"
+            style={{
+              background: "#f57f17",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              padding: "0 15px",
+              cursor: "pointer",
+            }}
+          >
+            <Plus size={20} />
+          </button>
+        </form>
       )}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+        {notices.map((notice) => (
+          <div
+            key={notice.id}
+            style={{
+              background: "white",
+              padding: "15px",
+              borderRadius: "8px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
+            }}
+          >
+            <span style={{ color: "#333", lineHeight: "1.4" }}>{notice.text}</span>
+
+            {!readOnly && (
+              <button
+                onClick={() => handleDeleteNotice(notice.id)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#d32f2f",
+                  cursor: "pointer",
+                }}
+              >
+                <Trash2 size={18} />
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
