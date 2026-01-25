@@ -1,10 +1,31 @@
 import { useState, useMemo } from "react";
 import { Mass } from "../types/types";
-import { X, Trophy, Medal, Calendar, Award, CheckCircle, AlertCircle } from "lucide-react";
+import { X, Trophy, Medal, Calendar, Award, CheckCircle, AlertCircle, Star } from "lucide-react";
 
 interface StatisticsModalProps {
   masses: Mass[];
   onClose: () => void;
+}
+
+// --- NOVA LÓGICA DE PONTUAÇÃO ---
+function getMassPoints(dateString: string) {
+  const date = new Date(dateString);
+  const day = date.getDay(); // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
+  const hour = date.getHours();
+
+  // Regra 1: Segunda (1) a Sexta (5) valem 2 pontos
+  if (day >= 1 && day <= 5) {
+    return 2;
+  }
+
+  // Regra 2: Domingo (0) por volta das 10h vale 2 pontos
+  // (Verificamos se a hora é 10 para cobrir 10:00, 10:30, etc)
+  if (day === 0 && hour === 10) {
+    return 2;
+  }
+
+  // Regra 3: Sábados e outros horários de Domingo valem 1 ponto
+  return 1;
 }
 
 export function StatisticsModal({ masses, onClose }: StatisticsModalProps) {
@@ -16,13 +37,13 @@ export function StatisticsModal({ masses, onClose }: StatisticsModalProps) {
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
   ];
 
-  // --- LÓGICA DE CÁLCULO ---
+  // --- LÓGICA DE CÁLCULO E RANKING ---
   const ranking = useMemo(() => {
-    // Estrutura para guardar os dados de cada serva
     const stats: Record<string, { 
       name: string; 
       totalEscalas: number; 
       totalPresencas: number;
+      score: number; 
       roles: Record<string, number> 
     }> = {};
 
@@ -32,24 +53,28 @@ export function StatisticsModal({ masses, onClose }: StatisticsModalProps) {
       return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
     });
 
-    // 2. Processar cada missa
+    // 2. Processar estatísticas
     filteredMasses.forEach(mass => {
+      const points = getMassPoints(mass.date); // Calcula pontos desta missa específica
+
       mass.signups.forEach(signup => {
         if (!stats[signup.userId]) {
           stats[signup.userId] = { 
             name: signup.user.name, 
             totalEscalas: 0, 
             totalPresencas: 0,
+            score: 0, 
             roles: {} 
           };
         }
         
-        // Contabiliza escala (se inscreveu)
+        // Contabiliza inscrição (escala)
         stats[signup.userId].totalEscalas += 1;
 
-        // Contabiliza presença (se present === true)
+        // Se presente, soma os pontos da regra
         if (signup.present) {
           stats[signup.userId].totalPresencas += 1;
+          stats[signup.userId].score += points;
         }
 
         // Contabiliza função
@@ -58,12 +83,10 @@ export function StatisticsModal({ masses, onClose }: StatisticsModalProps) {
       });
     });
 
-    // 3. Transformar em array e ordenar
-    // Critério de desempate: 1º Presenças, 2º Escalas totais
+    // 3. Ordenar (Pontuação > Presenças > Escalas)
     return Object.values(stats).sort((a, b) => {
-      if (b.totalPresencas !== a.totalPresencas) {
-        return b.totalPresencas - a.totalPresencas;
-      }
+      if (b.score !== a.score) return b.score - a.score;
+      if (b.totalPresencas !== a.totalPresencas) return b.totalPresencas - a.totalPresencas;
       return b.totalEscalas - a.totalEscalas;
     });
   }, [masses, selectedMonth, selectedYear]);
@@ -87,8 +110,10 @@ export function StatisticsModal({ masses, onClose }: StatisticsModalProps) {
           <div style={{ display: "inline-flex", padding: "10px", background: "#fce4ec", borderRadius: "50%", color: "#e91e63", marginBottom: "10px" }}>
             <Award size={32} />
           </div>
-          <h2 style={{ margin: 0, color: "#333", fontSize: "1.5rem" }}>Relatório Mensal</h2>
-          <p style={{ color: "#666", fontSize: "0.9rem" }}>Frequência e engajamento</p>
+          <h2 style={{ margin: 0, color: "#333", fontSize: "1.5rem" }}>Ranking Mensal</h2>
+          <p style={{ color: "#666", fontSize: "0.9rem" }}>
+            Critério: Semana e Dom 10h = <strong>2 pts</strong> <br/> Outros = <strong>1 pt</strong>
+          </p>
         </div>
 
         {/* FILTROS */}
@@ -121,12 +146,8 @@ export function StatisticsModal({ masses, onClose }: StatisticsModalProps) {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             {ranking.map((serva, index) => {
-              // Cálculo de porcentagem de presença
-              const percent = serva.totalEscalas > 0 
-                ? Math.round((serva.totalPresencas / serva.totalEscalas) * 100) 
-                : 0;
               
-              // Cores para os TOP 3
+              // Ícones para o TOP 3
               let icon = <span style={{ fontWeight: "bold", color: "#999", width: "24px", textAlign: "center", fontSize: "0.9rem" }}>{index + 1}º</span>;
               let borderColor = "#eee";
               
@@ -140,32 +161,33 @@ export function StatisticsModal({ masses, onClose }: StatisticsModalProps) {
                   padding: "12px", borderRadius: "8px", backgroundColor: "#fff",
                   border: `1px solid ${borderColor}`, boxShadow: "0 2px 5px rgba(0,0,0,0.03)"
                 }}>
-                  {/* Linha Superior: Nome e Ícone */}
+                  {/* Linha Superior: Nome e Pontuação */}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                       {icon}
                       <span style={{ fontWeight: "bold", color: "#333", fontSize: "1rem" }}>{serva.name}</span>
                     </div>
-                    {/* Badge de Porcentagem */}
+                    {/* Badge de Pontos */}
                     <div style={{ 
-                      fontSize: "0.75rem", fontWeight: "bold", 
-                      padding: "2px 8px", borderRadius: "10px",
-                      backgroundColor: percent === 100 ? "#e8f5e9" : percent >= 75 ? "#fff3e0" : "#ffebee",
-                      color: percent === 100 ? "#2e7d32" : percent >= 75 ? "#ef6c00" : "#c62828"
+                      display: "flex", alignItems: "center", gap: "4px",
+                      background: "#fff8e1", color: "#f57f17",
+                      padding: "4px 10px", borderRadius: "20px",
+                      fontSize: "0.9rem", fontWeight: "bold", border: "1px solid #ffe082"
                     }}>
-                      {percent}% Frequência
+                      <Star size={14} fill="#f57f17" />
+                      {serva.score} pts
                     </div>
                   </div>
 
-                  {/* Linha do Meio: Estatísticas */}
+                  {/* Linha do Meio: Presenças e Escalas */}
                   <div style={{ display: "flex", gap: "15px", marginBottom: "8px", paddingLeft: "34px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "0.85rem", color: "#666" }}>
-                      <CheckCircle size={14} color="#2e7d32" />
-                      <strong>{serva.totalPresencas}</strong> <span style={{ fontSize: "0.8rem" }}>Presenças</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "0.85rem", color: "#2e7d32" }}>
+                      <CheckCircle size={14} />
+                      <strong>{serva.totalPresencas}</strong> <span style={{ opacity: 0.7 }}>Presenças</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "0.85rem", color: "#666" }}>
-                      <AlertCircle size={14} color="#e91e63" />
-                      <strong>{serva.totalEscalas}</strong> <span style={{ fontSize: "0.8rem" }}>Escalas</span>
+                      <AlertCircle size={14} />
+                      <strong>{serva.totalEscalas}</strong> <span style={{ opacity: 0.7 }}>Escalas</span>
                     </div>
                   </div>
 

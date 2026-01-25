@@ -1,6 +1,6 @@
 import axios from "axios";
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:3001",
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:3001" || "https://friendly-carnival-jg494jrp7q5hwgv-3001.app.github.dev/",
 });
 // --- O PULO DO GATO (Interceptor) ---
 // Antes de cada requisição, o axios vai rodar essa função:
