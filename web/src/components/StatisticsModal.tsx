@@ -7,24 +7,34 @@ interface StatisticsModalProps {
   onClose: () => void;
 }
 
-// --- NOVA LÓGICA DE PONTUAÇÃO ---
+// --- LÓGICA DE PONTUAÇÃO (AGORA BLINDADA COM FUSO HORÁRIO) ---
 function getMassPoints(dateString: string) {
   const date = new Date(dateString);
-  const day = date.getDay(); // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
-  const hour = date.getHours();
 
-  // Regra 1: Segunda (1) a Sexta (5) valem 2 pontos
+  // O TRUQUE: Converte a data especificamente para o fuso de São Paulo/Brasília
+  // Isso gera uma string com a data "real" no Brasil
+  const brazilDateString = date.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" });
+  
+  // Criamos uma nova data baseada nessa string para extrair dia e hora corretos
+  const brazilDate = new Date(brazilDateString);
+
+  const day = brazilDate.getDay();   // Dia da semana em Brasília
+  const hour = brazilDate.getHours(); // Hora em Brasília
+
+  // --- DEBUG (Se quiser conferir no Console F12) ---
+  console.log(`Missa: ${dateString} | Em BR: Dia ${day} às ${hour}h`);
+
+  // 1. Segunda (1) a Sexta (5) = 2 PONTOS
   if (day >= 1 && day <= 5) {
     return 2;
   }
 
-  // Regra 2: Domingo (0) por volta das 10h vale 2 pontos
-  // (Verificamos se a hora é 10 para cobrir 10:00, 10:30, etc)
-  if (day === 0 && hour === 10) {
+  // 2. Domingo (0) entre 09h e 11h (Missa das 10h) = 2 PONTOS
+  if (day === 0 && (hour >= 9 && hour <= 11)) {
     return 2;
   }
 
-  // Regra 3: Sábados e outros horários de Domingo valem 1 ponto
+  // 3. Resto = 1 PONTO
   return 1;
 }
 
@@ -37,7 +47,7 @@ export function StatisticsModal({ masses, onClose }: StatisticsModalProps) {
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
   ];
 
-  // --- LÓGICA DE CÁLCULO E RANKING ---
+  // --- CÁLCULO DO RANKING ---
   const ranking = useMemo(() => {
     const stats: Record<string, { 
       name: string; 
@@ -47,15 +57,15 @@ export function StatisticsModal({ masses, onClose }: StatisticsModalProps) {
       roles: Record<string, number> 
     }> = {};
 
-    // 1. Filtrar missas do mês/ano selecionado
     const filteredMasses = masses.filter(m => {
+      // Filtro também ajustado para garantir o mês correto em Brasília
       const d = new Date(m.date);
-      return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+      const brDate = new Date(d.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+      return brDate.getMonth() === selectedMonth && brDate.getFullYear() === selectedYear;
     });
 
-    // 2. Processar estatísticas
     filteredMasses.forEach(mass => {
-      const points = getMassPoints(mass.date); // Calcula pontos desta missa específica
+      const points = getMassPoints(mass.date);
 
       mass.signups.forEach(signup => {
         if (!stats[signup.userId]) {
@@ -68,22 +78,19 @@ export function StatisticsModal({ masses, onClose }: StatisticsModalProps) {
           };
         }
         
-        // Contabiliza inscrição (escala)
         stats[signup.userId].totalEscalas += 1;
-
-        // Se presente, soma os pontos da regra
+        
+        // SÓ CONTA PONTOS SE ESTIVER PRESENTE
         if (signup.present) {
           stats[signup.userId].totalPresencas += 1;
           stats[signup.userId].score += points;
         }
 
-        // Contabiliza função
         const role = signup.role || "Sem função";
         stats[signup.userId].roles[role] = (stats[signup.userId].roles[role] || 0) + 1;
       });
     });
 
-    // 3. Ordenar (Pontuação > Presenças > Escalas)
     return Object.values(stats).sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
       if (b.totalPresencas !== a.totalPresencas) return b.totalPresencas - a.totalPresencas;
@@ -112,11 +119,10 @@ export function StatisticsModal({ masses, onClose }: StatisticsModalProps) {
           </div>
           <h2 style={{ margin: 0, color: "#333", fontSize: "1.5rem" }}>Ranking Mensal</h2>
           <p style={{ color: "#666", fontSize: "0.9rem" }}>
-            Critério: Semana e Dom 10h = <strong>2 pts</strong> <br/> Outros = <strong>1 pt</strong>
+            Semana/Dom 10h = <strong>2 pts</strong> • Outros = <strong>1 pt</strong>
           </p>
         </div>
 
-        {/* FILTROS */}
         <div style={{ display: "flex", gap: "10px", marginBottom: "20px", justifyContent: "center" }}>
           <select 
             value={selectedMonth} 
@@ -137,7 +143,6 @@ export function StatisticsModal({ masses, onClose }: StatisticsModalProps) {
           </select>
         </div>
 
-        {/* LISTA DE RANKING */}
         {ranking.length === 0 ? (
           <div style={{ textAlign: "center", padding: "40px", color: "#999", border: "2px dashed #eee", borderRadius: "8px" }}>
             <Calendar size={40} style={{ opacity: 0.3, marginBottom: 10 }} />
@@ -147,7 +152,6 @@ export function StatisticsModal({ masses, onClose }: StatisticsModalProps) {
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             {ranking.map((serva, index) => {
               
-              // Ícones para o TOP 3
               let icon = <span style={{ fontWeight: "bold", color: "#999", width: "24px", textAlign: "center", fontSize: "0.9rem" }}>{index + 1}º</span>;
               let borderColor = "#eee";
               
@@ -161,13 +165,11 @@ export function StatisticsModal({ masses, onClose }: StatisticsModalProps) {
                   padding: "12px", borderRadius: "8px", backgroundColor: "#fff",
                   border: `1px solid ${borderColor}`, boxShadow: "0 2px 5px rgba(0,0,0,0.03)"
                 }}>
-                  {/* Linha Superior: Nome e Pontuação */}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                       {icon}
                       <span style={{ fontWeight: "bold", color: "#333", fontSize: "1rem" }}>{serva.name}</span>
                     </div>
-                    {/* Badge de Pontos */}
                     <div style={{ 
                       display: "flex", alignItems: "center", gap: "4px",
                       background: "#fff8e1", color: "#f57f17",
@@ -179,7 +181,6 @@ export function StatisticsModal({ masses, onClose }: StatisticsModalProps) {
                     </div>
                   </div>
 
-                  {/* Linha do Meio: Presenças e Escalas */}
                   <div style={{ display: "flex", gap: "15px", marginBottom: "8px", paddingLeft: "34px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "0.85rem", color: "#2e7d32" }}>
                       <CheckCircle size={14} />
@@ -191,7 +192,6 @@ export function StatisticsModal({ masses, onClose }: StatisticsModalProps) {
                     </div>
                   </div>
 
-                  {/* Linha Inferior: Funções */}
                   <div style={{ fontSize: "0.75rem", color: "#999", paddingLeft: "34px", borderTop: "1px solid #f5f5f5", paddingTop: "5px" }}>
                     {Object.entries(serva.roles).map(([role, count]) => `${role} (${count})`).join(" • ")}
                   </div>
