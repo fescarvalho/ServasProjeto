@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Flower,
   Calendar,
@@ -10,6 +10,9 @@ import {
   Trophy,
   Medal,
   Megaphone,
+  ChevronLeft,
+  ChevronRight,
+  Search
 } from "lucide-react";
 import { Mass, UserData, Notice } from "../types/types";
 import { OfficialDocument } from "./OfficialDocument";
@@ -32,18 +35,44 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
   const [showRanking, setShowRanking] = useState(false);
   const [notices, setNotices] = useState<Notice[]>([]);
 
+  // --- NOVO: ESTADOS PARA O FILTRO MENSAL ---
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
   useEffect(() => {
     api.get("/notices").then((res) => setNotices(res.data));
   }, []);
 
+  // Helpers de Data
+  const currentMonthName = selectedDate.toLocaleDateString("pt-BR", { month: "long" });
+  const currentYear = selectedDate.getFullYear();
+
+  // Navegação do Mês
+  const handlePrevMonth = () => {
+    setSelectedDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1));
+  };
+  const handleNextMonth = () => {
+    setSelectedDate(d => new Date(d.getFullYear(), d.getMonth() + 1, 1));
+  };
+
+  // --- FILTRO PRINCIPAL ---
+  const filteredMasses = useMemo(() => {
+    return masses.filter(mass => {
+      const mDate = new Date(mass.date);
+      // Ajuste de Fuso (segurança)
+      const brDate = new Date(mDate.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+      
+      return (
+        brDate.getMonth() === selectedDate.getMonth() &&
+        brDate.getFullYear() === selectedDate.getFullYear()
+      );
+    });
+  }, [masses, selectedDate]);
+
+
   // Função robusta para checar se expirou
   const checkStatus = (massDate: string, deadline?: string) => {
     const now = new Date();
-    // Se tem prazo, respeita o prazo
-    if (deadline) {
-      return new Date(deadline) < now;
-    }
-    // Se não tem prazo, vê se a missa já passou
+    if (deadline) return new Date(deadline) < now;
     const massD = new Date(massDate);
     return massD < now;
   };
@@ -67,7 +96,6 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
         backgroundColor: "#f5f5f5"
       }}
     >
-      {/* CSS FORÇADO */}
       <style>{`
         @keyframes pulse-alert {
           0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
@@ -79,7 +107,6 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           transition: all 0.3s ease;
         }
 
-        /* CARD ENCERRADO (CINZA) */
         .card-inactive {
           background-color: #f0f0f0 !important;
           opacity: 0.8;
@@ -93,14 +120,12 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           color: #9e9e9e !important;
         }
 
-        /* CARD DISPONÍVEL (DESTAQUE) */
         .mass-highlight {
           border: 2px solid #e91e63 !important;
           box-shadow: 0 4px 20px rgba(233, 30, 99, 0.15) !important;
           background-color: #fff !important;
         }
 
-        /* FUNÇÃO PILL */
         .role-pill {
           background-color: #e1bee7 !important;
           color: #7b1fa2 !important;
@@ -112,6 +137,50 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           align-items: center;
           gap: 6px;
           margin-bottom: 15px;
+        }
+
+        /* ESTILO DO FILTRO MENSAL */
+        .month-navigator {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          background: white;
+          margin: 10px 15px;
+          padding: 10px;
+          border-radius: 12px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+          border: 1px solid #eee;
+        }
+        .nav-btn {
+          background: #fce4ec;
+          border: none;
+          color: #e91e63;
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .nav-btn:hover {
+          background: #f8bbd0;
+        }
+        .current-month-label {
+          font-size: 1.1rem;
+          font-weight: 800;
+          color: #333;
+          text-transform: capitalize;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          line-height: 1.1;
+        }
+        .current-year-label {
+          font-size: 0.75rem;
+          color: #888;
+          font-weight: normal;
         }
       `}</style>
 
@@ -173,26 +242,53 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
       <div style={{ flex: 1, width: "100%", boxSizing: "border-box" }}>
         {activeTab === "inscricoes" ? (
           <div className="container-responsive">
+            
+            {/* --- NOVO: NAVEGADOR DE MESES --- */}
+            <div className="month-navigator">
+              <button className="nav-btn" onClick={handlePrevMonth}>
+                <ChevronLeft size={20} />
+              </button>
+              
+              <div className="current-month-label">
+                {currentMonthName}
+                <span className="current-year-label">{currentYear}</span>
+              </div>
+
+              <button className="nav-btn" onClick={handleNextMonth}>
+                <ChevronRight size={20} />
+              </button>
+            </div>
+
             <div style={{ padding: "0 15px" }}>
-              {masses.map((mass) => {
+              
+              {/* FEEDBACK SE NÃO HOUVER MISSAS NO MÊS */}
+              {filteredMasses.length === 0 && (
+                <div style={{ 
+                  textAlign: "center", padding: "40px 20px", color: "#999", 
+                  border: "2px dashed #eee", borderRadius: "12px", margin: "10px 0" 
+                }}>
+                  <Search size={32} style={{ opacity: 0.3, marginBottom: 10 }} />
+                  <p>Nenhuma escala encontrada para <strong>{currentMonthName}</strong>.</p>
+                  <p style={{ fontSize: "0.8rem" }}>Use as setas acima para navegar.</p>
+                </div>
+              )}
+
+              {filteredMasses.map((mass) => {
                 const totalInscritos = mass.signups ? mass.signups.length : 0;
                 const vagasRestantes = mass.maxServers - totalInscritos;
                 const jaEstouInscrita = mass.signups.some((s) => s.userId === user.id);
-                
                 const minhaFuncao = mass.signups.find((s) => s.userId === user.id)?.role || "Auxiliar";
 
                 // ESTADOS
                 const estaAberto = mass.open;
                 const prazoEncerrado = checkStatus(mass.date, mass.deadline);
                 const lotado = vagasRestantes <= 0;
-                
-                // Variável para controle visual da função: SÓ MOSTRA SE ESTIVER PUBLICADA
                 const mostrarFuncao = jaEstouInscrita && mass.published;
 
-                // --- LÓGICA DO BOTÃO ---
+                // Lógica de Botão
                 const botaoDesabilitado = prazoEncerrado || !estaAberto || (!jaEstouInscrita && lotado);
 
-                // --- CLASSES VISUAIS ---
+                // Classes Visuais
                 const isInativa = prazoEncerrado || (lotado && !jaEstouInscrita);
                 const isAvailable = estaAberto && !prazoEncerrado && !lotado && !jaEstouInscrita;
 
@@ -222,7 +318,6 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                   btnText = "Lotado";
                 }
 
-                // DATA BADGE PADRÃO
                 const defaultDateBadgeStyle = { backgroundColor: "#fce4ec", color: "#e91e63" };
 
                 return (
@@ -254,7 +349,6 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                       </div>
                     </div>
                     
-                    {/* --- ALTERAÇÃO AQUI: Função só aparece se estiver inscrita E publicada --- */}
                     {mostrarFuncao && (
                       <div className="role-pill">
                         <User size={14} /> 
@@ -286,7 +380,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           Desenvolvido por <a href="https://www.linkedin.com/in/fecarvalhodev/" target="_blank" rel="noopener noreferrer" style={{ color: "#e91e63", textDecoration: "none", fontWeight: "bold" }}>Fernando Carvalho</a>
         </p>
         <p style={{ marginTop: "5px", opacity: 0.7 }}>
-          &copy; {new Date().getFullYear()} Santuário Diocesano Nossa Senhora da Natividade - v2.3 (Função Oculta)
+          &copy; {new Date().getFullYear()} Santuário Diocesano Nossa Senhora da Natividade - v2.4 (Filtro Mensal)
         </p>
       </footer>
     </div>
