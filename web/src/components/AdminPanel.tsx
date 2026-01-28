@@ -1,11 +1,9 @@
 import { useState } from "react";
 import { Shield, FileText, Share2, Edit, PlusCircle, X, Trash2, Filter, User as UserIcon, CheckCircle, Lock, LockOpen, Trophy, BarChart2 } from "lucide-react";
 import { api } from "../services/api";
-import { Mass, FUNCOES, User } from "../types/types";
+import { Mass, User } from "../types/types";
 import { ScaleModal } from "./ScaleModal";
 import { OfficialDocument } from "./OfficialDocument";
-// Removi o MonthlyReport pois o StatisticsModal substitui ele com mais detalhes, 
-// mas se quiser manter os dois, pode deixar. Vou usar o novo StatisticsModal.
 import { StatisticsModal } from "./StatisticsModal"; 
 import { GeneralRankingModal } from "./GeneralRankingModal";
 import { NoticeBoard } from "./NoticeBoard";
@@ -17,6 +15,14 @@ interface AdminPanelProps {
   onUpdate: () => void;
   onLogout: () => void;
 }
+
+// --- FUNÇÃO AUXILIAR PARA ORDENAR CARGOS ---
+// 1 = Topo, 2 = Meio, 3 = Fundo
+const getRoleWeight = (role?: string) => {
+  if (role === "Cerimoniária") return 1;
+  if (role === "Librífera") return 2;
+  return 3; // Auxiliar e outros
+};
 
 export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps) {
   const isAdmin = user.role === "ADMIN";
@@ -32,7 +38,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   // Modais
   const [showTextModal, setShowTextModal] = useState(false);
   const [showRankingModal, setShowRankingModal] = useState(false);
-  const [showStatsModal, setShowStatsModal] = useState(false); // <--- NOVO STATE
+  const [showStatsModal, setShowStatsModal] = useState(false);
 
   // Filtros
   const [startDate, setStartDate] = useState("");
@@ -166,27 +172,56 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                     <div style={{ overflowX: "auto" }}>
                       <table className="admin-table">
                         <tbody>
-                          {mass.signups.map((signup) => (
-                            <tr key={signup.id}>
-                              <td>
-                                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                  {isAdmin && (
-                                    <button onClick={() => handleTogglePresence(signup.id)} title={signup.present ? "Presença Confirmada" : "Marcar Presença"} style={{ background: "none", border: "none", cursor: "pointer", color: signup.present ? "#2e7d32" : "#e0e0e0", padding: 0, display: "flex", transition: "color 0.2s" }}>
-                                      <CheckCircle size={20} fill={signup.present ? "#e8f5e9" : "none"} />
-                                    </button>
-                                  )}
-                                  <span style={{ fontWeight: signup.present ? "bold" : "normal", color: signup.present ? "#2e7d32" : "#333" }}>{signup.user.name}</span>
-                                </div>
-                              </td>
-                              <td style={{ textAlign: "right" }}>
-                                {isAdmin ? (
-                                  <select className="role-select" value={signup.role || "Auxiliar"} onChange={(e) => handleChangeRole(signup.id, e.target.value)}>
-                                    {FUNCOES.map((f) => <option key={f} value={f}>{f}</option>)}
-                                  </select>
-                                ) : <span style={{ fontSize: "0.85rem", color: "#666" }}>{signup.role || "Auxiliar"}</span>}
-                              </td>
-                            </tr>
-                          ))}
+                          {/* AQUI ESTÁ A ALTERAÇÃO PRINCIPAL: SORT E SELECT INTELIGENTE */}
+                          {mass.signups
+                            .slice() // Cria uma cópia para não bugar o estado original
+                            .sort((a, b) => {
+                              const wA = getRoleWeight(a.role);
+                              const wB = getRoleWeight(b.role);
+                              if (wA !== wB) return wA - wB; // Ordena por peso (Cerimoniária > Librífera > Auxiliar)
+                              return a.user.name.localeCompare(b.user.name); // Desempate por nome
+                            })
+                            .map((signup) => {
+                              // Verifica quais cargos já estão tomados NESTA missa (excluindo a própria usuária da linha)
+                              const cerimoniariaOcupada = mass.signups.some(s => s.role === "Cerimoniária" && s.id !== signup.id);
+                              const libriferaOcupada = mass.signups.some(s => s.role === "Librífera" && s.id !== signup.id);
+
+                              return (
+                                <tr key={signup.id}>
+                                  <td>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                      {isAdmin && (
+                                        <button onClick={() => handleTogglePresence(signup.id)} title={signup.present ? "Presença Confirmada" : "Marcar Presença"} style={{ background: "none", border: "none", cursor: "pointer", color: signup.present ? "#2e7d32" : "#e0e0e0", padding: 0, display: "flex", transition: "color 0.2s" }}>
+                                          <CheckCircle size={20} fill={signup.present ? "#e8f5e9" : "none"} />
+                                        </button>
+                                      )}
+                                      <span style={{ fontWeight: signup.present ? "bold" : "normal", color: signup.present ? "#2e7d32" : "#333" }}>{signup.user.name}</span>
+                                    </div>
+                                  </td>
+                                  <td style={{ textAlign: "right" }}>
+                                    {isAdmin ? (
+                                      <select 
+                                        className="role-select" 
+                                        value={signup.role || "Auxiliar"} 
+                                        onChange={(e) => handleChangeRole(signup.id, e.target.value)}
+                                      >
+                                        <option value="Auxiliar">Auxiliar</option>
+                                        
+                                        <option value="Cerimoniária" disabled={cerimoniariaOcupada}>
+                                          Cerimoniária {cerimoniariaOcupada ? "(Ocupado)" : ""}
+                                        </option>
+                                        
+                                        <option value="Librífera" disabled={libriferaOcupada}>
+                                          Librífera {libriferaOcupada ? "(Ocupado)" : ""}
+                                        </option>
+                                        
+                                        {/* Outras funções se houver, ou pode deixar só essas 3 */}
+                                      </select>
+                                    ) : <span style={{ fontSize: "0.85rem", color: "#666" }}>{signup.role || "Auxiliar"}</span>}
+                                  </td>
+                                </tr>
+                              );
+                            })}
                         </tbody>
                       </table>
                     </div>

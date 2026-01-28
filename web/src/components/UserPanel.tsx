@@ -35,7 +35,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
   const [showRanking, setShowRanking] = useState(false);
   const [notices, setNotices] = useState<Notice[]>([]);
 
-  // --- NOVO: ESTADOS PARA O FILTRO MENSAL ---
+  // --- FILTRO MENSAL ---
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   useEffect(() => {
@@ -191,13 +191,30 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
         <RankingModal masses={masses} onClose={() => setShowRanking(false)} />
       )}
 
-      {/* HEADER */}
-      <div className="header-hero no-print" style={{ width: "100%", boxSizing: "border-box" }}>
+      {/* HEADER HERO */}
+      <div className="header-hero no-print" style={{ width: "100%", boxSizing: "border-box", paddingBottom: "30px" }}>
         <div className="header-icon-wrapper">
           <Flower size={32} strokeWidth={2} color="white" />
         </div>
+        
         <h1>GRUPO DE SERVAS SANTA TEREZINHA</h1>
-        <p>"Servir com alegria."</p>
+        
+        {/* MENSAGEM DE BOAS-VINDAS COM A ROSA */}
+        <div style={{ 
+          marginTop: "10px", 
+          marginBottom: "5px",
+          background: "rgba(255, 255, 255, 0.2)", 
+          padding: "6px 16px", 
+          borderRadius: "30px", 
+          display: "inline-block",
+          backdropFilter: "blur(5px)"
+        }}>
+          <p style={{ margin: 0, fontSize: "1.1rem", fontWeight: "400" }}>
+            Bem-vinda, <strong style={{ fontWeight: "800" }}>{user.name.split(" ")[0]}</strong> 🌹
+          </p>
+        </div>
+
+        <p style={{ fontSize: "0.9rem", opacity: 0.9, marginTop: "5px" }}>"Servir com alegria."</p>
       </div>
 
       {/* ABAS */}
@@ -243,7 +260,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
         {activeTab === "inscricoes" ? (
           <div className="container-responsive">
             
-            {/* --- NOVO: NAVEGADOR DE MESES --- */}
+            {/* NAVEGADOR DE MESES */}
             <div className="month-navigator">
               <button className="nav-btn" onClick={handlePrevMonth}>
                 <ChevronLeft size={20} />
@@ -297,6 +314,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                 else if (isAvailable) cardClass = "mass-highlight";
 
                 let btnClass = "servir";
+                // --- RESTAURADO PARA CORAÇÃO (HEART) ---
                 let btnText: React.ReactNode = <><Heart size={16} fill="white" /> Servir</>;
 
                 if (jaEstouInscrita) {
@@ -380,7 +398,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           Desenvolvido por <a href="https://www.linkedin.com/in/fecarvalhodev/" target="_blank" rel="noopener noreferrer" style={{ color: "#e91e63", textDecoration: "none", fontWeight: "bold" }}>Fernando Carvalho</a>
         </p>
         <p style={{ marginTop: "5px", opacity: 0.7 }}>
-          &copy; {new Date().getFullYear()} Santuário Diocesano Nossa Senhora da Natividade - v2.4 (Filtro Mensal)
+          &copy; {new Date().getFullYear()} Santuário Diocesano Nossa Senhora da Natividade - v2.7 (Rosa no Nome)
         </p>
       </footer>
     </div>

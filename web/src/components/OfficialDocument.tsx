@@ -7,12 +7,26 @@ interface OfficialDocumentProps {
 }
 
 export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
-  // --- FILTRO ---
-  const missasComEscala = masses.filter((mass) => {
-    return mass.signups && mass.signups.length > 0;
+  // --- FILTRO DE SEGURANÇA ---
+  const missasValidas = masses.filter((mass) => {
+    // 1. Tem alguém inscrito?
+    const temInscritas = mass.signups && mass.signups.length > 0;
+    
+    // 2. Está publicada? (Ignora Rascunhos)
+    const estaPublicada = mass.published;
+
+    // 3. É futura? (Ignora o que já passou)
+    // Criamos uma data "hoje zerada" para não esconder a missa do dia atual
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const dataMissa = new Date(mass.date);
+    const ehFutura = dataMissa >= hoje;
+
+    return temInscritas && estaPublicada && ehFutura;
   });
 
-  const missasOrdenadas = missasComEscala.sort(
+  // Ordena por data
+  const missasOrdenadas = missasValidas.sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
   );
 
@@ -25,13 +39,12 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
     const normalized = role
       .toLowerCase()
       .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, ""); // Remove acentos para comparar
+      .replace(/[\u0300-\u036f]/g, "");
+
     if (normalized.includes("cerimoniaria")) return 1;
     if (normalized.includes("librifera")) return 2;
-    if (normalized.includes("cruz")) return 3;
-    if (normalized.includes("velas")) return 4;
-    if (normalized.includes("auxiliar")) return 99; // Sempre por último
-    return 50; // Outros
+    // Auxiliar e qualquer outra coisa ficam por último
+    return 99; 
   };
 
   return (
@@ -159,7 +172,7 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
           }}
         >
           <p style={{ color: "#888", fontStyle: "italic", fontSize: "16px" }}>
-            Nenhuma escala confirmada para este período.
+            Nenhuma escala pública confirmada para este período.
           </p>
         </div>
       ) : (
@@ -213,19 +226,16 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
                 funcoes[role].push(s.user.name);
               });
 
-              // --- ORDENAÇÃO DAS FUNÇÕES (AQUI ESTÁ A MÁGICA) ---
+              // Ordena cargos
               const cargosOrdenados = Object.keys(funcoes).sort((a, b) => {
                 return getRolePriority(a) - getRolePriority(b);
               });
 
               const rowBg = index % 2 === 0 ? "#ffffff" : "#fff9fc";
-
-              // Ajuste do tipo ANY
               const massName = (mass as Mass & { name?: string }).name;
 
               return (
                 <tr key={mass.id} style={{ backgroundColor: rowBg }}>
-                  {/* Coluna 1: Informações da Missa */}
                   <td
                     style={{
                       padding: "15px 10px",
@@ -305,7 +315,6 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
                     </div>
                   </td>
 
-                  {/* Coluna 2: Equipe */}
                   <td
                     style={{
                       padding: "15px 10px",
@@ -336,7 +345,11 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
                             {cargo}
                           </div>
                           <div
-                            style={{ fontSize: "15px", color: "#333", lineHeight: "1.3" }}
+                            style={{
+                              fontSize: "15px",
+                              color: "#333",
+                              lineHeight: "1.3",
+                            }}
                           >
                             {funcoes[cargo].join(", ")}
                           </div>
@@ -387,7 +400,6 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
           th { background-color: #e91e63 !important; color: white !important; }
           tr:nth-child(even) { background-color: #fff9fc !important; }
         }
-
         @media screen and (max-width: 480px) {
           .document-container { padding: 10px !important; }
           h1 { fontSize: 18px !important; }

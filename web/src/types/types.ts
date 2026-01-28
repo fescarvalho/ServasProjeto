@@ -4,7 +4,7 @@ export interface Signup {
   id: string;
   userId: string;
   massId: string;
-  role?: string; // Pode ser opcional se nem sempre tiver função definida
+  role?: string; 
   user: {
     name: string;
   };
@@ -22,7 +22,7 @@ export interface UserData {
   id: string;
   name: string;
   email: string;
-  role: string; // <--- ADICIONE ESTA LINHA OBRIGATÓRIA
+  role: string; 
 }
 
 export interface Mass {
