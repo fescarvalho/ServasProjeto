@@ -3,17 +3,16 @@ import { Mass } from "../types/types";
 import {
   X,
   BarChart2,
-  CheckCircle,
-  AlertCircle,
+
   Calendar,
-  User,
+
   Minus,
   Star,
   Briefcase,
   Trophy,
   Medal,
   LayoutList,
-  ListOrdered
+
 } from "lucide-react";
 
 interface StatisticsModalProps {
