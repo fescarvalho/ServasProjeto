@@ -7,16 +7,20 @@ interface OfficialDocumentProps {
 }
 
 export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
-  // --- FILTRO DE SEGURANÇA ---
+  // --- FILTRO DE SEGURANÇA E RESERVA ---
   const missasValidas = masses.filter((mass) => {
-    // 1. Tem alguém inscrito?
-    const temInscritas = mass.signups && mass.signups.length > 0;
+    // 1. Filtra APENAS CONFIRMADAS para saber se a missa deve aparecer
+    // (Ignora quem está na reserva na contagem)
+    const confirmadas = mass.signups 
+      ? mass.signups.filter((s: any) => s.status !== "RESERVA") 
+      : [];
+    
+    const temInscritas = confirmadas.length > 0;
     
     // 2. Está publicada? (Ignora Rascunhos)
     const estaPublicada = mass.published;
 
     // 3. É futura? (Ignora o que já passou)
-    // Criamos uma data "hoje zerada" para não esconder a missa do dia atual
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     const dataMissa = new Date(mass.date);
@@ -219,8 +223,11 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
             {missasOrdenadas.map((mass, index) => {
               const funcoes: Record<string, string[]> = {};
 
+              // --- FILTRO CRUCIAL: PEGA APENAS QUEM NÃO É RESERVA ---
+              const servasConfirmadas = mass.signups.filter((s: any) => s.status !== "RESERVA");
+
               // Agrupa as servas
-              mass.signups.forEach((s) => {
+              servasConfirmadas.forEach((s) => {
                 const role = s.role || "Auxiliar";
                 if (!funcoes[role]) funcoes[role] = [];
                 funcoes[role].push(s.user.name);

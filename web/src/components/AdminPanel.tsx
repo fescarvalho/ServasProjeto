@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Shield, FileText, Share2, Edit, PlusCircle, X, Trash2, Filter, User as UserIcon, CheckCircle, Lock, LockOpen, Trophy, BarChart2 } from "lucide-react";
+import { Shield, FileText, Share2, Edit, PlusCircle, X, Trash2, Filter, User as UserIcon, CheckCircle, Lock, LockOpen, Trophy, BarChart2, ArrowUpCircle } from "lucide-react";
 import { api } from "../services/api";
 import { Mass, User } from "../types/types";
 import { ScaleModal } from "./ScaleModal";
@@ -16,12 +16,10 @@ interface AdminPanelProps {
   onLogout: () => void;
 }
 
-// --- FUNÇÃO AUXILIAR PARA ORDENAR CARGOS ---
-// 1 = Topo, 2 = Meio, 3 = Fundo
 const getRoleWeight = (role?: string) => {
   if (role === "Cerimoniária") return 1;
   if (role === "Librífera") return 2;
-  return 3; // Auxiliar e outros
+  return 3; 
 };
 
 export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps) {
@@ -35,12 +33,10 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"dashboard" | "pdf">("dashboard");
   
-  // Modais
   const [showTextModal, setShowTextModal] = useState(false);
   const [showRankingModal, setShowRankingModal] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
 
-  // Filtros
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
@@ -62,6 +58,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     if (mass.deadline) { const deadlineDate = new Date(mass.deadline); const offset = deadlineDate.getTimezoneOffset() * 60000; setNewDeadline(new Date(deadlineDate.getTime() - offset).toISOString().slice(0, 16)); } else { setNewDeadline(""); }
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
+  
   function handleCancelEdit() { setEditingId(null); setNewDate(""); setNewTime(""); setNewName(""); setNewMax(4); setNewDeadline(""); }
   async function handleTogglePublish(id: string, currentStatus: boolean) { try { await api.patch(`/masses/${id}`, { published: !currentStatus }); onUpdate(); } catch (error) { alert("Erro ao alterar status."); } }
   async function handleToggleOpen(id: string, currentOpen: boolean) { try { await api.patch(`/masses/${id}/toggle-open`, { open: !currentOpen }); onUpdate(); } catch (error) { alert("Erro ao alterar cadeado."); } }
@@ -70,6 +67,18 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   async function handleChangeRole(signupId: string, newRole: string) { await api.patch(`/signup/${signupId}/role`, { role: newRole }); onUpdate(); }
   async function handleToggleSignup(massId: string) { try { await api.post("/toggle-signup", { userId: user.id, massId }); onUpdate(); } catch (error) { alert("Erro ao se inscrever/sair."); } }
   async function handleTogglePresence(signupId: string) { try { await api.patch(`/signup/${signupId}/toggle-presence`); onUpdate(); } catch (error) { alert("Erro ao confirmar presença."); } }
+  
+  // Promover da Reserva
+  async function handlePromote(signupId: string) {
+    if(!confirm("Tem certeza que deseja promover esta serva para a escala oficial?")) return;
+    try { await api.patch(`/signup/${signupId}/promote`); onUpdate(); } catch (error) { alert("Erro ao promover serva."); }
+  }
+
+  // --- NOVA FUNÇÃO: REMOVER SERVA ESPECÍFICA ---
+  async function handleRemoveSignup(signupId: string) {
+    if(!confirm("Tem certeza que deseja remover esta serva da escala? Isso pode promover alguém da reserva.")) return;
+    try { await api.delete(`/signup/${signupId}`); onUpdate(); } catch (error) { alert("Erro ao remover serva."); }
+  }
 
   return (
     <div className="admin-container">
@@ -88,18 +97,12 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         <div className="header-actions" style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center" }}>
           {isAdmin && (
             <>
-              {/* BOTÃO RELATÓRIO MENSAL */}
-              <button 
-                className="btn-header" 
-                onClick={() => setShowStatsModal(true)} 
-                style={{ background: "#e3f2fd", color: "#1565c0", border: "1px solid #90caf9" }}
-              >
-                <BarChart2 size={16} /> RELATÓRIO MENSAL
+              <button className="btn-header" onClick={() => setShowStatsModal(true)} style={{ background: "#e3f2fd", color: "#1565c0", border: "1px solid #90caf9" }}>
+                <BarChart2 size={16} /> RELATÓRIO
               </button>
-
-              <button className="btn-header" onClick={() => setShowRankingModal(true)} style={{ background: "#fff8e1", color: "#f57f17", border: "1px solid #ffca28" }}><Trophy size={16} /> RANKING GERAL</button>
-              <button className="btn-header btn-white" onClick={() => setViewMode("pdf")}><FileText size={16} /> VER PDF</button>
-              <button className="btn-header btn-green" onClick={() => setShowTextModal(true)}><Share2 size={16} /> WHATSAPP</button>
+              <button className="btn-header" onClick={() => setShowRankingModal(true)} style={{ background: "#fff8e1", color: "#f57f17", border: "1px solid #ffca28" }}><Trophy size={16} /> RANKING</button>
+              <button className="btn-header btn-white" onClick={() => setViewMode("pdf")}><FileText size={16} /> PDF</button>
+              <button className="btn-header btn-green" onClick={() => setShowTextModal(true)}><Share2 size={16} /> ZAP</button>
             </>
           )}
           <button className="btn-header btn-dark" onClick={onLogout}><X size={16} /> SAIR</button>
@@ -138,8 +141,12 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         {filteredMasses.map((mass) => {
           const isPublished = mass.published;
           const userIsIn = mass.signups.some(s => s.userId === user.id);
-          const vagasRestantes = mass.maxServers - mass.signups.length;
+          
+          const confirmados = mass.signups.filter((s: any) => s.status !== "RESERVA");
+          const vagasRestantes = mass.maxServers - confirmados.length;
+          
           const showNameList = isAdmin || isPublished;
+          
           return (
             <div key={mass.id} className="mass-list-item">
               <div style={{ flex: 1 }}>
@@ -159,7 +166,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                   </div>
                   <h3 className="mass-date-title">{new Date(mass.date).toLocaleString("pt-BR", { weekday: "long", day: "2-digit", month: "long", hour: "2-digit", minute: "2-digit" })}</h3>
                   <div style={{ marginTop: "5px", color: vagasRestantes > 0 ? "#2e7d32" : "#c62828", fontWeight: "bold", fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "5px" }}>
-                    <UserIcon size={14} />{vagasRestantes > 0 ? `${vagasRestantes} vaga(s) disponível(is)` : "LOTADO"}<span style={{ color: "#666", fontWeight: "normal" }}>({mass.signups.length}/{mass.maxServers})</span>
+                    <UserIcon size={14} />{vagasRestantes > 0 ? `${vagasRestantes} vaga(s) disponível(is)` : "LOTADO"}<span style={{ color: "#666", fontWeight: "normal" }}>({confirmados.length}/{mass.maxServers})</span>
                   </div>
                 </div>
                 {!isAdmin && (
@@ -172,30 +179,71 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                     <div style={{ overflowX: "auto" }}>
                       <table className="admin-table">
                         <tbody>
-                          {/* AQUI ESTÁ A ALTERAÇÃO PRINCIPAL: SORT E SELECT INTELIGENTE */}
                           {mass.signups
-                            .slice() // Cria uma cópia para não bugar o estado original
+                            .slice()
                             .sort((a, b) => {
+                              const statusA = (a as any).status === "RESERVA" ? 1 : 0;
+                              const statusB = (b as any).status === "RESERVA" ? 1 : 0;
+                              if (statusA !== statusB) return statusA - statusB;
                               const wA = getRoleWeight(a.role);
                               const wB = getRoleWeight(b.role);
-                              if (wA !== wB) return wA - wB; // Ordena por peso (Cerimoniária > Librífera > Auxiliar)
-                              return a.user.name.localeCompare(b.user.name); // Desempate por nome
+                              if (wA !== wB) return wA - wB;
+                              return a.user.name.localeCompare(b.user.name);
                             })
                             .map((signup) => {
-                              // Verifica quais cargos já estão tomados NESTA missa (excluindo a própria usuária da linha)
+                              const isReserva = (signup as any).status === "RESERVA";
                               const cerimoniariaOcupada = mass.signups.some(s => s.role === "Cerimoniária" && s.id !== signup.id);
                               const libriferaOcupada = mass.signups.some(s => s.role === "Librífera" && s.id !== signup.id);
 
                               return (
-                                <tr key={signup.id}>
+                                <tr key={signup.id} style={{ backgroundColor: isReserva ? "#fff3e0" : "transparent" }}>
                                   <td>
                                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                      
+                                      {/* AÇÕES DO ADMIN */}
                                       {isAdmin && (
-                                        <button onClick={() => handleTogglePresence(signup.id)} title={signup.present ? "Presença Confirmada" : "Marcar Presença"} style={{ background: "none", border: "none", cursor: "pointer", color: signup.present ? "#2e7d32" : "#e0e0e0", padding: 0, display: "flex", transition: "color 0.2s" }}>
-                                          <CheckCircle size={20} fill={signup.present ? "#e8f5e9" : "none"} />
-                                        </button>
+                                        <div style={{ display: "flex", gap: "4px" }}>
+                                          
+                                          {/* REMOVER (LIXEIRA) */}
+                                          <button 
+                                            onClick={() => handleRemoveSignup(signup.id)} 
+                                            title="Remover serva da escala"
+                                            style={{ background: "#ffebee", border: "1px solid #ffcdd2", borderRadius: "4px", width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#c62828" }}
+                                          >
+                                            <Trash2 size={14} />
+                                          </button>
+
+                                          {/* PROMOVER (SÓ RESERVA) */}
+                                          {isReserva && (
+                                            <button 
+                                              onClick={() => handlePromote(signup.id)} 
+                                              title="Promover para Escala Oficial"
+                                              style={{ background: "#fff3e0", border: "1px solid #ffe0b2", borderRadius: "4px", width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#ef6c00" }}
+                                            >
+                                              <ArrowUpCircle size={16} />
+                                            </button>
+                                          )}
+
+                                          {/* PRESENÇA/FALTA (SÓ CONFIRMADOS) */}
+                                          {!isReserva && (
+                                            <button 
+                                              onClick={() => handleTogglePresence(signup.id)} 
+                                              title={signup.present ? "Presença Confirmada" : "Marcar Falta (Não presente)"} 
+                                              style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }}
+                                            >
+                                              <CheckCircle size={22} fill={signup.present ? "#e8f5e9" : "none"} color={signup.present ? "#2e7d32" : "#e0e0e0"} />
+                                            </button>
+                                          )}
+                                        </div>
                                       )}
-                                      <span style={{ fontWeight: signup.present ? "bold" : "normal", color: signup.present ? "#2e7d32" : "#333" }}>{signup.user.name}</span>
+                                      
+                                      <div style={{ display: "flex", flexDirection: "column" }}>
+                                        <span style={{ fontWeight: signup.present ? "bold" : "normal", color: isReserva ? "#ef6c00" : (signup.present ? "#2e7d32" : "#333") }}>
+                                          {signup.user.name}
+                                        </span>
+                                        {isReserva && <span style={{ fontSize: "0.65rem", color: "#ef6c00", fontWeight: "bold" }}>RESERVA</span>}
+                                        {!isReserva && !signup.present && isAdmin && <span style={{ fontSize: "0.65rem", color: "#999" }}>Pendente / Falta</span>}
+                                      </div>
                                     </div>
                                   </td>
                                   <td style={{ textAlign: "right" }}>
@@ -204,18 +252,11 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                                         className="role-select" 
                                         value={signup.role || "Auxiliar"} 
                                         onChange={(e) => handleChangeRole(signup.id, e.target.value)}
+                                        style={{ opacity: isReserva ? 0.6 : 1 }}
                                       >
                                         <option value="Auxiliar">Auxiliar</option>
-                                        
-                                        <option value="Cerimoniária" disabled={cerimoniariaOcupada}>
-                                          Cerimoniária {cerimoniariaOcupada ? "(Ocupado)" : ""}
-                                        </option>
-                                        
-                                        <option value="Librífera" disabled={libriferaOcupada}>
-                                          Librífera {libriferaOcupada ? "(Ocupado)" : ""}
-                                        </option>
-                                        
-                                        {/* Outras funções se houver, ou pode deixar só essas 3 */}
+                                        <option value="Cerimoniária" disabled={cerimoniariaOcupada}>Cerimoniária {cerimoniariaOcupada ? "(Ocupado)" : ""}</option>
+                                        <option value="Librífera" disabled={libriferaOcupada}>Librífera {libriferaOcupada ? "(Ocupado)" : ""}</option>
                                       </select>
                                     ) : <span style={{ fontSize: "0.85rem", color: "#666" }}>{signup.role || "Auxiliar"}</span>}
                                   </td>

@@ -12,7 +12,8 @@ import {
   Megaphone,
   ChevronLeft,
   ChevronRight,
-  Search
+  Search,
+  Hourglass // Ícone para a reserva
 } from "lucide-react";
 import { Mass, UserData, Notice } from "../types/types";
 import { OfficialDocument } from "./OfficialDocument";
@@ -79,7 +80,8 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
 
   const confirmedScore = masses.reduce((acc, mass) => {
     const mySignup = mass.signups.find((s) => s.userId === user.id);
-    if (mySignup && mySignup.present) return acc + 1;
+    // Só conta pontos se estiver presente E confirmado (não conta reserva)
+    if (mySignup && mySignup.present && (mySignup as any).status !== "RESERVA") return acc + 1;
     return acc;
   }, 0);
 
@@ -137,6 +139,22 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           align-items: center;
           gap: 6px;
           margin-bottom: 15px;
+        }
+
+        /* ESTILO PARA RESERVA */
+        .role-pill.reserva {
+          background-color: #fff3e0 !important;
+          color: #e65100 !important;
+          border: 1px solid #ffe0b2;
+        }
+
+        .btn-reserva {
+          background-color: #fb8c00 !important;
+          color: white !important;
+          border: none !important;
+        }
+        .btn-reserva:hover {
+          background-color: #f57c00 !important;
         }
 
         /* ESTILO DO FILTRO MENSAL */
@@ -199,7 +217,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
         
         <h1>GRUPO DE SERVAS SANTA TEREZINHA</h1>
         
-        {/* MENSAGEM DE BOAS-VINDAS COM A ROSA */}
+        {/* MENSAGEM DE BOAS-VINDAS */}
         <div style={{ 
           marginTop: "10px", 
           marginBottom: "5px",
@@ -278,7 +296,6 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
 
             <div style={{ padding: "0 15px" }}>
               
-              {/* FEEDBACK SE NÃO HOUVER MISSAS NO MÊS */}
               {filteredMasses.length === 0 && (
                 <div style={{ 
                   textAlign: "center", padding: "40px 20px", color: "#999", 
@@ -291,39 +308,50 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
               )}
 
               {filteredMasses.map((mass) => {
-                const totalInscritos = mass.signups ? mass.signups.length : 0;
-                const vagasRestantes = mass.maxServers - totalInscritos;
-                const jaEstouInscrita = mass.signups.some((s) => s.userId === user.id);
-                const minhaFuncao = mass.signups.find((s) => s.userId === user.id)?.role || "Auxiliar";
+                // Filtra apenas quem está CONFIRMADO para contagem de vagas
+                const totalConfirmados = mass.signups ? mass.signups.filter((s: any) => s.status !== "RESERVA").length : 0;
+                const vagasRestantes = mass.maxServers - totalConfirmados;
+                
+                // Pega o signup do usuário atual (seja Reserva ou Confirmado)
+                const meuSignup = mass.signups.find((s) => s.userId === user.id);
+                const jaEstouInscrita = !!meuSignup;
+                const souReserva = (meuSignup as any)?.status === "RESERVA";
+                
+                const minhaFuncao = meuSignup?.role || "Auxiliar";
 
                 // ESTADOS
                 const estaAberto = mass.open;
                 const prazoEncerrado = checkStatus(mass.date, mass.deadline);
                 const lotado = vagasRestantes <= 0;
-                const mostrarFuncao = jaEstouInscrita && mass.published;
+                
+                // Mostrar função: Se estiver confirmada e publicada (OU se for só para mostrar que está na reserva)
+                const mostrarFuncao = jaEstouInscrita; // Ajustamos isso para mostrar o status de reserva
 
                 // Lógica de Botão
-                const botaoDesabilitado = prazoEncerrado || !estaAberto || (!jaEstouInscrita && lotado);
+                // O botão só fica desabilitado se o prazo acabou ou o admin trancou.
+                // Se estiver lotado, o botão fica ATIVO para entrar na reserva.
+                const botaoDesabilitado = prazoEncerrado || !estaAberto;
 
                 // Classes Visuais
-                const isInativa = prazoEncerrado || (lotado && !jaEstouInscrita);
-                const isAvailable = estaAberto && !prazoEncerrado && !lotado && !jaEstouInscrita;
+                const isInativa = prazoEncerrado; // Só fica cinza se o prazo acabou
+                const isAvailable = estaAberto && !prazoEncerrado;
 
                 let cardClass = "";
                 if (isInativa) cardClass = "card-inactive";
                 else if (isAvailable) cardClass = "mass-highlight";
 
+                // --- LÓGICA DO TEXTO E COR DO BOTÃO ---
                 let btnClass = "servir";
-                // --- RESTAURADO PARA CORAÇÃO (HEART) ---
                 let btnText: React.ReactNode = <><Heart size={16} fill="white" /> Servir</>;
 
                 if (jaEstouInscrita) {
                   if (botaoDesabilitado) {
                     btnClass = "disabled";
-                    btnText = "Inscrita (Fechado)";
+                    btnText = "Fechado";
                   } else {
                     btnClass = "desistir";
-                    btnText = "Desistir";
+                    // Se for reserva, o botão diz "Sair da Reserva"
+                    btnText = souReserva ? "Sair da Reserva" : "Desistir";
                   }
                 } else if (!estaAberto) {
                   btnClass = "disabled";
@@ -332,8 +360,9 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                   btnClass = "disabled";
                   btnText = "Encerrado";
                 } else if (lotado) {
-                  btnClass = "disabled";
-                  btnText = "Lotado";
+                  // AQUI MUDOU: Se lotado, vira botão de RESERVA (Laranja)
+                  btnClass = "btn-reserva";
+                  btnText = <><Hourglass size={16} /> Entrar na Reserva</>;
                 }
 
                 const defaultDateBadgeStyle = { backgroundColor: "#fce4ec", color: "#e91e63" };
@@ -367,17 +396,30 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                       </div>
                     </div>
                     
+                    {/* Exibição da Função OU Status de Reserva */}
                     {mostrarFuncao && (
-                      <div className="role-pill">
-                        <User size={14} /> 
-                        Sua função: {minhaFuncao}
+                      <div className={`role-pill ${souReserva ? "reserva" : ""}`}>
+                        {souReserva ? (
+                          <>
+                            <Hourglass size={14} /> 
+                            Você está na fila de espera ⏳
+                          </>
+                        ) : (
+                          // Só mostra a função se a missa estiver publicada ou se for o próprio usuário vendo
+                          (mass.published || jaEstouInscrita) && (
+                            <>
+                              <User size={14} /> 
+                              Sua função: {minhaFuncao}
+                            </>
+                          )
+                        )}
                       </div>
                     )}
                     
                     <div className="card-footer">
                       <div className="vagas-info" style={{ color: "#666", fontSize: "0.9rem" }}>
                         <User size={16} style={{ marginRight: 4 }} />
-                        <strong>{totalInscritos}</strong> / {mass.maxServers} vagas
+                        <strong>{totalConfirmados}</strong> / {mass.maxServers} vagas
                       </div>
                       <button className={`btn-action ${btnClass}`} onClick={() => onToggleSignup(mass.id)} disabled={botaoDesabilitado}>
                         {btnText}
@@ -398,7 +440,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           Desenvolvido por <a href="https://www.linkedin.com/in/fecarvalhodev/" target="_blank" rel="noopener noreferrer" style={{ color: "#e91e63", textDecoration: "none", fontWeight: "bold" }}>Fernando Carvalho</a>
         </p>
         <p style={{ marginTop: "5px", opacity: 0.7 }}>
-          &copy; {new Date().getFullYear()} Santuário Diocesano Nossa Senhora da Natividade - v2.7 (Rosa no Nome)
+          &copy; {new Date().getFullYear()} Santuário Diocesano Nossa Senhora da Natividade - v2.8 (05/02/2026)
         </p>
       </footer>
     </div>

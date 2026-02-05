@@ -7,36 +7,46 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// --- ENUMS ---
+enum SignupStatus {
+  CONFIRMADO
+  RESERVA
+}
+
+// --- MODELS ---
+
 model User {
   id       String   @id @default(uuid())
   email    String   @unique
   name     String
   password String
-  role     String   @default("USER") // Perfeito!
+  role     String   @default("USER")
   signups  Signup[]
 }
-
-// Removi o model Scale para não quebrar seu banco e seu frontend
 
 model Mass {
   id         String    @id @default(uuid())
   date       DateTime
   name       String?
-  published  Boolean   @default(false) // Perfeito!
+  published  Boolean   @default(false)
   deadline   DateTime?
   maxServers Int       @default(4)
-  open        Boolean  @default(false)
+  open       Boolean   @default(false)
   signups    Signup[]
 }
 
 model Signup {
-  id     String  @id @default(uuid())
-  user   User    @relation(fields: [userId], references: [id])
-  userId String
-  mass   Mass    @relation(fields: [massId], references: [id])
-  present   Boolean  @default(false)
-  massId String
-  role   String?
+  id        String       @id @default(uuid())
+  user      User         @relation(fields: [userId], references: [id])
+  userId    String
+  mass      Mass         @relation(fields: [massId], references: [id])
+  massId    String
+  role      String?
+  present   Boolean      @default(false)
+  
+  // --- NOVOS CAMPOS PARA O SISTEMA DE RESERVA ---
+  status    SignupStatus @default(CONFIRMADO)
+  createdAt DateTime     @default(now()) // Define a ordem de chegada na fila
 
   @@unique([userId, massId])
 }

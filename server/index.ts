@@ -124,34 +124,79 @@ app.post("/toggle-signup", async (req, res) => {
   const { userId, massId } = req.body;
 
   try {
+    // Buscamos a missa e as inscrições ORDENADAS por data de chegada
+    // Isso é essencial para saber quem é o primeiro da fila de reserva
     const mass = await prisma.mass.findUnique({
       where: { id: massId },
-      include: { signups: true },
+      include: { 
+        signups: { 
+          orderBy: { createdAt: "asc" } 
+        } 
+      },
     });
 
     if (!mass) return res.status(404).json({ error: "Missa não encontrada" });
 
     const existingSignup = mass.signups.find((s) => s.userId === userId);
 
-    // CENÁRIO A: SAIR
+    // ====================================================
+    // CENÁRIO A: SAIR (DESISTÊNCIA)
+    // ====================================================
     if (existingSignup) {
+      // 1. Remove a inscrição da pessoa que clicou
       await prisma.signup.delete({
         where: { id: existingSignup.id },
       });
+
+      // 2. LÓGICA DE PROMOÇÃO AUTOMÁTICA
+      // Se a pessoa que saiu estava CONFIRMADA, abriu uma vaga oficial.
+      // Precisamos puxar o primeiro da reserva para essa vaga.
+      if (existingSignup.status === "CONFIRMADO") {
+        
+        // Procura a primeira pessoa que está como RESERVA
+        const nextInLine = mass.signups.find((s) => s.status === "RESERVA");
+
+        if (nextInLine) {
+          await prisma.signup.update({
+            where: { id: nextInLine.id },
+            data: { status: "CONFIRMADO" },
+          });
+          // (Opcional) Aqui você poderia disparar um email/zap avisando que a pessoa subiu
+        }
+      }
+
       return res.json({ message: "Inscrição removida com sucesso" });
     }
 
-    // CENÁRIO B: ENTRAR
-    if (mass.signups.length >= mass.maxServers) {
-      return res.status(400).json({ error: "Limite de vagas atingido." });
+    // ====================================================
+    // CENÁRIO B: ENTRAR (INSCRIÇÃO)
+    // ====================================================
+    
+    // 1. Conta quantas pessoas estão CONFIRMADAS de verdade
+    const confirmedCount = mass.signups.filter(s => s.status === "CONFIRMADO").length;
+
+    // 2. Decide o status: Tem vaga? CONFIRMADO. Lotou? RESERVA.
+    let newStatus: "CONFIRMADO" | "RESERVA" = "CONFIRMADO";
+    let message = "Inscrição confirmada com sucesso!";
+
+    if (confirmedCount >= mass.maxServers) {
+      newStatus = "RESERVA";
+      message = "Vagas esgotadas. Você entrou na Lista de Reserva.";
     }
 
+    // 3. Cria a inscrição com o status decidido
     await prisma.signup.create({
-      data: { userId, massId },
+      data: { 
+        userId, 
+        massId, 
+        status: newStatus 
+      },
     });
 
-    return res.json({ message: "Inscrição realizada com sucesso" });
+    return res.json({ message, status: newStatus });
+
   } catch (error) {
+    console.error(error); // Bom para debugar no terminal
     return res.status(500).json({ error: "Erro ao processar inscrição" });
   }
 });
@@ -253,6 +298,46 @@ app.delete("/masses/:id", async (req, res) => {
     res.status(500).json({ error: "Erro ao deletar missa" });
   }
 });
+// Rota para o Admin REMOVER uma serva da escala (excluir inscrição)
+app.delete("/signup/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // 1. Busca a inscrição antes de deletar para saber a Missa e o Status
+    const signupToDelete = await prisma.signup.findUnique({
+      where: { id },
+    });
+
+    if (!signupToDelete) return res.status(404).json({ error: "Inscrição não encontrada" });
+
+    // 2. Deleta a inscrição
+    await prisma.signup.delete({ where: { id } });
+
+    // 3. LÓGICA DE PROMOÇÃO (Igual ao toggle-signup)
+    // Se quem saiu estava CONFIRMADA, puxa a primeira da RESERVA
+    if (signupToDelete.status === "CONFIRMADO") {
+      const mass = await prisma.mass.findUnique({
+        where: { id: signupToDelete.massId },
+        include: { signups: { orderBy: { createdAt: "asc" } } },
+      });
+
+      if (mass) {
+        const nextInLine = mass.signups.find((s) => s.status === "RESERVA");
+        if (nextInLine) {
+          await prisma.signup.update({
+            where: { id: nextInLine.id },
+            data: { status: "CONFIRMADO" },
+          });
+        }
+      }
+    }
+
+    return res.json({ message: "Serva removida com sucesso." });
+  } catch (error) {
+    return res.status(500).json({ error: "Erro ao remover inscrição." });
+  }
+});
+
 
 // Alternar se a inscrição está aberta ou fechada
 app.patch("/masses/:id/toggle-open", async (req, res) => {
@@ -263,6 +348,20 @@ app.patch("/masses/:id/toggle-open", async (req, res) => {
     data: { open },
   });
   res.json(mass);
+});
+
+app.patch("/signup/:id/promote", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await prisma.signup.update({
+      where: { id },
+      data: { status: "CONFIRMADO" },
+    });
+    return res.json({ message: "Serva promovida com sucesso!" });
+  } catch (error) {
+    return res.status(500).json({ error: "Erro ao promover serva." });
+  }
 });
 
 // Rota para confirmar/desconfirmar presença
