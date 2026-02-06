@@ -11,12 +11,12 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
   const missasValidas = masses.filter((mass) => {
     // 1. Filtra APENAS CONFIRMADAS para saber se a missa deve aparecer
     // (Ignora quem está na reserva na contagem)
-    const confirmadas = mass.signups 
-      ? mass.signups.filter((s: any) => s.status !== "RESERVA") 
+    const confirmadas = mass.signups
+      ? mass.signups.filter((s: any) => s.status !== "RESERVA")
       : [];
-    
+
     const temInscritas = confirmadas.length > 0;
-    
+
     // 2. Está publicada? (Ignora Rascunhos)
     const estaPublicada = mass.published;
 
@@ -48,7 +48,7 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
     if (normalized.includes("cerimoniaria")) return 1;
     if (normalized.includes("librifera")) return 2;
     // Auxiliar e qualquer outra coisa ficam por último
-    return 99; 
+    return 99;
   };
 
   return (
@@ -224,13 +224,21 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
               const funcoes: Record<string, string[]> = {};
 
               // --- FILTRO CRUCIAL: PEGA APENAS QUEM NÃO É RESERVA ---
-              const servasConfirmadas = mass.signups.filter((s: any) => s.status !== "RESERVA");
+              const servasConfirmadas = mass.signups.filter(
+                (s: any) => s.status !== "RESERVA",
+              );
 
               // Agrupa as servas
               servasConfirmadas.forEach((s) => {
                 const role = s.role || "Auxiliar";
                 if (!funcoes[role]) funcoes[role] = [];
-                funcoes[role].push(s.user.name);
+
+                // Adiciona o ícone se for substituição
+                const nomeFormatado = (s as any).isSubstitution
+                  ? `${s.user.name} (Subst.)`
+                  : s.user.name;
+
+                funcoes[role].push(nomeFormatado);
               });
 
               // Ordena cargos

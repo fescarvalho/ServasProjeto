@@ -4,11 +4,14 @@ export interface Signup {
   id: string;
   userId: string;
   massId: string;
-  role?: string; 
+  role: string | null;
+  present: boolean;
+  status: "CONFIRMADO" | "RESERVA";
+  isSubstitution: boolean; // <-- Adicionar este
+  substitutedName?: string; // <-- Adicionar este
   user: {
     name: string;
   };
-  present: boolean;
 }
 
 export interface User {
@@ -22,7 +25,7 @@ export interface UserData {
   id: string;
   name: string;
   email: string;
-  role: string; 
+  role: string;
 }
 
 export interface Mass {
@@ -54,6 +57,6 @@ export interface Mass {
   deadline?: string;
   maxServers: number;
   published: boolean;
-  open: boolean; 
+  open: boolean;
   signups: Signup[];
 }
