@@ -7,7 +7,6 @@ import {
   PlusCircle,
   X,
   Trash2,
-  User as UserIcon,
   CheckCircle,
   Lock,
   LockOpen,
@@ -42,7 +41,7 @@ const getRoleWeight = (role?: string | null) => {
 export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps) {
   const isAdmin = user.role === "ADMIN";
 
-  // Estados
+  // Estados de formulário
   const [newDate, setNewDate] = useState("");
   const [newTime, setNewTime] = useState("");
   const [newName, setNewName] = useState("");
@@ -56,16 +55,12 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [showRankingModal, setShowRankingModal] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
 
-  // Filtros
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-
   // ESTADO PARA TROCA (SWAP)
   const [allUsers, setAllUsers] = useState<{ id: string; name: string }[]>([]);
   const [swappingSignupId, setSwappingSignupId] = useState<string | null>(null);
   const [selectedReplacementId, setSelectedReplacementId] = useState("");
 
-  // Carrega lista de usuários ao montar
+  // Carrega lista de usuários para o Admin poder realizar trocas
   useEffect(() => {
     if (isAdmin) {
       api
@@ -75,19 +70,11 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     }
   }, [isAdmin]);
 
-  const filteredMasses = masses.filter((mass) => {
-    const massDate = new Date(mass.date).toISOString().split("T")[0];
-    if (startDate && massDate < startDate) return false;
-    if (endDate && massDate > endDate) return false;
-    return true;
-  });
-
+  // Exibe o documento oficial se estiver no modo PDF
   if (viewMode === "pdf" && isAdmin)
-    return (
-      <OfficialDocument masses={filteredMasses} onBack={() => setViewMode("dashboard")} />
-    );
+    return <OfficialDocument masses={masses} onBack={() => setViewMode("dashboard")} />;
 
-  // --- Funções CRUD ---
+  // --- Funções Administrativas ---
   function handleStartEdit(mass: Mass) {
     const d = new Date(mass.date);
     setEditingId(mass.id);
@@ -118,22 +105,27 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     setNewMax(4);
     setNewDeadline("");
   }
+
   async function handleTogglePublish(id: string, currentStatus: boolean) {
     try {
       await api.patch(`/masses/${id}`, { published: !currentStatus });
       onUpdate();
     } catch (error) {
+      console.error(error);
       alert("Erro ao alterar status.");
     }
   }
+
   async function handleToggleOpen(id: string, currentOpen: boolean) {
     try {
       await api.patch(`/masses/${id}/toggle-open`, { open: !currentOpen });
       onUpdate();
     } catch (error) {
+      console.error(error);
       alert("Erro ao alterar cadeado.");
     }
   }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!newDate) return;
@@ -150,35 +142,37 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
       onUpdate();
       handleCancelEdit();
     } catch (error) {
+      console.error(error);
       alert("Erro ao salvar.");
     }
   }
+
   async function handleDeleteMass(id: string) {
     if (confirm("Apagar missa?")) {
       await api.delete(`/masses/${id}`);
       onUpdate();
     }
   }
+
   async function handleChangeRole(signupId: string, newRole: string) {
-    await api.patch(`/signup/${signupId}/role`, { role: newRole });
-    onUpdate();
-  }
-  async function handleToggleSignup(massId: string) {
     try {
-      await api.post("/toggle-signup", { userId: user.id, massId });
+      await api.patch(`/signup/${signupId}/role`, { role: newRole });
       onUpdate();
     } catch (error) {
-      alert("Erro ao se inscrever/sair.");
+      console.error(error);
     }
   }
+
   async function handleTogglePresence(signupId: string) {
     try {
       await api.patch(`/signup/${signupId}/toggle-presence`);
       onUpdate();
     } catch (error) {
+      console.error(error);
       alert("Erro ao confirmar presença.");
     }
   }
+
   async function handlePromote(signupId: string) {
     if (!confirm("Tem certeza que deseja promover esta serva para a escala oficial?"))
       return;
@@ -186,15 +180,18 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
       await api.patch(`/signup/${signupId}/promote`);
       onUpdate();
     } catch (error) {
+      console.error(error);
       alert("Erro ao promover serva.");
     }
   }
+
   async function handleRemoveSignup(signupId: string) {
     if (!confirm("Tem certeza que deseja remover esta serva da escala?")) return;
     try {
       await api.delete(`/signup/${signupId}`);
       onUpdate();
     } catch (error) {
+      console.error(error);
       alert("Erro ao remover serva.");
     }
   }
@@ -210,6 +207,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
       setSelectedReplacementId("");
       onUpdate();
     } catch (error) {
+      console.error(error);
       alert("Erro ao realizar troca.");
     }
   }
@@ -217,7 +215,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   return (
     <div className="admin-container">
       {showTextModal && isAdmin && (
-        <ScaleModal masses={filteredMasses} onClose={() => setShowTextModal(false)} />
+        <ScaleModal masses={masses} onClose={() => setShowTextModal(false)} />
       )}
       {showRankingModal && isAdmin && (
         <GeneralRankingModal masses={masses} onClose={() => setShowRankingModal(false)} />
@@ -369,10 +367,8 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
       )}
 
       <div className="mass-list">
-        {filteredMasses.map((mass) => {
+        {masses.map((mass) => {
           const isPublished = mass.published;
-          const confirmados = mass.signups.filter((s: any) => s.status !== "RESERVA");
-          const vagasRestantes = mass.maxServers - confirmados.length;
           const showNameList = isAdmin || isPublished;
 
           return (
@@ -509,7 +505,11 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                                         <button
                                           onClick={() => handleRemoveSignup(signup.id)}
                                           className="icon-btn-small"
-                                          style={{ color: "#c62828" }}
+                                          style={{
+                                            color: "#c62828",
+                                            border: "none",
+                                            background: "none",
+                                          }}
                                         >
                                           <Trash2 size={14} />
                                         </button>
@@ -517,7 +517,11 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                                           <button
                                             onClick={() => handlePromote(signup.id)}
                                             className="icon-btn-small"
-                                            style={{ color: "#ef6c00" }}
+                                            style={{
+                                              color: "#ef6c00",
+                                              border: "none",
+                                              background: "none",
+                                            }}
                                           >
                                             <ArrowUpCircle size={16} />
                                           </button>
@@ -526,7 +530,11 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                                           <button
                                             onClick={() => setSwappingSignupId(signup.id)}
                                             className="icon-btn-small"
-                                            style={{ color: "#1976d2" }}
+                                            style={{
+                                              color: "#1976d2",
+                                              border: "none",
+                                              background: "none",
+                                            }}
                                           >
                                             <RefreshCw size={14} />
                                           </button>
@@ -611,10 +619,16 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
               </div>
               {isAdmin && (
                 <div className="mass-actions">
-                  <button onClick={() => handleStartEdit(mass)}>
+                  <button
+                    onClick={() => handleStartEdit(mass)}
+                    style={{ border: "none", background: "none" }}
+                  >
                     <Edit size={22} />
                   </button>
-                  <button onClick={() => handleDeleteMass(mass.id)}>
+                  <button
+                    onClick={() => handleDeleteMass(mass.id)}
+                    style={{ border: "none", background: "none" }}
+                  >
                     <Trash2 size={22} />
                   </button>
                 </div>
