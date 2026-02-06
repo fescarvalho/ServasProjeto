@@ -1,4 +1,3 @@
-
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
@@ -60,8 +59,6 @@ app.get("/", (req, res) => {
   res.send("API com TypeScript rodando na Vercel! 🚀");
 });
 
-// --- ROTA DE LISTAGEM (COM FILTRO DE RASCUNHO) ---
-// --- ROTA DE LISTAGEM (CORRIGIDA: MOSTRA TUDO PARA TODOS) ---
 app.get("/masses", authMiddleware, async (req, res) => {
   // Não precisamos mais filtrar por usuário. Todo mundo vê a agenda.
 
@@ -128,10 +125,10 @@ app.post("/toggle-signup", async (req, res) => {
     // Isso é essencial para saber quem é o primeiro da fila de reserva
     const mass = await prisma.mass.findUnique({
       where: { id: massId },
-      include: { 
-        signups: { 
-          orderBy: { createdAt: "asc" } 
-        } 
+      include: {
+        signups: {
+          orderBy: { createdAt: "asc" },
+        },
       },
     });
 
@@ -152,7 +149,6 @@ app.post("/toggle-signup", async (req, res) => {
       // Se a pessoa que saiu estava CONFIRMADA, abriu uma vaga oficial.
       // Precisamos puxar o primeiro da reserva para essa vaga.
       if (existingSignup.status === "CONFIRMADO") {
-        
         // Procura a primeira pessoa que está como RESERVA
         const nextInLine = mass.signups.find((s) => s.status === "RESERVA");
 
@@ -171,9 +167,9 @@ app.post("/toggle-signup", async (req, res) => {
     // ====================================================
     // CENÁRIO B: ENTRAR (INSCRIÇÃO)
     // ====================================================
-    
+
     // 1. Conta quantas pessoas estão CONFIRMADAS de verdade
-    const confirmedCount = mass.signups.filter(s => s.status === "CONFIRMADO").length;
+    const confirmedCount = mass.signups.filter((s) => s.status === "CONFIRMADO").length;
 
     // 2. Decide o status: Tem vaga? CONFIRMADO. Lotou? RESERVA.
     let newStatus: "CONFIRMADO" | "RESERVA" = "CONFIRMADO";
@@ -186,15 +182,14 @@ app.post("/toggle-signup", async (req, res) => {
 
     // 3. Cria a inscrição com o status decidido
     await prisma.signup.create({
-      data: { 
-        userId, 
-        massId, 
-        status: newStatus 
+      data: {
+        userId,
+        massId,
+        status: newStatus,
       },
     });
 
     return res.json({ message, status: newStatus });
-
   } catch (error) {
     console.error(error); // Bom para debugar no terminal
     return res.status(500).json({ error: "Erro ao processar inscrição" });
@@ -276,7 +271,7 @@ app.post("/masses", async (req, res) => {
         name: name || null,
         deadline: deadline ? new Date(deadline) : null,
         published: false, // Começa sempre como Rascunho
-        open: Boolean(open)
+        open: Boolean(open),
       },
     });
 
@@ -308,7 +303,8 @@ app.delete("/signup/:id", async (req, res) => {
       where: { id },
     });
 
-    if (!signupToDelete) return res.status(404).json({ error: "Inscrição não encontrada" });
+    if (!signupToDelete)
+      return res.status(404).json({ error: "Inscrição não encontrada" });
 
     // 2. Deleta a inscrição
     await prisma.signup.delete({ where: { id } });
@@ -338,6 +334,53 @@ app.delete("/signup/:id", async (req, res) => {
   }
 });
 
+// 1. Rota para buscar lista de usuários (para o dropdown de troca)
+app.get("/users/list", async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      select: { id: true, name: true }, // Traz só o necessário
+      orderBy: { name: "asc" },
+    });
+    return res.json(users);
+  } catch (error) {
+    return res.status(500).json({ error: "Erro ao buscar usuários" });
+  }
+});
+
+// 2. Rota de Substituição (Swap)
+app.post("/signup/swap", async (req, res) => {
+  const { oldSignupId, newUserId } = req.body;
+
+  try {
+    // 1. Busca a inscrição antiga incluindo o nome do usuário
+    const oldSignup = await prisma.signup.findUnique({
+      where: { id: oldSignupId },
+      include: { user: true },
+    });
+
+    if (!oldSignup) return res.status(404).json({ error: "Inscrição não encontrada" });
+
+    const outgoingName = oldSignup.user.name;
+
+    await prisma.$transaction([
+      prisma.signup.delete({ where: { id: oldSignupId } }),
+      prisma.signup.create({
+        data: {
+          userId: newUserId,
+          massId: oldSignup.massId,
+          role: oldSignup.role,
+          status: "CONFIRMADO",
+          isSubstitution: true,
+          substitutedName: outgoingName, // SALVA O NOME AQUI
+        },
+      }),
+    ]);
+
+    return res.json({ message: "Substituição realizada!" });
+  } catch (error) {
+    return res.status(500).json({ error: "Erro na troca." });
+  }
+});
 
 // Alternar se a inscrição está aberta ou fechada
 app.patch("/masses/:id/toggle-open", async (req, res) => {
@@ -377,13 +420,12 @@ app.patch("/signup/:id/toggle-presence", async (req, res) => {
       where: { id },
       data: { present: !existing.present },
     });
-    
+
     res.json(updated);
   } catch (error) {
     res.status(500).json({ error: "Erro ao confirmar presença" });
   }
 });
-
 
 // --- ROTAS DE AVISOS (MURAL) ---
 

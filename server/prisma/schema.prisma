@@ -36,17 +36,18 @@ model Mass {
 }
 
 model Signup {
-  id        String       @id @default(uuid())
-  user      User         @relation(fields: [userId], references: [id])
-  userId    String
-  mass      Mass         @relation(fields: [massId], references: [id])
-  massId    String
-  role      String?
-  present   Boolean      @default(false)
-  
+  id              String       @id @default(uuid())
+  user            User         @relation(fields: [userId], references: [id])
+  userId          String
+  mass            Mass         @relation(fields: [massId], references: [id])
+  massId          String
+  role            String?
+  present         Boolean      @default(false)
+  isSubstitution  Boolean      @default(false)
   // --- NOVOS CAMPOS PARA O SISTEMA DE RESERVA ---
-  status    SignupStatus @default(CONFIRMADO)
-  createdAt DateTime     @default(now()) // Define a ordem de chegada na fila
+  status          SignupStatus @default(CONFIRMADO)
+  createdAt       DateTime     @default(now()) // Define a ordem de chegada na fila
+  substitutedName String?
 
   @@unique([userId, massId])
 }
