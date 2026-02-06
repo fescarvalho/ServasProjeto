@@ -1,16 +1,6 @@
 import { useState, useMemo } from "react";
 import { Mass } from "../types/types";
-import {
-  X,
-  BarChart2,
-  Calendar,
-  Minus,
-  Star,
-  Briefcase,
-  Trophy,
-  Medal,
-  LayoutList,
-} from "lucide-react";
+import { X, BarChart2, Calendar, Star, Briefcase, Trophy, Medal } from "lucide-react";
 
 interface StatisticsModalProps {
   masses: Mass[];

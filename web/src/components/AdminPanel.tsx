@@ -7,7 +7,6 @@ import {
   PlusCircle,
   X,
   Trash2,
-  Filter,
   User as UserIcon,
   CheckCircle,
   Lock,
@@ -34,7 +33,7 @@ interface AdminPanelProps {
   onLogout: () => void;
 }
 
-const getRoleWeight = (role?: string) => {
+const getRoleWeight = (role?: string | null) => {
   if (role === "Cerimoniária") return 1;
   if (role === "Librífera") return 2;
   return 3;
@@ -63,8 +62,8 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
 
   // ESTADO PARA TROCA (SWAP)
   const [allUsers, setAllUsers] = useState<{ id: string; name: string }[]>([]);
-  const [swappingSignupId, setSwappingSignupId] = useState<string | null>(null); // Qual ID está sendo trocado?
-  const [selectedReplacementId, setSelectedReplacementId] = useState(""); // Qual user foi escolhido?
+  const [swappingSignupId, setSwappingSignupId] = useState<string | null>(null);
+  const [selectedReplacementId, setSelectedReplacementId] = useState("");
 
   // Carrega lista de usuários ao montar
   useEffect(() => {
@@ -200,7 +199,6 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     }
   }
 
-  // --- NOVA FUNÇÃO: EXECUTAR TROCA ---
   async function handleExecuteSwap() {
     if (!swappingSignupId || !selectedReplacementId) return;
     try {
@@ -212,7 +210,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
       setSelectedReplacementId("");
       onUpdate();
     } catch (error) {
-      alert("Erro ao realizar troca. A serva selecionada talvez já esteja nesta missa.");
+      alert("Erro ao realizar troca.");
     }
   }
 
@@ -347,7 +345,6 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                 type="datetime-local"
                 value={newDeadline}
                 onChange={(e) => setNewDeadline(e.target.value)}
-                style={{ borderColor: "#ef9a9a" }}
               />
             </div>
             <div className="form-group">
@@ -371,72 +368,9 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         </div>
       )}
 
-      <div
-        className="filter-section no-print"
-        style={{
-          background: "#fff",
-          padding: "20px",
-          borderRadius: "16px",
-          marginBottom: "20px",
-          boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            color: "#e91e63",
-            fontWeight: "bold",
-            marginBottom: "15px",
-          }}
-        >
-          <Filter size={18} /> Filtrar Datas
-        </div>
-        <div
-          style={{
-            display: "flex",
-            gap: "15px",
-            alignItems: "flex-end",
-            flexWrap: "wrap",
-          }}
-        >
-          <input
-            type="date"
-            className="form-input"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            style={{ padding: "8px" }}
-          />
-          <input
-            type="date"
-            className="form-input"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            style={{ padding: "8px" }}
-          />
-          <button
-            onClick={() => {
-              setStartDate("");
-              setEndDate("");
-            }}
-            style={{
-              background: "#f5f5f5",
-              border: "1px solid #ddd",
-              padding: "10px 15px",
-              borderRadius: "8px",
-              cursor: "pointer",
-            }}
-          >
-            Limpar
-          </button>
-        </div>
-      </div>
-
       <div className="mass-list">
         {filteredMasses.map((mass) => {
           const isPublished = mass.published;
-          const userIsIn = mass.signups.some((s) => s.userId === user.id);
           const confirmados = mass.signups.filter((s: any) => s.status !== "RESERVA");
           const vagasRestantes = mass.maxServers - confirmados.length;
           const showNameList = isAdmin || isPublished;
@@ -463,17 +397,10 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                           style={{
                             background: mass.published ? "#e8f5e9" : "#fff3e0",
                             color: mass.published ? "#2e7d32" : "#ef6c00",
-                            border: mass.published
-                              ? "1px solid #c8e6c9"
-                              : "1px solid #ffe0b2",
                             padding: "4px 8px",
                             borderRadius: "20px",
-                            cursor: "pointer",
                             fontSize: "0.75rem",
                             fontWeight: "bold",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "5px",
                           }}
                         >
                           {mass.published ? "● Pública" : "○ Rascunho"}
@@ -481,17 +408,11 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                         <button
                           onClick={() => handleToggleOpen(mass.id, mass.open)}
                           className="no-print"
-                          title={mass.open ? "Inscrições Abertas" : "Inscrições Fechadas"}
                           style={{
                             background: mass.open ? "#e3f2fd" : "#eceff1",
                             color: mass.open ? "#1976d2" : "#546e7a",
-                            border: mass.open ? "1px solid #90caf9" : "1px solid #cfd8dc",
                             padding: "4px 8px",
                             borderRadius: "20px",
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
                           }}
                         >
                           {mass.open ? <LockOpen size={14} /> : <Lock size={14} />}
@@ -508,396 +429,192 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                       minute: "2-digit",
                     })}
                   </h3>
-                  <div
-                    style={{
-                      marginTop: "5px",
-                      color: vagasRestantes > 0 ? "#2e7d32" : "#c62828",
-                      fontWeight: "bold",
-                      fontSize: "0.9rem",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "5px",
-                    }}
-                  >
-                    <UserIcon size={14} />
-                    {vagasRestantes > 0
-                      ? `${vagasRestantes} vaga(s) disponível(is)`
-                      : "LOTADO"}
-                    <span style={{ color: "#666", fontWeight: "normal" }}>
-                      ({confirmados.length}/{mass.maxServers})
-                    </span>
-                  </div>
                 </div>
-                {!isAdmin && (
-                  <button
-                    onClick={() => handleToggleSignup(mass.id)}
-                    style={{
-                      width: "100%",
-                      padding: "10px",
-                      marginTop: "10px",
-                      marginBottom: "15px",
-                      borderRadius: "8px",
-                      fontWeight: "bold",
-                      cursor: "pointer",
-                      background: userIsIn
-                        ? "#ffebee"
-                        : vagasRestantes > 0
-                          ? "#e8f5e9"
-                          : "#e0e0e0",
-                      color: userIsIn
-                        ? "#c62828"
-                        : vagasRestantes > 0
-                          ? "#2e7d32"
-                          : "#9e9e9e",
-                      border: "none",
-                    }}
-                    disabled={!userIsIn && vagasRestantes <= 0}
-                  >
-                    {userIsIn
-                      ? "SAIR DA ESCALA"
-                      : vagasRestantes > 0
-                        ? "ENTRAR NA ESCALA"
-                        : "LOTADO"}
-                  </button>
-                )}
-                {showNameList ? (
-                  mass.signups.length === 0 ? (
-                    <p className="empty-msg">Nenhuma inscrita.</p>
-                  ) : (
-                    <div style={{ overflowX: "auto" }}>
-                      <table className="admin-table">
-                        <tbody>
-                          {mass.signups
-                            .slice()
-                            .sort((a, b) => {
-                              const statusA = (a as any).status === "RESERVA" ? 1 : 0;
-                              const statusB = (b as any).status === "RESERVA" ? 1 : 0;
-                              if (statusA !== statusB) return statusA - statusB;
-                              const wA = getRoleWeight(a.role);
-                              const wB = getRoleWeight(b.role);
-                              if (wA !== wB) return wA - wB;
-                              return a.user.name.localeCompare(b.user.name);
-                            })
-                            .map((signup) => {
-                              const isReserva = (signup as any).status === "RESERVA";
-                              const isSwap = (signup as any).isSubstitution; // Flag da substituição
-                              const cerimoniariaOcupada = mass.signups.some(
-                                (s) => s.role === "Cerimoniária" && s.id !== signup.id,
-                              );
-                              const libriferaOcupada = mass.signups.some(
-                                (s) => s.role === "Librífera" && s.id !== signup.id,
-                              );
 
-                              // MODO DE EDIÇÃO (TROCA)
-                              if (swappingSignupId === signup.id) {
-                                return (
-                                  <tr key={signup.id} style={{ background: "#e3f2fd" }}>
-                                    <td colSpan={2} style={{ padding: "10px" }}>
-                                      <div
-                                        style={{
-                                          display: "flex",
-                                          gap: "10px",
-                                          alignItems: "center",
-                                        }}
-                                      >
-                                        <span
-                                          style={{
-                                            fontWeight: "bold",
-                                            color: "#1565c0",
-                                            fontSize: "0.85rem",
-                                          }}
-                                        >
-                                          Trocar {signup.user.name} por:
-                                        </span>
-                                        <select
-                                          autoFocus
-                                          value={selectedReplacementId}
-                                          onChange={(e) =>
-                                            setSelectedReplacementId(e.target.value)
-                                          }
-                                          style={{
-                                            flex: 1,
-                                            padding: "6px",
-                                            borderRadius: "4px",
-                                            border: "1px solid #2196f3",
-                                          }}
-                                        >
-                                          <option value="">Selecione...</option>
-                                          {allUsers.map((u) => (
-                                            <option key={u.id} value={u.id}>
-                                              {u.name}
-                                            </option>
-                                          ))}
-                                        </select>
-                                        <button
-                                          onClick={handleExecuteSwap}
-                                          style={{
-                                            background: "#2196f3",
-                                            color: "white",
-                                            border: "none",
-                                            borderRadius: "4px",
-                                            padding: "6px 10px",
-                                            cursor: "pointer",
-                                          }}
-                                        >
-                                          <Save size={16} />
-                                        </button>
-                                        <button
-                                          onClick={() => setSwappingSignupId(null)}
-                                          style={{
-                                            background: "#e0e0e0",
-                                            color: "#333",
-                                            border: "none",
-                                            borderRadius: "4px",
-                                            padding: "6px 10px",
-                                            cursor: "pointer",
-                                          }}
-                                        >
-                                          <X size={16} />
-                                        </button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                );
-                              }
+                {showNameList && (
+                  <div style={{ overflowX: "auto" }}>
+                    <table className="admin-table">
+                      <tbody>
+                        {mass.signups
+                          .slice()
+                          .sort((a, b) => {
+                            const statusA = (a as any).status === "RESERVA" ? 1 : 0;
+                            const statusB = (b as any).status === "RESERVA" ? 1 : 0;
+                            if (statusA !== statusB) return statusA - statusB;
+                            const wA = getRoleWeight(a.role);
+                            const wB = getRoleWeight(b.role);
+                            if (wA !== wB) return wA - wB;
+                            return (a.user.name || "").localeCompare(b.user.name || "");
+                          })
+                          .map((signup) => {
+                            const isReserva = (signup as any).status === "RESERVA";
+                            const isSwap = (signup as any).isSubstitution;
+                            const substName = (signup as any).substitutedName;
 
-                              // MODO DE VISUALIZAÇÃO
+                            if (swappingSignupId === signup.id) {
                               return (
-                                <tr
-                                  key={signup.id}
-                                  style={{
-                                    backgroundColor: isReserva
-                                      ? "#fff3e0"
-                                      : "transparent",
-                                  }}
-                                >
-                                  <td>
+                                <tr key={signup.id} style={{ background: "#e3f2fd" }}>
+                                  <td colSpan={2} style={{ padding: "10px" }}>
                                     <div
                                       style={{
                                         display: "flex",
-                                        alignItems: "center",
                                         gap: "10px",
+                                        alignItems: "center",
                                       }}
                                     >
-                                      {isAdmin && (
-                                        <div style={{ display: "flex", gap: "4px" }}>
-                                          <button
-                                            onClick={() => handleRemoveSignup(signup.id)}
-                                            title="Remover"
-                                            style={{
-                                              background: "#ffebee",
-                                              border: "1px solid #ffcdd2",
-                                              borderRadius: "4px",
-                                              width: 26,
-                                              height: 26,
-                                              display: "flex",
-                                              alignItems: "center",
-                                              justifyContent: "center",
-                                              cursor: "pointer",
-                                              color: "#c62828",
-                                            }}
-                                          >
-                                            <Trash2 size={14} />
-                                          </button>
-                                          {isReserva && (
-                                            <button
-                                              onClick={() => handlePromote(signup.id)}
-                                              title="Promover"
-                                              style={{
-                                                background: "#fff3e0",
-                                                border: "1px solid #ffe0b2",
-                                                borderRadius: "4px",
-                                                width: 26,
-                                                height: 26,
-                                                display: "flex",
-                                                alignItems: "center",
-                                                justifyContent: "center",
-                                                cursor: "pointer",
-                                                color: "#ef6c00",
-                                              }}
-                                            >
-                                              <ArrowUpCircle size={16} />
-                                            </button>
-                                          )}
-
-                                          {/* BOTÃO DE TROCA (AZUL) */}
-                                          {!isReserva && (
-                                            <button
-                                              onClick={() =>
-                                                setSwappingSignupId(signup.id)
-                                              }
-                                              title="Substituir Serva"
-                                              style={{
-                                                background: "#e3f2fd",
-                                                border: "1px solid #90caf9",
-                                                borderRadius: "4px",
-                                                width: 26,
-                                                height: 26,
-                                                display: "flex",
-                                                alignItems: "center",
-                                                justifyContent: "center",
-                                                cursor: "pointer",
-                                                color: "#1976d2",
-                                              }}
-                                            >
-                                              <RefreshCw size={14} />
-                                            </button>
-                                          )}
-
-                                          {!isReserva && (
-                                            <button
-                                              onClick={() =>
-                                                handleTogglePresence(signup.id)
-                                              }
-                                              title="Presença"
-                                              style={{
-                                                background: "transparent",
-                                                border: "none",
-                                                cursor: "pointer",
-                                                padding: 0,
-                                                display: "flex",
-                                                alignItems: "center",
-                                              }}
-                                            >
-                                              <CheckCircle
-                                                size={22}
-                                                fill={signup.present ? "#e8f5e9" : "none"}
-                                                color={
-                                                  signup.present ? "#2e7d32" : "#e0e0e0"
-                                                }
-                                              />
-                                            </button>
-                                          )}
-                                        </div>
-                                      )}
-
-                                      <div
-                                        style={{
-                                          display: "flex",
-                                          flexDirection: "column",
-                                        }}
-                                      >
-                                        <div
-                                          style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: "5px",
-                                          }}
-                                        >
-                                          <span
-                                            style={{
-                                              fontWeight: signup.present
-                                                ? "bold"
-                                                : "normal",
-                                              color: isReserva
-                                                ? "#ef6c00"
-                                                : signup.present
-                                                  ? "#2e7d32"
-                                                  : "#333",
-                                            }}
-                                          >
-                                            {signup.user.name}
-                                          </span>
-                                          {/* ÍCONE VISUAL DE TROCA */}
-                                          {isSwap && (
-                                            <span
-                                              title="Substituição Administrativa"
-                                              style={{ fontSize: "0.8rem" }}
-                                            >
-                                              🔄
-                                            </span>
-                                          )}
-                                        </div>
-
-                                        {isReserva && (
-                                          <span
-                                            style={{
-                                              fontSize: "0.65rem",
-                                              color: "#ef6c00",
-                                              fontWeight: "bold",
-                                            }}
-                                          >
-                                            RESERVA
-                                          </span>
-                                        )}
-                                        {!isReserva && !signup.present && isAdmin && (
-                                          <span
-                                            style={{ fontSize: "0.65rem", color: "#999" }}
-                                          >
-                                            Pendente / Falta
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td style={{ textAlign: "right" }}>
-                                    {isAdmin ? (
                                       <select
-                                        className="role-select"
-                                        value={signup.role || "Auxiliar"}
+                                        autoFocus
+                                        value={selectedReplacementId}
                                         onChange={(e) =>
-                                          handleChangeRole(signup.id, e.target.value)
+                                          setSelectedReplacementId(e.target.value)
                                         }
-                                        style={{ opacity: isReserva ? 0.6 : 1 }}
+                                        style={{ flex: 1, padding: "6px" }}
                                       >
-                                        <option value="Auxiliar">Auxiliar</option>
-                                        <option
-                                          value="Cerimoniária"
-                                          disabled={cerimoniariaOcupada}
-                                        >
-                                          Cerimoniária{" "}
-                                          {cerimoniariaOcupada ? "(Ocupado)" : ""}
-                                        </option>
-                                        <option
-                                          value="Librífera"
-                                          disabled={libriferaOcupada}
-                                        >
-                                          Librífera {libriferaOcupada ? "(Ocupado)" : ""}
-                                        </option>
+                                        <option value="">Trocar por...</option>
+                                        {allUsers.map((u) => (
+                                          <option key={u.id} value={u.id}>
+                                            {u.name}
+                                          </option>
+                                        ))}
                                       </select>
-                                    ) : (
-                                      <span
-                                        style={{ fontSize: "0.85rem", color: "#666" }}
-                                      >
-                                        {signup.role || "Auxiliar"}
-                                      </span>
-                                    )}
+                                      <button onClick={handleExecuteSwap}>
+                                        <Save size={16} />
+                                      </button>
+                                      <button onClick={() => setSwappingSignupId(null)}>
+                                        <X size={16} />
+                                      </button>
+                                    </div>
                                   </td>
                                 </tr>
                               );
-                            })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )
-                ) : (
-                  <div
-                    style={{
-                      fontStyle: "italic",
-                      color: "#666",
-                      padding: "10px",
-                      background: "#f5f5f5",
-                      borderRadius: "8px",
-                      textAlign: "center",
-                      display: "flex",
-                      justifyContent: "center",
-                      gap: "5px",
-                    }}
-                  >
-                    <Lock size={16} /> A lista de nomes estará disponível após a
-                    publicação oficial.
+                            }
+
+                            return (
+                              <tr
+                                key={signup.id}
+                                style={{
+                                  backgroundColor: isReserva ? "#fff3e0" : "transparent",
+                                }}
+                              >
+                                <td>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: "10px",
+                                    }}
+                                  >
+                                    {isAdmin && (
+                                      <div style={{ display: "flex", gap: "4px" }}>
+                                        <button
+                                          onClick={() => handleRemoveSignup(signup.id)}
+                                          className="icon-btn-small"
+                                          style={{ color: "#c62828" }}
+                                        >
+                                          <Trash2 size={14} />
+                                        </button>
+                                        {isReserva && (
+                                          <button
+                                            onClick={() => handlePromote(signup.id)}
+                                            className="icon-btn-small"
+                                            style={{ color: "#ef6c00" }}
+                                          >
+                                            <ArrowUpCircle size={16} />
+                                          </button>
+                                        )}
+                                        {!isReserva && (
+                                          <button
+                                            onClick={() => setSwappingSignupId(signup.id)}
+                                            className="icon-btn-small"
+                                            style={{ color: "#1976d2" }}
+                                          >
+                                            <RefreshCw size={14} />
+                                          </button>
+                                        )}
+                                        {!isReserva && (
+                                          <button
+                                            onClick={() =>
+                                              handleTogglePresence(signup.id)
+                                            }
+                                            style={{ border: "none", background: "none" }}
+                                          >
+                                            <CheckCircle
+                                              size={22}
+                                              color={
+                                                signup.present ? "#2e7d32" : "#e0e0e0"
+                                              }
+                                              fill={signup.present ? "#e8f5e9" : "none"}
+                                            />
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
+                                    <div
+                                      style={{ display: "flex", flexDirection: "column" }}
+                                    >
+                                      <span
+                                        style={{
+                                          fontWeight: signup.present ? "bold" : "normal",
+                                        }}
+                                      >
+                                        {signup.user.name}{" "}
+                                        {isSwap && substName && (
+                                          <span
+                                            style={{
+                                              fontSize: "0.75rem",
+                                              fontWeight: "normal",
+                                              color: "#666",
+                                            }}
+                                          >
+                                            (Subst. {substName})
+                                          </span>
+                                        )}
+                                      </span>
+                                      {isReserva && (
+                                        <span
+                                          style={{
+                                            fontSize: "0.65rem",
+                                            color: "#ef6c00",
+                                            fontWeight: "bold",
+                                          }}
+                                        >
+                                          RESERVA
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </td>
+                                <td style={{ textAlign: "right" }}>
+                                  {isAdmin ? (
+                                    <select
+                                      className="role-select"
+                                      value={signup.role || "Auxiliar"}
+                                      onChange={(e) =>
+                                        handleChangeRole(signup.id, e.target.value)
+                                      }
+                                    >
+                                      <option value="Auxiliar">Auxiliar</option>
+                                      <option value="Cerimoniária">Cerimoniária</option>
+                                      <option value="Librífera">Librífera</option>
+                                    </select>
+                                  ) : (
+                                    <span>{signup.role || "Auxiliar"}</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </div>
               {isAdmin && (
                 <div className="mass-actions">
-                  <button className="icon-btn edit" onClick={() => handleStartEdit(mass)}>
+                  <button onClick={() => handleStartEdit(mass)}>
                     <Edit size={22} />
                   </button>
-                  <button
-                    className="icon-btn delete"
-                    onClick={() => handleDeleteMass(mass.id)}
-                  >
+                  <button onClick={() => handleDeleteMass(mass.id)}>
                     <Trash2 size={22} />
                   </button>
                 </div>
