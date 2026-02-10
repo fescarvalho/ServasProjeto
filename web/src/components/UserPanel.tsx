@@ -70,7 +70,6 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
   const filteredMasses = useMemo(() => {
     const filtered = masses.filter(mass => {
       const mDate = new Date(mass.date);
-      // Ajuste de Fuso (segurança)
       const brDate = new Date(mDate.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
       
       return (
@@ -79,7 +78,6 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
       );
     });
 
-    // Garante ordenação por data para o scroll funcionar corretamente
     return filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [masses, selectedDate]);
 
@@ -87,26 +85,24 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
   useEffect(() => {
     if (activeTab === "inscricoes" && filteredMasses.length > 0) {
       const now = new Date();
-      now.setHours(0, 0, 0, 0); // Zera hora para comparar apenas o dia
+      now.setHours(0, 0, 0, 0); 
 
-      // Encontra a primeira missa que é hoje ou no futuro
       const firstUpcoming = filteredMasses.find(m => new Date(m.date) >= now);
 
       if (firstUpcoming) {
         const node = getMap().get(firstUpcoming.id);
         if (node) {
-          // Pequeno delay para garantir que o layout renderizou
           setTimeout(() => {
             node.scrollIntoView({ 
               behavior: "smooth", 
-              block: "center", // Centraliza verticalmente (PC)
-              inline: "start"  // Alinha ao início horizontalmente (Mobile)
+              block: "center", 
+              inline: "start" 
             });
           }, 300);
         }
       }
     }
-  }, [selectedDate, activeTab, filteredMasses]); // Roda quando muda o mês ou a aba
+  }, [selectedDate, activeTab, filteredMasses]);
 
   // Função robusta para checar se expirou
   const checkStatus = (massDate: string, deadline?: string) => {
@@ -157,7 +153,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           scroll-snap-type: x mandatory;
           -webkit-overflow-scrolling: touch;
           scrollbar-width: none;
-          scroll-padding-left: 15px; /* Ajuda no alinhamento do scrollIntoView */
+          scroll-padding-left: 15px;
         }
         .responsive-list-container::-webkit-scrollbar { display: none; }
 
@@ -165,7 +161,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
         .responsive-card {
           min-width: 88%;
           max-width: 400px;
-          scroll-snap-align: start; /* Alinha no começo ao soltar */
+          scroll-snap-align: start; 
           flex-shrink: 0;
           background: white;
           border-radius: 16px;
@@ -439,14 +435,10 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                   return (
                     <div
                       key={mass.id}
-                      // Adiciona a ref ao card para permitir o scroll
                       ref={(node) => {
                         const map = getMap();
-                        if (node) {
-                          map.set(mass.id, node);
-                        } else {
-                          map.delete(mass.id);
-                        }
+                        if (node) map.set(mass.id, node);
+                        else map.delete(mass.id);
                       }}
                       className={`responsive-card ${cardClass} ${botaoDesabilitado && !jaEstouInscrita ? "disabled" : ""}`}
                     >
@@ -466,11 +458,22 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                         </div>
                         <div className="mass-info" style={{ flex: 1, paddingRight: "35px" }}>
                           <h3 style={{ margin: "0 0 5px 0", fontSize: "1.1rem", color: "#333", lineHeight: "1.2" }}>
-                            {new Date(mass.date).toLocaleDateString("pt-BR", { weekday: "long" })}
+                            {mass.name || new Date(mass.date).toLocaleDateString("pt-BR", { weekday: "long" })}
                           </h3>
-                          <div className="mass-time" style={{ display: "flex", alignItems: "center", gap: "6px", color: "#666", fontSize: "0.95rem" }}>
-                            <Clock size={15} />
-                            {new Date(mass.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                          
+                          {/* --- HORÁRIO AUMENTADO E DIA DA SEMANA --- */}
+                          <div className="mass-time" style={{ display: "flex", alignItems: "center", gap: "6px", color: "#666" }}>
+                            <Clock size={18} color="#e91e63" />
+                            <span style={{ fontSize: "1.2rem", fontWeight: "800", color: "#333" }}>
+                              {new Date(mass.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                            
+                            {/* Se tiver nome, mostra o dia da semana ao lado */}
+                            {mass.name && (
+                              <span style={{ textTransform: "capitalize", marginLeft: "4px", fontSize: "0.9rem", color: "#666" }}>
+                                • {new Date(mass.date).toLocaleDateString("pt-BR", { weekday: "long" })}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
