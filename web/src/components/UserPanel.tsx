@@ -144,7 +144,6 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
 
         /* --- LAYOUT RESPONSIVO: MOBILE VS PC --- */
         
-        /* Padrão Mobile: Carrossel Horizontal */
         .responsive-list-container {
           display: flex;
           overflow-x: auto;
@@ -157,24 +156,22 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
         }
         .responsive-list-container::-webkit-scrollbar { display: none; }
 
-        /* Card no Mobile */
         .responsive-card {
           min-width: 88%;
           max-width: 400px;
           scroll-snap-align: start; 
           flex-shrink: 0;
           background: white;
-          border-radius: 16px;
-          border: 1px solid #eee;
-          box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-          padding: 15px;
+          border-radius: 20px; /* Mais arredondado */
+          box-shadow: 0 10px 30px rgba(0,0,0,0.08); /* Sombra mais difusa */
+          padding: 20px;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
           position: relative;
+          border: none; /* Remove borda cinza padrão */
         }
 
-        /* --- MUDANÇA PARA PC (TELAS MAIORES QUE 768px) --- */
         @media (min-width: 768px) {
           .responsive-list-container {
             display: flex;
@@ -194,61 +191,120 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           }
         }
 
-        .card-inactive {
-          background-color: #f9f9f9 !important;
-          opacity: 0.9;
-          filter: grayscale(0.8);
+        /* --- ESTILOS ESPECÍFICOS DO CARD (BASEADO NA IMAGEM) --- */
+
+        /* Badge Rosa com Onda */
+        .pink-date-badge {
+          width: 65px;
+          height: 65px;
+          background: linear-gradient(180deg, #ff2e63 0%, #ff0055 100%);
+          border-radius: 14px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          position: relative;
+          overflow: hidden;
+          box-shadow: 0 4px 10px rgba(255, 46, 99, 0.4);
         }
-        .mass-highlight {
-          border: 2px solid #e91e63 !important;
-          box-shadow: 0 8px 25px rgba(233, 30, 99, 0.15) !important;
-          background-color: #fff !important;
+        
+        /* Efeito de onda sutil no badge */
+        .pink-date-badge::after {
+          content: '';
+          position: absolute;
+          bottom: -10px;
+          left: 0;
+          width: 100%;
+          height: 30px;
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 50% 50% 0 0;
+          transform: scaleX(1.5);
         }
 
-        .role-pill {
-          background-color: #e1bee7 !important;
-          color: #7b1fa2 !important;
-          font-weight: bold;
-          border-radius: 8px;
-          padding: 8px 12px;
-          font-size: 0.85rem;
-          display: inline-flex;
+        /* Texto da Data */
+        .pink-date-badge .day { font-size: 1.6rem; fontWeight: 700; line-height: 1; z-index: 2; }
+        .pink-date-badge .month { font-size: 0.75rem; text-transform: uppercase; fontWeight: 600; z-index: 2; margin-top: 2px; }
+
+        /* Título e Hora */
+        .card-title {
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: #2d3436;
+          line-height: 1.3;
+          margin-bottom: 6px;
+        }
+        
+        .card-time {
+          display: flex;
           align-items: center;
           gap: 6px;
-          margin: 10px 0 15px 0;
-          width: fit-content;
-        }
-        .role-pill.reserva {
-          background-color: #fff3e0 !important;
-          color: #e65100 !important;
-          border: 1px solid #ffe0b2;
-        }
-        .role-pill.pendente {
-          background-color: #f5f5f5 !important;
-          color: #616161 !important;
-          border: 1px solid #e0e0e0;
+          color: #636e72;
+          font-size: 0.95rem;
+          font-weight: 500;
         }
 
-        /* Botões */
-        .btn-action {
-          width: 100%; 
-          padding: 8px; 
-          border-radius: 10px; 
-          border: none; 
-          font-weight: bold;
-          cursor: pointer; 
-          font-size: 0.8rem; 
-          display: flex; 
-          align-items: center; 
-          justify-content: center; 
-          gap: 5px; 
-          transition: all 0.2s;
-          height: 36px;
+        /* Vagas */
+        .vagas-text {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 1rem;
+          color: #2d3436;
+          margin-bottom: 12px; /* Espaço antes do botão */
         }
-        .btn-action.servir { background: #e91e63; color: white; }
-        .btn-action.desistir { background: transparent; border: 1px solid #c62828; color: #c62828; }
-        .btn-action.disabled { background: #e0e0e0; color: #999; cursor: not-allowed; }
-        .btn-action.btn-reserva { background: #fb8c00; color: white; }
+        .vagas-text strong { font-weight: 700; font-size: 1.1rem; }
+        .vagas-text span { color: #636e72; font-size: 0.9rem; }
+
+        /* Botão "SERVIR" com Onda */
+        .btn-servir {
+          width: 100%;
+          padding: 14px;
+          border-radius: 12px;
+          border: none;
+          background: linear-gradient(90deg, #ff2e63 0%, #ff4081 100%);
+          color: white;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          font-size: 1rem;
+          cursor: pointer;
+          position: relative;
+          overflow: hidden;
+          box-shadow: 0 5px 15px rgba(255, 46, 99, 0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        }
+        
+        /* Onda no botão */
+        .btn-servir::after {
+          content: '';
+          position: absolute;
+          bottom: -15px;
+          right: -10px;
+          width: 60px;
+          height: 60px;
+          background: rgba(255, 255, 255, 0.15);
+          border-radius: 50%;
+        }
+
+        .btn-desistir {
+          width: 100%; padding: 12px; border-radius: 12px; border: 2px solid #ff2e63;
+          background: transparent; color: #ff2e63; font-weight: 700; cursor: pointer; text-transform: uppercase;
+        }
+        
+        .btn-disabled {
+          width: 100%; padding: 12px; border-radius: 12px; border: none;
+          background: #dfe6e9; color: #b2bec3; font-weight: 700; cursor: not-allowed; text-transform: uppercase;
+        }
+
+        .btn-reserva {
+          width: 100%; padding: 12px; border-radius: 12px; border: none;
+          background: #ff9f43; color: white; font-weight: 700; cursor: pointer; text-transform: uppercase;
+          box-shadow: 0 5px 15px rgba(255, 159, 67, 0.3);
+        }
 
         /* Navegação */
         .month-navigator {
@@ -257,26 +313,27 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           justify-content: space-between; 
           background: white;
           width: 100%; 
-          padding: 12px 15px; 
-          border-bottom: 1px solid #eee; 
-          box-shadow: 0 2px 5px rgba(0,0,0,0.03);
-          margin-bottom: 10px;
+          padding: 15px 20px; 
+          border-bottom: 1px solid #f0f0f0; 
+          box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+          margin-bottom: 15px;
           box-sizing: border-box;
         }
         .nav-btn {
-          background: #fce4ec; border: none; color: #e91e63; 
-          width: 32px; height: 32px; border-radius: 50%;
+          background: #fff0f3; border: none; color: #ff2e63; 
+          width: 36px; height: 36px; border-radius: 50%;
           display: flex; alignItems: center; justifyContent: center; cursor: pointer;
         }
         .current-month-label {
+          flex: 1; /* Adicionado para ocupar o espaço total */
           font-size: 1.1rem; 
           font-weight: 800; 
           color: #333; 
           text-transform: capitalize; 
-          flex: 1; 
-          text-align: center; 
+          text-align: center; /* Garante que o texto fique no meio */
           display: flex; 
           flex-direction: column; 
+          align-items: center;
           line-height: 1.1;
         }
         .current-year-label { font-size: 0.75rem; color: #888; fontWeight: normal; }
@@ -404,33 +461,27 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                   const isInativa = prazoEncerrado; 
                   const isAvailable = estaAberto && !prazoEncerrado;
 
-                  let cardClass = "";
-                  if (isInativa) cardClass = "card-inactive";
-                  else if (isAvailable) cardClass = "mass-highlight";
-
-                  let btnClass = "servir";
-                  let btnText: React.ReactNode = <><Heart size={14} fill="white" /> Servir</>;
+                  let btnClass = "btn-servir";
+                  let btnText: React.ReactNode = <><Heart size={16} fill="white" /> SERVIR</>;
 
                   if (jaEstouInscrita) {
                     if (botaoDesabilitado) {
-                      btnClass = "disabled";
-                      btnText = "Fechado";
+                      btnClass = "btn-disabled";
+                      btnText = "FECHADO";
                     } else {
-                      btnClass = "desistir";
-                      btnText = souReserva ? "Sair da Reserva" : "Desistir";
+                      btnClass = "btn-desistir";
+                      btnText = souReserva ? "SAIR DA RESERVA" : "DESISTIR";
                     }
                   } else if (!estaAberto) {
-                    btnClass = "disabled";
-                    btnText = "Em Breve";
+                    btnClass = "btn-disabled";
+                    btnText = "EM BREVE";
                   } else if (prazoEncerrado) {
-                    btnClass = "disabled";
-                    btnText = "Encerrado";
+                    btnClass = "btn-disabled";
+                    btnText = "ENCERRADO";
                   } else if (lotado) {
                     btnClass = "btn-reserva";
-                    btnText = <><Hourglass size={14} /> Entrar na Reserva</>;
+                    btnText = <><Hourglass size={16} /> FILA DE ESPERA</>;
                   }
-
-                  const defaultDateBadgeStyle = { backgroundColor: "#fce4ec", color: "#e91e63" };
 
                   return (
                     <div
@@ -440,68 +491,73 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                         if (node) map.set(mass.id, node);
                         else map.delete(mass.id);
                       }}
-                      className={`responsive-card ${cardClass} ${botaoDesabilitado && !jaEstouInscrita ? "disabled" : ""}`}
+                      className={`responsive-card ${isInativa ? "card-inactive" : ""}`}
                     >
                       {/* Timer */}
                       {mass.deadline && !prazoEncerrado && estaAberto && (
-                        <div style={{ position: "absolute", top: 10, right: 10, zIndex: 2 }}>
+                        <div style={{ position: "absolute", top: 15, right: 15, zIndex: 2 }}>
                           <CountdownTimer deadline={mass.deadline} />
                         </div>
                       )}
 
-                      <div className="card-header" style={{ display: "flex", gap: "15px", alignItems: "center" }}>
-                        <div className="date-badge" style={{ ...defaultDateBadgeStyle, borderRadius: "10px", padding: "10px", textAlign: "center", minWidth: "50px" }}>
-                          <span style={{ fontSize: "1.3rem", fontWeight: "bold", display: "block" }}>{new Date(mass.date).getDate()}</span>
-                          <span style={{ fontSize: "0.75rem", textTransform: "uppercase" }}>
+                      {/* --- CONTEÚDO DO CARD (ESTRUTURA FIEL À IMAGEM) --- */}
+                      <div style={{ display: "flex", gap: "15px", alignItems: "flex-start", marginBottom: "20px" }}>
+                        
+                        {/* BADGE DATA */}
+                        <div className="pink-date-badge">
+                          <span className="day">{new Date(mass.date).getDate()}</span>
+                          <span className="month">
                             {new Date(mass.date).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}
                           </span>
                         </div>
-                        <div className="mass-info" style={{ flex: 1, paddingRight: "35px" }}>
-                          <h3 style={{ margin: "0 0 5px 0", fontSize: "1.1rem", color: "#333", lineHeight: "1.2" }}>
+
+                        {/* TEXTOS */}
+                        <div style={{ flex: 1 }}>
+                          <h3 className="card-title">
                             {mass.name || new Date(mass.date).toLocaleDateString("pt-BR", { weekday: "long" })}
                           </h3>
                           
-                          {/* --- HORÁRIO AUMENTADO E DIA DA SEMANA --- */}
-                          <div className="mass-time" style={{ display: "flex", alignItems: "center", gap: "6px", color: "#666" }}>
-                            <Clock size={18} color="#e91e63" />
-                            <span style={{ fontSize: "1.2rem", fontWeight: "800", color: "#333" }}>
+                          <div className="card-time">
+                            <Clock size={16} color="#ff2e63" />
+                            <span>
                               {new Date(mass.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                             </span>
-                            
-                            {/* Se tiver nome, mostra o dia da semana ao lado */}
-                            {mass.name && (
-                              <span style={{ textTransform: "capitalize", marginLeft: "4px", fontSize: "0.9rem", color: "#666" }}>
-                                • {new Date(mass.date).toLocaleDateString("pt-BR", { weekday: "long" })}
-                              </span>
-                            )}
+                            <span style={{ color: "#b2bec3" }}>•</span>
+                            <span style={{ textTransform: "capitalize" }}>
+                              {new Date(mass.date).toLocaleDateString("pt-BR", { weekday: "long" })}
+                            </span>
                           </div>
                         </div>
                       </div>
                       
-                      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                        {mostrarFuncao ? (
-                          <div className={`role-pill ${souReserva ? "reserva" : (!mass.published ? "pendente" : "")}`}>
-                            {souReserva ? (
-                              <><Hourglass size={16} /> Na fila de espera</>
-                            ) : (
-                              mass.published ? (
-                                <><User size={16} /> Função: {minhaFuncao}</>
-                              ) : (
-                                <><Clock size={16} /> Aguardando Escala</>
-                              )
-                            )}
-                          </div>
-                        ) : (
-                          <div style={{ height: "20px" }}></div>
-                        )}
-                      </div>
-                      
-                      <div className="card-footer" style={{ borderTop: "1px solid #f0f0f0", paddingTop: "15px", marginTop: "10px" }}>
-                        <div className="vagas-info" style={{ color: "#666", fontSize: "0.9rem", marginBottom: "10px", display: "flex", alignItems: "center", gap: "5px" }}>
-                          <User size={16} />
-                          <strong>{totalConfirmados}</strong> / {mass.maxServers} vagas
+                      {/* FUNÇÃO (SE TIVER) */}
+                      {mostrarFuncao && (
+                        <div style={{ 
+                          backgroundColor: souReserva ? "#fff3e0" : "#f3e5f5", 
+                          color: souReserva ? "#e65100" : "#7b1fa2",
+                          padding: "8px 12px", 
+                          borderRadius: "8px", 
+                          fontSize: "0.85rem", 
+                          fontWeight: "bold",
+                          marginBottom: "15px",
+                          display: "flex", alignItems: "center", gap: "6px", width: "fit-content"
+                        }}>
+                          {souReserva ? <Hourglass size={14}/> : <User size={14}/>}
+                          {souReserva ? "Fila de Espera" : `Sua função: ${minhaFuncao}`}
                         </div>
-                        <button className={`btn-action ${btnClass}`} onClick={() => onToggleSignup(mass.id)} disabled={botaoDesabilitado}>
+                      )}
+
+                      {/* DIVISOR FINO */}
+                      <div style={{ height: "1px", background: "#f0f0f0", marginBottom: "15px" }}></div>
+                      
+                      {/* VAGAS E BOTÃO */}
+                      <div>
+                        <div className="vagas-text">
+                          <User size={18} strokeWidth={2.5} color="#2d3436" />
+                          <strong>{totalConfirmados}</strong> <span>/ {mass.maxServers} vagas</span>
+                        </div>
+                        
+                        <button className={btnClass} onClick={() => onToggleSignup(mass.id)} disabled={botaoDesabilitado}>
                           {btnText}
                         </button>
                       </div>
@@ -522,7 +578,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           Desenvolvido por <a href="https://www.linkedin.com/in/fecarvalhodev/" target="_blank" rel="noopener noreferrer" style={{ color: "#e91e63", textDecoration: "none", fontWeight: "bold" }}>Fernando Carvalho</a>
         </p>
         <p style={{ marginTop: "5px", opacity: 0.7 }}>
-          &copy; {new Date().getFullYear()} Santuário Diocesano Nossa Senhora da Natividade - v2.8 (05/02/2026)
+          &copy; {new Date().getFullYear()} Santuário Diocesano Nossa Senhora da Natividade - v2.9 (10/02/2026)
         </p>
       </footer>
     </div>
