@@ -21,7 +21,7 @@ import { api } from "../services/api";
 import { RankingModal } from "./RankingModal";
 import { BadgesModal } from "./BadgesModal";
 import { CountdownTimer } from "./CountdownTimer";
-import "./css/UserPanel.css";
+import "./css/UserPanel.css"; // CSS Importado aqui
 
 interface UserPanelProps {
   masses: Mass[];
@@ -253,7 +253,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                   const isInativa = prazoEncerrado; 
                   const isAvailable = estaAberto && !prazoEncerrado;
 
-                  // Define a classe do card com base na disponibilidade
+                  // CORREÇÃO TS: Usando as variáveis para definir a classe
                   let cardClass = "";
                   if (isInativa) {
                     cardClass = "card-inactive";
@@ -291,6 +291,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                         if (node) map.set(mass.id, node);
                         else map.delete(mass.id);
                       }}
+                      // CORREÇÃO TS: Usando a variável cardClass aqui
                       className={`responsive-card ${cardClass}`}
                     >
                       {/* Timer */}
@@ -300,10 +301,8 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                         </div>
                       )}
 
-                      {/* --- CONTEÚDO DO CARD (ESTRUTURA FIEL À IMAGEM) --- */}
+                      {/* CABEÇALHO */}
                       <div style={{ display: "flex", gap: "15px", alignItems: "flex-start", marginBottom: "20px" }}>
-                        
-                        {/* BADGE DATA */}
                         <div className="pink-date-badge">
                           <span className="day">{new Date(mass.date).getDate()}</span>
                           <span className="month">
@@ -311,12 +310,10 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                           </span>
                         </div>
 
-                        {/* TEXTOS */}
                         <div style={{ flex: 1 }}>
                           <h3 className="card-title">
                             {mass.name || new Date(mass.date).toLocaleDateString("pt-BR", { weekday: "long" })}
                           </h3>
-                          
                           <div className="card-time">
                             <Clock size={16} color="#ff2e63" />
                             <span>
@@ -330,24 +327,32 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                         </div>
                       </div>
                       
-                      {/* FUNÇÃO (SE TIVER) */}
+                      {/* FUNÇÃO / STATUS */}
                       {mostrarFuncao && (
-                        <div style={{ 
-                          backgroundColor: souReserva ? "#fff3e0" : "#f3e5f5", 
-                          color: souReserva ? "#e65100" : "#7b1fa2",
-                          padding: "8px 12px", 
-                          borderRadius: "8px", 
-                          fontSize: "0.85rem", 
-                          fontWeight: "bold",
-                          marginBottom: "15px",
-                          display: "flex", alignItems: "center", gap: "6px", width: "fit-content"
-                        }}>
-                          {souReserva ? <Hourglass size={14}/> : <User size={14}/>}
-                          {souReserva ? "Fila de Espera" : `Sua função: ${minhaFuncao}`}
+                        <div className={`role-pill ${souReserva ? "reserva" : (!mass.published ? "pendente" : "")}`}>
+                          {souReserva ? (
+                            <>
+                              <Hourglass size={14}/>
+                              Fila de Espera
+                            </>
+                          ) : (
+                            // CORREÇÃO LÓGICA: Verifica se está publicada
+                            mass.published ? (
+                              <>
+                                <User size={14}/> 
+                                Função: {minhaFuncao}
+                              </>
+                            ) : (
+                              <>
+                                <Clock size={14}/>
+                                Aguardando publicação
+                              </>
+                            )
+                          )}
                         </div>
                       )}
 
-                      {/* DIVISOR FINO */}
+                      {/* DIVISOR */}
                       <div style={{ height: "1px", background: "#f0f0f0", marginBottom: "15px" }}></div>
                       
                       {/* VAGAS E BOTÃO */}
