@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Flower,
   Calendar,
@@ -13,7 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
-  Hourglass // Ícone para a reserva
+  Hourglass
 } from "lucide-react";
 import { Mass, UserData, Notice } from "../types/types";
 import { OfficialDocument } from "./OfficialDocument";
@@ -36,12 +36,23 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
   const [showRanking, setShowRanking] = useState(false);
   const [notices, setNotices] = useState<Notice[]>([]);
 
+  // Refs para o Auto-Scroll
+  const itemsRef = useRef<Map<string, HTMLDivElement> | null>(null);
+
   // --- FILTRO MENSAL ---
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   useEffect(() => {
     api.get("/notices").then((res) => setNotices(res.data));
   }, []);
+
+  // Inicializa o Map de refs
+  function getMap() {
+    if (!itemsRef.current) {
+      itemsRef.current = new Map();
+    }
+    return itemsRef.current;
+  }
 
   // Helpers de Data
   const currentMonthName = selectedDate.toLocaleDateString("pt-BR", { month: "long" });
@@ -55,9 +66,9 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
     setSelectedDate(d => new Date(d.getFullYear(), d.getMonth() + 1, 1));
   };
 
-  // --- FILTRO PRINCIPAL ---
+  // --- FILTRO PRINCIPAL (Ordenado por data) ---
   const filteredMasses = useMemo(() => {
-    return masses.filter(mass => {
+    const filtered = masses.filter(mass => {
       const mDate = new Date(mass.date);
       // Ajuste de Fuso (segurança)
       const brDate = new Date(mDate.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
@@ -67,8 +78,35 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
         brDate.getFullYear() === selectedDate.getFullYear()
       );
     });
+
+    // Garante ordenação por data para o scroll funcionar corretamente
+    return filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [masses, selectedDate]);
 
+  // --- AUTO-SCROLL PARA A PRIMEIRA DATA DISPONÍVEL ---
+  useEffect(() => {
+    if (activeTab === "inscricoes" && filteredMasses.length > 0) {
+      const now = new Date();
+      now.setHours(0, 0, 0, 0); // Zera hora para comparar apenas o dia
+
+      // Encontra a primeira missa que é hoje ou no futuro
+      const firstUpcoming = filteredMasses.find(m => new Date(m.date) >= now);
+
+      if (firstUpcoming) {
+        const node = getMap().get(firstUpcoming.id);
+        if (node) {
+          // Pequeno delay para garantir que o layout renderizou
+          setTimeout(() => {
+            node.scrollIntoView({ 
+              behavior: "smooth", 
+              block: "center", // Centraliza verticalmente (PC)
+              inline: "start"  // Alinha ao início horizontalmente (Mobile)
+            });
+          }, 300);
+        }
+      }
+    }
+  }, [selectedDate, activeTab, filteredMasses]); // Roda quando muda o mês ou a aba
 
   // Função robusta para checar se expirou
   const checkStatus = (massDate: string, deadline?: string) => {
@@ -80,7 +118,6 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
 
   const confirmedScore = masses.reduce((acc, mass) => {
     const mySignup = mass.signups.find((s) => s.userId === user.id);
-    // Só conta pontos se estiver presente E confirmado (não conta reserva)
     if (mySignup && mySignup.present && (mySignup as any).status !== "RESERVA") return acc + 1;
     return acc;
   }, 0);
@@ -109,22 +146,66 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           transition: all 0.3s ease;
         }
 
-        .card-inactive {
-          background-color: #f0f0f0 !important;
-          opacity: 0.8;
-          border: 1px solid #ddd !important;
+        /* --- LAYOUT RESPONSIVO: MOBILE VS PC --- */
+        
+        /* Padrão Mobile: Carrossel Horizontal */
+        .responsive-list-container {
+          display: flex;
+          overflow-x: auto;
+          gap: 15px;
+          padding: 10px 15px 30px 15px;
+          scroll-snap-type: x mandatory;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+          scroll-padding-left: 15px; /* Ajuda no alinhamento do scrollIntoView */
         }
-        .card-inactive .date-badge {
-          background-color: #e0e0e0 !important;
-          color: #757575 !important;
-        }
-        .card-inactive h3, .card-inactive .mass-time, .card-inactive .vagas-info {
-          color: #9e9e9e !important;
+        .responsive-list-container::-webkit-scrollbar { display: none; }
+
+        /* Card no Mobile */
+        .responsive-card {
+          min-width: 88%;
+          max-width: 400px;
+          scroll-snap-align: start; /* Alinha no começo ao soltar */
+          flex-shrink: 0;
+          background: white;
+          border-radius: 16px;
+          border: 1px solid #eee;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+          padding: 15px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          position: relative;
         }
 
+        /* --- MUDANÇA PARA PC (TELAS MAIORES QUE 768px) --- */
+        @media (min-width: 768px) {
+          .responsive-list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            overflow-x: visible;
+          }
+
+          .responsive-card {
+            width: 100%;
+            min-width: auto;
+            max-width: none;
+            scroll-snap-align: none;
+          }
+        }
+
+        .card-inactive {
+          background-color: #f9f9f9 !important;
+          opacity: 0.9;
+          filter: grayscale(0.8);
+        }
         .mass-highlight {
           border: 2px solid #e91e63 !important;
-          box-shadow: 0 4px 20px rgba(233, 30, 99, 0.15) !important;
+          box-shadow: 0 8px 25px rgba(233, 30, 99, 0.15) !important;
           background-color: #fff !important;
         }
 
@@ -133,80 +214,76 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           color: #7b1fa2 !important;
           font-weight: bold;
           border-radius: 8px;
-          padding: 6px 12px;
+          padding: 8px 12px;
           font-size: 0.85rem;
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          margin-bottom: 15px;
+          margin: 10px 0 15px 0;
+          width: fit-content;
         }
-
-        /* ESTILO PARA RESERVA */
         .role-pill.reserva {
           background-color: #fff3e0 !important;
           color: #e65100 !important;
           border: 1px solid #ffe0b2;
         }
-
-        /* ESTILO PARA PENDENTE (NÃO PUBLICADO) */
         .role-pill.pendente {
           background-color: #f5f5f5 !important;
           color: #616161 !important;
           border: 1px solid #e0e0e0;
         }
 
-        .btn-reserva {
-          background-color: #fb8c00 !important;
-          color: white !important;
-          border: none !important;
+        /* Botões */
+        .btn-action {
+          width: 100%; 
+          padding: 8px; 
+          border-radius: 10px; 
+          border: none; 
+          font-weight: bold;
+          cursor: pointer; 
+          font-size: 0.8rem; 
+          display: flex; 
+          align-items: center; 
+          justify-content: center; 
+          gap: 5px; 
+          transition: all 0.2s;
+          height: 36px;
         }
-        .btn-reserva:hover {
-          background-color: #f57c00 !important;
-        }
+        .btn-action.servir { background: #e91e63; color: white; }
+        .btn-action.desistir { background: transparent; border: 1px solid #c62828; color: #c62828; }
+        .btn-action.disabled { background: #e0e0e0; color: #999; cursor: not-allowed; }
+        .btn-action.btn-reserva { background: #fb8c00; color: white; }
 
-        /* ESTILO DO FILTRO MENSAL */
+        /* Navegação */
         .month-navigator {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
+          display: flex; 
+          align-items: center; 
+          justify-content: space-between; 
           background: white;
-          margin: 10px 15px;
-          padding: 10px;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-          border: 1px solid #eee;
+          width: 100%; 
+          padding: 12px 15px; 
+          border-bottom: 1px solid #eee; 
+          box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+          margin-bottom: 10px;
+          box-sizing: border-box;
         }
         .nav-btn {
-          background: #fce4ec;
-          border: none;
-          color: #e91e63;
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: background 0.2s;
-        }
-        .nav-btn:hover {
-          background: #f8bbd0;
+          background: #fce4ec; border: none; color: #e91e63; 
+          width: 32px; height: 32px; border-radius: 50%;
+          display: flex; alignItems: center; justifyContent: center; cursor: pointer;
         }
         .current-month-label {
-          font-size: 1.1rem;
-          font-weight: 800;
-          color: #333;
-          text-transform: capitalize;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
+          font-size: 1.1rem; 
+          font-weight: 800; 
+          color: #333; 
+          text-transform: capitalize; 
+          flex: 1; 
+          text-align: center; 
+          display: flex; 
+          flex-direction: column; 
           line-height: 1.1;
         }
-        .current-year-label {
-          font-size: 0.75rem;
-          color: #888;
-          font-weight: normal;
-        }
+        .current-year-label { font-size: 0.75rem; color: #888; fontWeight: normal; }
       `}</style>
 
       {showBadges && (
@@ -224,7 +301,6 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
         
         <h1>GRUPO DE SERVAS SANTA TEREZINHA</h1>
         
-        {/* MENSAGEM DE BOAS-VINDAS */}
         <div style={{ 
           marginTop: "10px", 
           marginBottom: "5px",
@@ -283,12 +359,12 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
       {/* CONTEÚDO PRINCIPAL */}
       <div style={{ flex: 1, width: "100%", boxSizing: "border-box" }}>
         {activeTab === "inscricoes" ? (
-          <div className="container-responsive">
+          <div>
             
             {/* NAVEGADOR DE MESES */}
             <div className="month-navigator">
               <button className="nav-btn" onClick={handlePrevMonth}>
-                <ChevronLeft size={20} />
+                <ChevronLeft size={18} />
               </button>
               
               <div className="current-month-label">
@@ -297,147 +373,141 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
               </div>
 
               <button className="nav-btn" onClick={handleNextMonth}>
-                <ChevronRight size={20} />
+                <ChevronRight size={18} />
               </button>
             </div>
 
-            <div style={{ padding: "0 15px" }}>
-              
-              {filteredMasses.length === 0 && (
-                <div style={{ 
-                  textAlign: "center", padding: "40px 20px", color: "#999", 
-                  border: "2px dashed #eee", borderRadius: "12px", margin: "10px 0" 
-                }}>
-                  <Search size={32} style={{ opacity: 0.3, marginBottom: 10 }} />
-                  <p>Nenhuma escala encontrada para <strong>{currentMonthName}</strong>.</p>
-                  <p style={{ fontSize: "0.8rem" }}>Use as setas acima para navegar.</p>
-                </div>
-              )}
+            {/* LISTA VAZIA */}
+            {filteredMasses.length === 0 ? (
+              <div style={{ 
+                textAlign: "center", padding: "40px 20px", color: "#999", 
+                border: "2px dashed #eee", borderRadius: "12px", margin: "10px 15px" 
+              }}>
+                <Search size={32} style={{ opacity: 0.3, marginBottom: 10 }} />
+                <p>Nenhuma escala encontrada para <strong>{currentMonthName}</strong>.</p>
+                <p style={{ fontSize: "0.8rem" }}>Use as setas acima para navegar.</p>
+              </div>
+            ) : (
+              /* --- LISTA RESPONSIVA --- */
+              <div className="responsive-list-container">
+                {filteredMasses.map((mass) => {
+                  const totalConfirmados = mass.signups ? mass.signups.filter((s: any) => s.status !== "RESERVA").length : 0;
+                  const vagasRestantes = mass.maxServers - totalConfirmados;
+                  const meuSignup = mass.signups.find((s) => s.userId === user.id);
+                  const jaEstouInscrita = !!meuSignup;
+                  const souReserva = (meuSignup as any)?.status === "RESERVA";
+                  const minhaFuncao = meuSignup?.role || "Auxiliar";
 
-              {filteredMasses.map((mass) => {
-                // Filtra apenas quem está CONFIRMADO para contagem de vagas
-                const totalConfirmados = mass.signups ? mass.signups.filter((s: any) => s.status !== "RESERVA").length : 0;
-                const vagasRestantes = mass.maxServers - totalConfirmados;
-                
-                // Pega o signup do usuário atual (seja Reserva ou Confirmado)
-                const meuSignup = mass.signups.find((s) => s.userId === user.id);
-                const jaEstouInscrita = !!meuSignup;
-                const souReserva = (meuSignup as any)?.status === "RESERVA";
-                
-                const minhaFuncao = meuSignup?.role || "Auxiliar";
+                  const estaAberto = mass.open;
+                  const prazoEncerrado = checkStatus(mass.date, mass.deadline);
+                  const lotado = vagasRestantes <= 0;
+                  
+                  const mostrarFuncao = jaEstouInscrita; 
 
-                // ESTADOS
-                const estaAberto = mass.open;
-                const prazoEncerrado = checkStatus(mass.date, mass.deadline);
-                const lotado = vagasRestantes <= 0;
-                
-                // --- CORREÇÃO AQUI ---
-                // Só mostra o container da função se estiver inscrita
-                const mostrarFuncao = jaEstouInscrita; 
+                  const botaoDesabilitado = prazoEncerrado || !estaAberto;
+                  const isInativa = prazoEncerrado; 
+                  const isAvailable = estaAberto && !prazoEncerrado;
 
-                // Lógica de Botão
-                const botaoDesabilitado = prazoEncerrado || !estaAberto;
+                  let cardClass = "";
+                  if (isInativa) cardClass = "card-inactive";
+                  else if (isAvailable) cardClass = "mass-highlight";
 
-                // Classes Visuais
-                const isInativa = prazoEncerrado; 
-                const isAvailable = estaAberto && !prazoEncerrado;
+                  let btnClass = "servir";
+                  let btnText: React.ReactNode = <><Heart size={14} fill="white" /> Servir</>;
 
-                let cardClass = "";
-                if (isInativa) cardClass = "card-inactive";
-                else if (isAvailable) cardClass = "mass-highlight";
-
-                // --- LÓGICA DO TEXTO E COR DO BOTÃO ---
-                let btnClass = "servir";
-                let btnText: React.ReactNode = <><Heart size={16} fill="white" /> Servir</>;
-
-                if (jaEstouInscrita) {
-                  if (botaoDesabilitado) {
+                  if (jaEstouInscrita) {
+                    if (botaoDesabilitado) {
+                      btnClass = "disabled";
+                      btnText = "Fechado";
+                    } else {
+                      btnClass = "desistir";
+                      btnText = souReserva ? "Sair da Reserva" : "Desistir";
+                    }
+                  } else if (!estaAberto) {
                     btnClass = "disabled";
-                    btnText = "Fechado";
-                  } else {
-                    btnClass = "desistir";
-                    btnText = souReserva ? "Sair da Reserva" : "Desistir";
+                    btnText = "Em Breve";
+                  } else if (prazoEncerrado) {
+                    btnClass = "disabled";
+                    btnText = "Encerrado";
+                  } else if (lotado) {
+                    btnClass = "btn-reserva";
+                    btnText = <><Hourglass size={14} /> Entrar na Reserva</>;
                   }
-                } else if (!estaAberto) {
-                  btnClass = "disabled";
-                  btnText = "Em Breve";
-                } else if (prazoEncerrado) {
-                  btnClass = "disabled";
-                  btnText = "Encerrado";
-                } else if (lotado) {
-                  btnClass = "btn-reserva";
-                  btnText = <><Hourglass size={16} /> Entrar na Reserva</>;
-                }
 
-                const defaultDateBadgeStyle = { backgroundColor: "#fce4ec", color: "#e91e63" };
+                  const defaultDateBadgeStyle = { backgroundColor: "#fce4ec", color: "#e91e63" };
 
-                return (
-                  <div
-                    key={mass.id}
-                    className={`mass-card ${cardClass} ${botaoDesabilitado && !jaEstouInscrita ? "disabled" : ""}`}
-                    style={{ position: "relative" }}
-                  >
-                    {/* Timer */}
-                    {mass.deadline && !prazoEncerrado && estaAberto && (
-                      <CountdownTimer deadline={mass.deadline} />
-                    )}
+                  return (
+                    <div
+                      key={mass.id}
+                      // Adiciona a ref ao card para permitir o scroll
+                      ref={(node) => {
+                        const map = getMap();
+                        if (node) {
+                          map.set(mass.id, node);
+                        } else {
+                          map.delete(mass.id);
+                        }
+                      }}
+                      className={`responsive-card ${cardClass} ${botaoDesabilitado && !jaEstouInscrita ? "disabled" : ""}`}
+                    >
+                      {/* Timer */}
+                      {mass.deadline && !prazoEncerrado && estaAberto && (
+                        <div style={{ position: "absolute", top: 10, right: 10, zIndex: 2 }}>
+                          <CountdownTimer deadline={mass.deadline} />
+                        </div>
+                      )}
 
-                    <div className="card-header">
-                      <div className="date-badge" style={defaultDateBadgeStyle}>
-                        <span className="date-day">{new Date(mass.date).getDate()}</span>
-                        <span className="date-month">
-                          {new Date(mass.date).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}
-                        </span>
-                      </div>
-                      <div className="mass-info">
-                        <h3>
-                          {new Date(mass.date).toLocaleDateString("pt-BR", { weekday: "long" })}
-                        </h3>
-                        <div className="mass-time">
-                          <Clock size={14} />
-                          {new Date(mass.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                      <div className="card-header" style={{ display: "flex", gap: "15px", alignItems: "center" }}>
+                        <div className="date-badge" style={{ ...defaultDateBadgeStyle, borderRadius: "10px", padding: "10px", textAlign: "center", minWidth: "50px" }}>
+                          <span style={{ fontSize: "1.3rem", fontWeight: "bold", display: "block" }}>{new Date(mass.date).getDate()}</span>
+                          <span style={{ fontSize: "0.75rem", textTransform: "uppercase" }}>
+                            {new Date(mass.date).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}
+                          </span>
+                        </div>
+                        <div className="mass-info" style={{ flex: 1, paddingRight: "35px" }}>
+                          <h3 style={{ margin: "0 0 5px 0", fontSize: "1.1rem", color: "#333", lineHeight: "1.2" }}>
+                            {new Date(mass.date).toLocaleDateString("pt-BR", { weekday: "long" })}
+                          </h3>
+                          <div className="mass-time" style={{ display: "flex", alignItems: "center", gap: "6px", color: "#666", fontSize: "0.95rem" }}>
+                            <Clock size={15} />
+                            {new Date(mass.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    
-                    {/* Exibição da Função OU Status de Reserva */}
-                    {mostrarFuncao && (
-                      <div className={`role-pill ${souReserva ? "reserva" : (!mass.published ? "pendente" : "")}`}>
-                        {souReserva ? (
-                          <>
-                            <Hourglass size={14} /> 
-                            Você está na fila de espera ⏳
-                          </>
+                      
+                      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                        {mostrarFuncao ? (
+                          <div className={`role-pill ${souReserva ? "reserva" : (!mass.published ? "pendente" : "")}`}>
+                            {souReserva ? (
+                              <><Hourglass size={16} /> Na fila de espera</>
+                            ) : (
+                              mass.published ? (
+                                <><User size={16} /> Função: {minhaFuncao}</>
+                              ) : (
+                                <><Clock size={16} /> Aguardando Escala</>
+                              )
+                            )}
+                          </div>
                         ) : (
-                          // LÓGICA CORRIGIDA: Só mostra a função se estiver publicada
-                          mass.published ? (
-                            <>
-                              <User size={14} /> 
-                              Sua função: {minhaFuncao}
-                            </>
-                          ) : (
-                            <>
-                              <Clock size={14} />
-                              Aguardando publicação da escala
-                            </>
-                          )
+                          <div style={{ height: "20px" }}></div>
                         )}
                       </div>
-                    )}
-                    
-                    <div className="card-footer">
-                      <div className="vagas-info" style={{ color: "#666", fontSize: "0.9rem" }}>
-                        <User size={16} style={{ marginRight: 4 }} />
-                        <strong>{totalConfirmados}</strong> / {mass.maxServers} vagas
+                      
+                      <div className="card-footer" style={{ borderTop: "1px solid #f0f0f0", paddingTop: "15px", marginTop: "10px" }}>
+                        <div className="vagas-info" style={{ color: "#666", fontSize: "0.9rem", marginBottom: "10px", display: "flex", alignItems: "center", gap: "5px" }}>
+                          <User size={16} />
+                          <strong>{totalConfirmados}</strong> / {mass.maxServers} vagas
+                        </div>
+                        <button className={`btn-action ${btnClass}`} onClick={() => onToggleSignup(mass.id)} disabled={botaoDesabilitado}>
+                          {btnText}
+                        </button>
                       </div>
-                      <button className={`btn-action ${btnClass}`} onClick={() => onToggleSignup(mass.id)} disabled={botaoDesabilitado}>
-                        {btnText}
-                      </button>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+                <div className="mobile-only-spacer" style={{ minWidth: "10px" }}></div>
+              </div>
+            )}
           </div>
         ) : (
           <OfficialDocument masses={masses.filter((m) => m.published)} />
