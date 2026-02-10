@@ -148,6 +148,13 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           border: 1px solid #ffe0b2;
         }
 
+        /* ESTILO PARA PENDENTE (NÃO PUBLICADO) */
+        .role-pill.pendente {
+          background-color: #f5f5f5 !important;
+          color: #616161 !important;
+          border: 1px solid #e0e0e0;
+        }
+
         .btn-reserva {
           background-color: #fb8c00 !important;
           color: white !important;
@@ -324,16 +331,15 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                 const prazoEncerrado = checkStatus(mass.date, mass.deadline);
                 const lotado = vagasRestantes <= 0;
                 
-                // Mostrar função: Se estiver confirmada e publicada (OU se for só para mostrar que está na reserva)
-                const mostrarFuncao = jaEstouInscrita; // Ajustamos isso para mostrar o status de reserva
+                // --- CORREÇÃO AQUI ---
+                // Só mostra o container da função se estiver inscrita
+                const mostrarFuncao = jaEstouInscrita; 
 
                 // Lógica de Botão
-                // O botão só fica desabilitado se o prazo acabou ou o admin trancou.
-                // Se estiver lotado, o botão fica ATIVO para entrar na reserva.
                 const botaoDesabilitado = prazoEncerrado || !estaAberto;
 
                 // Classes Visuais
-                const isInativa = prazoEncerrado; // Só fica cinza se o prazo acabou
+                const isInativa = prazoEncerrado; 
                 const isAvailable = estaAberto && !prazoEncerrado;
 
                 let cardClass = "";
@@ -350,7 +356,6 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                     btnText = "Fechado";
                   } else {
                     btnClass = "desistir";
-                    // Se for reserva, o botão diz "Sair da Reserva"
                     btnText = souReserva ? "Sair da Reserva" : "Desistir";
                   }
                 } else if (!estaAberto) {
@@ -360,7 +365,6 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                   btnClass = "disabled";
                   btnText = "Encerrado";
                 } else if (lotado) {
-                  // AQUI MUDOU: Se lotado, vira botão de RESERVA (Laranja)
                   btnClass = "btn-reserva";
                   btnText = <><Hourglass size={16} /> Entrar na Reserva</>;
                 }
@@ -398,18 +402,23 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                     
                     {/* Exibição da Função OU Status de Reserva */}
                     {mostrarFuncao && (
-                      <div className={`role-pill ${souReserva ? "reserva" : ""}`}>
+                      <div className={`role-pill ${souReserva ? "reserva" : (!mass.published ? "pendente" : "")}`}>
                         {souReserva ? (
                           <>
                             <Hourglass size={14} /> 
                             Você está na fila de espera ⏳
                           </>
                         ) : (
-                          // Só mostra a função se a missa estiver publicada ou se for o próprio usuário vendo
-                          (mass.published || jaEstouInscrita) && (
+                          // LÓGICA CORRIGIDA: Só mostra a função se estiver publicada
+                          mass.published ? (
                             <>
                               <User size={14} /> 
                               Sua função: {minhaFuncao}
+                            </>
+                          ) : (
+                            <>
+                              <Clock size={14} />
+                              Aguardando publicação da escala
                             </>
                           )
                         )}
