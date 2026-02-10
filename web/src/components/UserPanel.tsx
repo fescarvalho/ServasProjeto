@@ -131,214 +131,6 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
         backgroundColor: "#f5f5f5"
       }}
     >
-      <style>{`
-        @keyframes pulse-alert {
-          0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
-          50% { transform: scale(1.02); box-shadow: 0 0 10px 5px rgba(255, 193, 7, 0); }
-          100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
-        }
-        .notice-animated {
-          animation: pulse-alert 2s infinite;
-          transition: all 0.3s ease;
-        }
-
-        /* --- LAYOUT RESPONSIVO: MOBILE VS PC --- */
-        
-        .responsive-list-container {
-          display: flex;
-          overflow-x: auto;
-          gap: 15px;
-          padding: 10px 15px 30px 15px;
-          scroll-snap-type: x mandatory;
-          -webkit-overflow-scrolling: touch;
-          scrollbar-width: none;
-          scroll-padding-left: 15px;
-        }
-        .responsive-list-container::-webkit-scrollbar { display: none; }
-
-        .responsive-card {
-          min-width: 88%;
-          max-width: 400px;
-          scroll-snap-align: start; 
-          flex-shrink: 0;
-          background: white;
-          border-radius: 20px; /* Mais arredondado */
-          box-shadow: 0 10px 30px rgba(0,0,0,0.08); /* Sombra mais difusa */
-          padding: 20px;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          position: relative;
-          border: none; /* Remove borda cinza padrão */
-        }
-
-        @media (min-width: 768px) {
-          .responsive-list-container {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            padding: 20px;
-            max-width: 800px;
-            margin: 0 auto;
-            overflow-x: visible;
-          }
-
-          .responsive-card {
-            width: 100%;
-            min-width: auto;
-            max-width: none;
-            scroll-snap-align: none;
-          }
-        }
-
-        /* --- ESTILOS ESPECÍFICOS DO CARD (BASEADO NA IMAGEM) --- */
-
-        /* Badge Rosa com Onda */
-        .pink-date-badge {
-          width: 65px;
-          height: 65px;
-          background: linear-gradient(180deg, #ff2e63 0%, #ff0055 100%);
-          border-radius: 14px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          position: relative;
-          overflow: hidden;
-          box-shadow: 0 4px 10px rgba(255, 46, 99, 0.4);
-        }
-        
-        /* Efeito de onda sutil no badge */
-        .pink-date-badge::after {
-          content: '';
-          position: absolute;
-          bottom: -10px;
-          left: 0;
-          width: 100%;
-          height: 30px;
-          background: rgba(255, 255, 255, 0.2);
-          border-radius: 50% 50% 0 0;
-          transform: scaleX(1.5);
-        }
-
-        /* Texto da Data */
-        .pink-date-badge .day { font-size: 1.6rem; fontWeight: 700; line-height: 1; z-index: 2; }
-        .pink-date-badge .month { font-size: 0.75rem; text-transform: uppercase; fontWeight: 600; z-index: 2; margin-top: 2px; }
-
-        /* Título e Hora */
-        .card-title {
-          font-size: 1.1rem;
-          font-weight: 700;
-          color: #2d3436;
-          line-height: 1.3;
-          margin-bottom: 6px;
-        }
-        
-        .card-time {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          color: #636e72;
-          font-size: 0.95rem;
-          font-weight: 500;
-        }
-
-        /* Vagas */
-        .vagas-text {
-          display: flex;
-          align-items: center;
-          gap: 5px;
-          font-size: 1rem;
-          color: #2d3436;
-          margin-bottom: 12px; /* Espaço antes do botão */
-        }
-        .vagas-text strong { font-weight: 700; font-size: 1.1rem; }
-        .vagas-text span { color: #636e72; font-size: 0.9rem; }
-
-        /* Botão "SERVIR" com Onda */
-        .btn-servir {
-          width: 100%;
-          padding: 14px;
-          border-radius: 12px;
-          border: none;
-          background: linear-gradient(90deg, #ff2e63 0%, #ff4081 100%);
-          color: white;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          font-size: 1rem;
-          cursor: pointer;
-          position: relative;
-          overflow: hidden;
-          box-shadow: 0 5px 15px rgba(255, 46, 99, 0.3);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-        }
-        
-        /* Onda no botão */
-        .btn-servir::after {
-          content: '';
-          position: absolute;
-          bottom: -15px;
-          right: -10px;
-          width: 60px;
-          height: 60px;
-          background: rgba(255, 255, 255, 0.15);
-          border-radius: 50%;
-        }
-
-        .btn-desistir {
-          width: 100%; padding: 12px; border-radius: 12px; border: 2px solid #ff2e63;
-          background: transparent; color: #ff2e63; font-weight: 700; cursor: pointer; text-transform: uppercase;
-        }
-        
-        .btn-disabled {
-          width: 100%; padding: 12px; border-radius: 12px; border: none;
-          background: #dfe6e9; color: #b2bec3; font-weight: 700; cursor: not-allowed; text-transform: uppercase;
-        }
-
-        .btn-reserva {
-          width: 100%; padding: 12px; border-radius: 12px; border: none;
-          background: #ff9f43; color: white; font-weight: 700; cursor: pointer; text-transform: uppercase;
-          box-shadow: 0 5px 15px rgba(255, 159, 67, 0.3);
-        }
-
-        /* Navegação */
-        .month-navigator {
-          display: flex; 
-          align-items: center; 
-          justify-content: space-between; 
-          background: white;
-          width: 100%; 
-          padding: 15px 20px; 
-          border-bottom: 1px solid #f0f0f0; 
-          box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-          margin-bottom: 15px;
-          box-sizing: border-box;
-        }
-        .nav-btn {
-          background: #fff0f3; border: none; color: #ff2e63; 
-          width: 36px; height: 36px; border-radius: 50%;
-          display: flex; alignItems: center; justifyContent: center; cursor: pointer;
-        }
-        .current-month-label {
-          flex: 1; /* Adicionado para ocupar o espaço total */
-          font-size: 1.1rem; 
-          font-weight: 800; 
-          color: #333; 
-          text-transform: capitalize; 
-          text-align: center; /* Garante que o texto fique no meio */
-          display: flex; 
-          flex-direction: column; 
-          align-items: center;
-          line-height: 1.1;
-        }
-        .current-year-label { font-size: 0.75rem; color: #888; fontWeight: normal; }
-      `}</style>
-
       {showBadges && (
         <BadgesModal count={confirmedScore} onClose={() => setShowBadges(false)} />
       )}
@@ -461,6 +253,14 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                   const isInativa = prazoEncerrado; 
                   const isAvailable = estaAberto && !prazoEncerrado;
 
+                  // Define a classe do card com base na disponibilidade
+                  let cardClass = "";
+                  if (isInativa) {
+                    cardClass = "card-inactive";
+                  } else if (isAvailable) {
+                    cardClass = "mass-highlight";
+                  }
+
                   let btnClass = "btn-servir";
                   let btnText: React.ReactNode = <><Heart size={16} fill="white" /> SERVIR</>;
 
@@ -491,7 +291,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                         if (node) map.set(mass.id, node);
                         else map.delete(mass.id);
                       }}
-                      className={`responsive-card ${isInativa ? "card-inactive" : ""}`}
+                      className={`responsive-card ${cardClass}`}
                     >
                       {/* Timer */}
                       {mass.deadline && !prazoEncerrado && estaAberto && (
