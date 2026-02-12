@@ -1,7 +1,6 @@
 {
   "name": "servas",
   "version": "1.0.0",
-  "type": "module",
   "main": "index.js",
   "prisma": {
     "seed": "node --loader ts-node/esm prisma/seed.ts"
