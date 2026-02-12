@@ -16,10 +16,15 @@ import {
   RefreshCw,
   Save,
   Filter,
-  User as UserIcon // Reintroduzido pois é usado no visual do card
+  User as UserIcon
 } from "lucide-react";
-import { api } from "../services/api";
 import { Mass, User } from "../types/types";
+import { useMasses } from "../hooks/useMasses";
+import { useSignup } from "../hooks/useSignup";
+import { getRoleWeight } from "../utils/format.utils";
+import { toLocalDate, toLocalDateTime } from "../utils/date.utils";
+import { APP_CONFIG } from "../constants/config";
+import { getUsersList } from "../services/api/notice.service";
 import { ScaleModal } from "./ScaleModal";
 import { OfficialDocument } from "./OfficialDocument";
 import { StatisticsModal } from "./StatisticsModal";
@@ -34,20 +39,27 @@ interface AdminPanelProps {
   onLogout: () => void;
 }
 
-const getRoleWeight = (role?: string | null) => {
-  if (role === "Cerimoniária") return 1;
-  if (role === "Librífera") return 2;
-  return 3;
-};
-
 export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps) {
   const isAdmin = user.role === "ADMIN";
 
-  // Estados de formulário (Compartilhados entre Criar e Editar)
+  // Use mass hook for mass operations
+  const { createMass, updateMass, deleteMass, togglePublish, toggleOpen } = useMasses();
+
+  // Use signup hook for all signup operations
+  const {
+    changeRole,
+    toggleSignup,
+    togglePresence,
+    promoteSignup,
+    removeSignup,
+    swapSignup,
+  } = useSignup(onUpdate);
+
+  // Form states (shared between Create and Edit)
   const [newDate, setNewDate] = useState("");
   const [newTime, setNewTime] = useState("");
   const [newName, setNewName] = useState("");
-  const [newMax, setNewMax] = useState(4);
+  const [newMax, setNewMax] = useState<number>(APP_CONFIG.DEFAULT_MAX_SERVERS);
   const [newDeadline, setNewDeadline] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"dashboard" | "pdf">("dashboard");
@@ -56,6 +68,9 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [showTextModal, setShowTextModal] = useState(false);
   const [showRankingModal, setShowRankingModal] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
+
+  // Form visibility
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   // Filtros
   const [startDate, setStartDate] = useState("");
@@ -69,9 +84,8 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   // Carrega lista de usuários para o Admin
   useEffect(() => {
     if (isAdmin) {
-      api
-        .get("/users/list")
-        .then((res) => setAllUsers(res.data))
+      getUsersList()
+        .then((users) => setAllUsers(users))
         .catch(console.error);
     }
   }, [isAdmin]);
@@ -93,27 +107,18 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   function handleStartEdit(mass: Mass) {
     const d = new Date(mass.date);
     setEditingId(mass.id);
-    
-    // Preenche os estados com os dados da missa clicada
-    const localDate = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
-      .toISOString()
-      .split("T")[0];
-    setNewDate(localDate);
+
+    // Fill states with mass data
+    setNewDate(toLocalDate(d));
     setNewTime(d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
     setNewName(mass.name || "");
     setNewMax(mass.maxServers);
-    
+
     if (mass.deadline) {
-      const deadlineDate = new Date(mass.deadline);
-      const offset = deadlineDate.getTimezoneOffset() * 60000;
-      setNewDeadline(
-        new Date(deadlineDate.getTime() - offset).toISOString().slice(0, 16),
-      );
+      setNewDeadline(toLocalDateTime(new Date(mass.deadline)));
     } else {
       setNewDeadline("");
     }
-    
-    // REMOVIDO: window.scrollTo(...) para manter a posição na tela
   }
 
   function handleCancelEdit() {
@@ -122,13 +127,13 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     setNewDate("");
     setNewTime("");
     setNewName("");
-    setNewMax(4);
+    setNewMax(APP_CONFIG.DEFAULT_MAX_SERVERS);
     setNewDeadline("");
   }
 
   async function handleTogglePublish(id: string, currentStatus: boolean) {
     try {
-      await api.patch(`/masses/${id}`, { published: !currentStatus });
+      await togglePublish(id, !currentStatus);
       onUpdate();
     } catch (error) {
       console.error(error);
@@ -138,7 +143,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
 
   async function handleToggleOpen(id: string, currentOpen: boolean) {
     try {
-      await api.patch(`/masses/${id}/toggle-open`, { open: !currentOpen });
+      await toggleOpen(id, !currentOpen);
       onUpdate();
     } catch (error) {
       console.error(error);
@@ -157,15 +162,15 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         name: newName,
         deadline: newDeadline || null,
       };
-      
+
       if (editingId) {
-        await api.put(`/masses/${editingId}`, payload);
+        await updateMass(editingId, payload);
       } else {
-        await api.post("/masses", payload);
+        await createMass(payload);
       }
-      
+
       onUpdate();
-      handleCancelEdit(); // Sai do modo de edição e limpa
+      handleCancelEdit();
     } catch (error) {
       console.error(error);
       alert("Erro ao salvar.");
@@ -174,15 +179,14 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
 
   async function handleDeleteMass(id: string) {
     if (confirm("Apagar missa?")) {
-      await api.delete(`/masses/${id}`);
+      await deleteMass(id);
       onUpdate();
     }
   }
 
   async function handleChangeRole(signupId: string, newRole: string) {
     try {
-      await api.patch(`/signup/${signupId}/role`, { role: newRole });
-      onUpdate();
+      await changeRole(signupId, newRole);
     } catch (error) {
       console.error(error);
     }
@@ -190,8 +194,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
 
   async function handleToggleSignup(massId: string) {
     try {
-      await api.post("/toggle-signup", { userId: user.id, massId });
-      onUpdate();
+      await toggleSignup(user.id, massId);
     } catch (error) {
       console.error(error);
       alert("Erro ao se inscrever/sair.");
@@ -200,8 +203,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
 
   async function handleTogglePresence(signupId: string) {
     try {
-      await api.patch(`/signup/${signupId}/toggle-presence`);
-      onUpdate();
+      await togglePresence(signupId);
     } catch (error) {
       console.error(error);
       alert("Erro ao confirmar presença.");
@@ -212,8 +214,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     if (!confirm("Tem certeza que deseja promover esta serva para a escala oficial?"))
       return;
     try {
-      await api.patch(`/signup/${signupId}/promote`);
-      onUpdate();
+      await promoteSignup(signupId);
     } catch (error) {
       console.error(error);
       alert("Erro ao promover serva.");
@@ -223,8 +224,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   async function handleRemoveSignup(signupId: string) {
     if (!confirm("Tem certeza que deseja remover esta serva da escala?")) return;
     try {
-      await api.delete(`/signup/${signupId}`);
-      onUpdate();
+      await removeSignup(signupId);
     } catch (error) {
       console.error(error);
       alert("Erro ao remover serva.");
@@ -234,13 +234,9 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   async function handleExecuteSwap() {
     if (!swappingSignupId || !selectedReplacementId) return;
     try {
-      await api.post("/signup/swap", {
-        oldSignupId: swappingSignupId,
-        newUserId: selectedReplacementId,
-      });
+      await swapSignup(swappingSignupId, selectedReplacementId);
       setSwappingSignupId(null);
       setSelectedReplacementId("");
-      onUpdate();
     } catch (error) {
       console.error(error);
       alert("Erro ao realizar troca.");
@@ -325,13 +321,47 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
 
       {isAdmin && <NoticeBoard />}
 
-      {/* FORMULÁRIO DE NOVA MISSA (SÓ APARECE SE NÃO ESTIVER EDITANDO NADA) */}
+      {/* BOTÃO E FORMULÁRIO DE NOVA MISSA (COLAPSÁVEL) */}
       {isAdmin && !editingId && (
-        <div className="new-mass-card no-print" style={{ borderColor: "#FFCDD2", background: "#FFF5F5" }}>
-          <div className="section-title" style={{ color: "#C62828" }}>
-            <PlusCircle size={20} /> <span>Nova Missa</span>
-          </div>
-          <MassForm isInline={false} />
+        <div className="no-print" style={{ marginBottom: "20px" }}>
+          <button
+            onClick={() => setShowCreateForm(!showCreateForm)}
+            className="btn-create"
+            style={{
+              width: "100%",
+              padding: "16px",
+              background: showCreateForm ? "#C62828" : "#D37474",
+              color: "white",
+              border: "none",
+              borderRadius: "12px",
+              cursor: "pointer",
+              fontWeight: "bold",
+              fontSize: "1rem",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "10px",
+              transition: "all 0.3s ease",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+            }}
+          >
+            <PlusCircle size={20} />
+            <span>{showCreateForm ? "Fechar Formulário" : "Nova Missa"}</span>
+          </button>
+
+          {showCreateForm && (
+            <div
+              className="new-mass-card"
+              style={{
+                borderColor: "#FFCDD2",
+                background: "#FFF5F5",
+                marginTop: "10px",
+                animation: "slideDown 0.3s ease"
+              }}
+            >
+              <MassForm isInline={false} />
+            </div>
+          )}
         </div>
       )}
 

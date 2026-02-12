@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
-import { Flower, RefreshCw } from "lucide-react"; // Adicionei RefreshCw para o ícone
-import { api } from "./services/api";
-import { Mass, UserData } from "./types/types";
+import { Flower, RefreshCw } from "lucide-react";
+import { useAuth } from "./hooks/useAuth";
+import { useMasses } from "./hooks/useMasses";
+import { useSignup } from "./hooks/useSignup";
 import { AdminPanel } from "./components/AdminPanel";
 import { UserPanel } from "./components/UserPanel";
-// Importação do PWA (Virtual Module)
-import { useRegisterSW } from "virtual:pwa-register/react"; 
+import { useRegisterSW } from "virtual:pwa-register/react";
 
 function App() {
-  // --- LÓGICA DO PWA (ATUALIZAÇÃO) ---
+  // PWA Hook
   const {
-    needRefresh: [needRefresh], // <--- Removemos a vírgula e o setNeedRefresh
+    needRefresh: [needRefresh],
     updateServiceWorker,
   } = useRegisterSW({
     onRegistered(r) {
@@ -21,67 +21,37 @@ function App() {
     },
   });
 
-  // --- LÓGICA EXISTENTE DO APP ---
-  const [user, setUser] = useState<UserData | null>(() => {
-    const storedUser = localStorage.getItem("servas_user");
-    if (storedUser) {
-      try {
-        return JSON.parse(storedUser);
-      } catch (error) {
-        console.error("Erro ao ler usuário salvo:", error);
-        return null;
-      }
-    }
-    return null;
-  });
+  // Authentication
+  const { user, login, logout, error: authError } = useAuth();
 
+  // Masses management
+  const { masses, fetchMasses, isLoading } = useMasses();
+
+  // Signup management
+  const { toggleSignup } = useSignup(fetchMasses);
+
+  // Login form state
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [masses, setMasses] = useState<Mass[]>([]);
-  const [loading, setLoading] = useState(false);
 
-  async function fetchMasses() {
-    try {
-      setLoading(true);
-      // Adicionei timestamp para evitar cache de API
-      const response = await api.get(`/masses?t=${new Date().getTime()}`);
-      const sorted = response.data.sort((a: Mass, b: Mass) => 
-        new Date(a.date).getTime() - new Date(b.date).getTime()
-      );
-      setMasses(sorted);
-    } catch (err) {
-      console.error("Erro ao buscar missas:", err);
-    } finally {
-      setLoading(false);
-    }
-  }
-
+  // Fetch masses when user logs in
   useEffect(() => {
     if (user) {
       fetchMasses();
     }
-  }, []);
+  }, [user, fetchMasses]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     try {
-      const response = await api.post("/login", { email, password });
-      const userData = response.data;
-      setUser(userData);
-      localStorage.setItem("servas_user", JSON.stringify(userData));
-      setError("");
-      await fetchMasses(); 
+      await login(email, password);
     } catch (err) {
-      console.error(err);
-      setError("E-mail ou senha incorretos.");
+      // Error is handled by useAuth hook
     }
   }
 
   function handleLogout() {
-    setUser(null);
-    setMasses([]);
-    localStorage.removeItem("servas_user");
+    logout();
     setEmail("");
     setPassword("");
   }
@@ -89,16 +59,13 @@ function App() {
   async function handleToggleSignup(massId: string) {
     if (!user) return;
     try {
-      await api.post("/toggle-signup", { userId: user.id, massId });
-      fetchMasses(); 
+      await toggleSignup(user.id, massId);
     } catch (error) {
       alert("Ação não permitida. Verifique se o prazo encerrou ou se está lotado.");
     }
   }
 
-  // --- RENDERIZAÇÃO ---
-
-  // 1. TELA DE LOGIN
+  // Login screen
   if (!user) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f5f5f5" }}>
@@ -112,20 +79,19 @@ function App() {
           <form onSubmit={handleLogin}>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Seu E-mail" style={{ marginBottom: 15, width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #ddd", boxSizing: "border-box" }} />
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Sua Senha" style={{ marginBottom: 25, width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #ddd", boxSizing: "border-box" }} />
-            {error && <p style={{ color: "#d32f2f", fontSize: "0.9rem", marginBottom: 15 }}>{error}</p>}
+            {authError && <p style={{ color: "#d32f2f", fontSize: "0.9rem", marginBottom: 15 }}>{authError}</p>}
             <button type="submit" style={{ width: "100%", padding: "14px", border: "none", cursor: "pointer", borderRadius: "8px", fontWeight: "bold", fontSize: "1rem", background: "#e91e63", color: "white" }}>
               ENTRAR
             </button>
           </form>
         </div>
-        {/* Mesmo na tela de login, mostramos o botão de update se houver */}
         {needRefresh && <UpdateToast onUpdate={() => updateServiceWorker(true)} />}
       </div>
     );
   }
 
-  // 2. LOADING SPINNER
-  if (loading && masses.length === 0) {
+  // Loading spinner
+  if (isLoading && masses.length === 0) {
     return (
       <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", height: "100vh", background: "#f5f5f5" }}>
         <style>{`
@@ -138,7 +104,7 @@ function App() {
     );
   }
 
-  // 3. PAINÉIS PRINCIPAIS
+  // Main panels
   return (
     <>
       {user.role === "ADMIN" ? (
@@ -147,13 +113,12 @@ function App() {
         <UserPanel masses={masses} user={user} onToggleSignup={handleToggleSignup} onLogout={handleLogout} />
       )}
 
-      {/* --- BOTÃO FLUTUANTE DE ATUALIZAÇÃO PWA --- */}
       {needRefresh && <UpdateToast onUpdate={() => updateServiceWorker(true)} />}
     </>
   );
 }
 
-// Componente visual do Toast de Atualização (Fica no final do arquivo)
+// Update toast component
 function UpdateToast({ onUpdate }: { onUpdate: () => void }) {
   return (
     <div style={{
@@ -166,8 +131,8 @@ function UpdateToast({ onUpdate }: { onUpdate: () => void }) {
         <span style={{ fontSize: '0.9rem', fontWeight: 'bold', display: 'block' }}>Nova versão disponível!</span>
         <span style={{ fontSize: '0.8rem', opacity: 0.8 }}>Atualize para ver as novidades.</span>
       </div>
-      <button 
-        onClick={onUpdate} 
+      <button
+        onClick={onUpdate}
         style={{
           background: '#e91e63', color: 'white', border: 'none', padding: '8px 15px',
           borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px'

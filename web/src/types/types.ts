@@ -26,6 +26,7 @@ export interface UserData {
   name: string;
   email: string;
   role: string;
+  token?: string;
 }
 
 export interface Mass {
