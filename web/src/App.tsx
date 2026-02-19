@@ -60,8 +60,9 @@ function App() {
     if (!user) return;
     try {
       await toggleSignup(user.id, massId);
-    } catch (error) {
-      alert("Ação não permitida. Verifique se o prazo encerrou ou se está lotado.");
+    } catch (error: any) {
+      const message = error.response?.data?.error || "Erro ao realizar inscrição. Tente novamente.";
+      alert(message);
     }
   }
 

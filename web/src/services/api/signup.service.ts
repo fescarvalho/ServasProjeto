@@ -4,7 +4,7 @@ import { apiClient } from "./client";
  * Inscreve ou desinscreve um usuário de uma missa
  */
 export async function toggleSignup(userId: string, massId: string): Promise<void> {
-    await apiClient.post("/toggle-signup", { userId, massId });
+    await apiClient.post("/signup/toggle-signup", { userId, massId });
 }
 
 /**

@@ -37,7 +37,17 @@ export async function toggleSignup(userId: string, massId: string) {
     });
 
     if (!mass) {
-        throw new Error("Mass not found");
+        throw new Error("Missa não encontrada");
+    }
+
+    // Check if mass is open for signups
+    if (!mass.open) {
+        throw new Error("Inscrições fechadas para esta missa.");
+    }
+
+    // Check deadline
+    if (mass.deadline && new Date() > mass.deadline) {
+        throw new Error("Prazo de inscrição encerrado.");
     }
 
     const existingSignup = mass.signups.find((s) => s.userId === userId);
