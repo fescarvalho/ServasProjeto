@@ -15,7 +15,6 @@ export async function getUnreadNotifications(req: Request, res: Response) {
 
         const pendingMasses = await prisma.mass.findMany({
             where: {
-                published: true,
                 open: true,
                 date: { gt: now },
                 signups: {

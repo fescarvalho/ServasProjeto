@@ -248,7 +248,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
       if (!currentOpen) {
         const mass = masses.find(m => m.id === id);
         // Só faz sentido notificar vaga aberta se a missa já estiver publicada e visível para as servas
-        if (mass && mass.published) {
+        if (mass) {
           const formattedDate = new Date(mass.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "long" });
           const text = encodeURIComponent(`📅 *Atenção, Servas!*\n\nAs inscrições para a missa do dia *${formattedDate}* foram *Abertas*!\n\nCorra no aplicativo e garanta o seu horário acessando a aba de Inscrições.\n🔗 https://servas.vercel.app`);
 
