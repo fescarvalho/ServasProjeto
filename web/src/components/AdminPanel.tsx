@@ -233,18 +233,6 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     try {
       await togglePublish(id, !currentStatus);
       onUpdate();
-
-      // Se mudou para "Publicado" (!currentStatus === true), gerar aviso no WhatsApp
-      if (!currentStatus) {
-        const mass = masses.find(m => m.id === id);
-        if (mass) {
-          const formattedDate = new Date(mass.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "long" });
-          const text = encodeURIComponent(`📅 *Atenção, Servas!*\n\nA missa do dia *${formattedDate}* foi recém-publicada no sistema e está com as *inscrições abertas*.\n\nCorra no aplicativo e garanta o seu horário acessando a aba de Inscrições.\n🔗 https://servas.vercel.app`);
-
-          window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
-        }
-      }
-
     } catch (error) {
       console.error(error);
       alert("Erro ao alterar status.");
