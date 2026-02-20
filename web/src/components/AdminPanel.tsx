@@ -32,6 +32,101 @@ import { GeneralRankingModal } from "./GeneralRankingModal";
 import { NoticeBoard } from "./NoticeBoard";
 import "./css/AdminPanel.css";
 
+// ── MassForm extracted OUTSIDE AdminPanel to prevent unmount on every keystroke ──
+interface MassFormProps {
+  isInline?: boolean;
+  newName: string; setNewName: (v: string) => void;
+  newDate: string; setNewDate: (v: string) => void;
+  newTime: string; setNewTime: (v: string) => void;
+  newDeadline: string; setNewDeadline: (v: string) => void;
+  newMax: number; setNewMax: (v: number) => void;
+  repeatWeekly: boolean; setRepeatWeekly: (v: boolean) => void;
+  repeatUntil: string; setRepeatUntil: (v: string) => void;
+  handleSubmit: (e: React.FormEvent) => void;
+  handleCancelEdit: () => void;
+}
+
+function MassForm({
+  isInline = false,
+  newName, setNewName,
+  newDate, setNewDate,
+  newTime, setNewTime,
+  newDeadline, setNewDeadline,
+  newMax, setNewMax,
+  repeatWeekly, setRepeatWeekly,
+  repeatUntil, setRepeatUntil,
+  handleSubmit,
+  handleCancelEdit,
+}: MassFormProps) {
+  return (
+    <form onSubmit={handleSubmit} className="form-grid" style={isInline ? { padding: "10px" } : {}}>
+      <div className="form-group full-width">
+        <label>Nome (Opcional)</label>
+        <input className="form-input" type="text" value={newName} onChange={(e) => setNewName(e.target.value)} />
+      </div>
+      <div className="form-group">
+        <label>Data</label>
+        <input className="form-input" type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} required />
+      </div>
+      <div className="form-group">
+        <label>Hora</label>
+        <input className="form-input" type="time" value={newTime} onChange={(e) => setNewTime(e.target.value)} required />
+      </div>
+      <div className="form-group full-width">
+        <label style={{ color: "#d32f2f" }}>Prazo (Opcional)</label>
+        <input className="form-input" type="datetime-local" value={newDeadline} onChange={(e) => setNewDeadline(e.target.value)} />
+      </div>
+      <div className="form-group">
+        <label>Vagas</label>
+        <input className="form-input" type="number" value={newMax} onChange={(e) => setNewMax(Number(e.target.value))} min="1" />
+      </div>
+
+      {/* OPÇÃO DE RECORRÊNCIA — visível apenas na criação */}
+      {!isInline && (
+        <div className="form-group full-width" style={{ borderTop: "1px dashed #e0e0e0", paddingTop: "12px", marginTop: "4px" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", color: "#7b1fa2", fontWeight: "bold", fontSize: "0.95rem" }}>
+            <input
+              type="checkbox"
+              checked={repeatWeekly}
+              onChange={(e) => {
+                setRepeatWeekly(e.target.checked);
+                if (!e.target.checked) setRepeatUntil("");
+              }}
+              style={{ width: "18px", height: "18px", cursor: "pointer" }}
+            />
+            🔁 Repetir toda semana
+          </label>
+          {repeatWeekly && (
+            <div style={{ marginTop: "10px", display: "flex", flexDirection: "column", gap: "4px" }}>
+              <label style={{ fontSize: "0.85rem", color: "#555", fontWeight: "bold" }}>Repetir até (data final):</label>
+              <input
+                className="form-input"
+                type="date"
+                value={repeatUntil}
+                min={newDate || undefined}
+                onChange={(e) => setRepeatUntil(e.target.value)}
+                required
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: "10px", marginTop: "10px", gridColumn: "1 / -1" }}>
+        <button type="submit" className="btn-create" style={{ background: isInline ? "#F59E0B" : "#D37474", flex: 1 }}>
+          {isInline ? "SALVAR ALTERAÇÕES" : (repeatWeekly ? "✓ CRIAR MISSAS RECORRENTES" : "CRIAR MISSA")}
+        </button>
+        {isInline && (
+          <button type="button" onClick={handleCancelEdit} style={{ padding: "10px", background: "#e0e0e0", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", color: "#333" }}>
+            CANCELAR
+          </button>
+        )}
+      </div>
+    </form>
+  );
+}
+
+
 interface AdminPanelProps {
   masses: Mass[];
   user: User;
@@ -256,73 +351,18 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     }
   }
 
-  // Componente interno do formulário (reutilizável)
-  const MassForm = ({ isInline = false }) => (
-    <form onSubmit={handleSubmit} className="form-grid" style={isInline ? { padding: "10px" } : {}}>
-      <div className="form-group full-width">
-        <label>Nome (Opcional)</label>
-        <input className="form-input" type="text" value={newName} onChange={(e) => setNewName(e.target.value)} />
-      </div>
-      <div className="form-group">
-        <label>Data</label>
-        <input className="form-input" type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} required />
-      </div>
-      <div className="form-group">
-        <label>Hora</label>
-        <input className="form-input" type="time" value={newTime} onChange={(e) => setNewTime(e.target.value)} required />
-      </div>
-      <div className="form-group full-width">
-        <label style={{ color: "#d32f2f" }}>Prazo (Opcional)</label>
-        <input className="form-input" type="datetime-local" value={newDeadline} onChange={(e) => setNewDeadline(e.target.value)} />
-      </div>
-      <div className="form-group">
-        <label>Vagas</label>
-        <input className="form-input" type="number" value={newMax} onChange={(e) => setNewMax(Number(e.target.value))} min="1" />
-      </div>
-
-      {/* OPÇÃO DE RECORRÊNCIA — visível apenas na criação */}
-      {!isInline && (
-        <div className="form-group full-width" style={{ borderTop: "1px dashed #e0e0e0", paddingTop: "12px", marginTop: "4px" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", color: "#7b1fa2", fontWeight: "bold", fontSize: "0.95rem" }}>
-            <input
-              type="checkbox"
-              checked={repeatWeekly}
-              onChange={(e) => {
-                setRepeatWeekly(e.target.checked);
-                if (!e.target.checked) setRepeatUntil("");
-              }}
-              style={{ width: "18px", height: "18px", cursor: "pointer" }}
-            />
-            🔁 Repetir toda semana
-          </label>
-          {repeatWeekly && (
-            <div style={{ marginTop: "10px", display: "flex", flexDirection: "column", gap: "4px" }}>
-              <label style={{ fontSize: "0.85rem", color: "#555", fontWeight: "bold" }}>Repetir até (data final):</label>
-              <input
-                className="form-input"
-                type="date"
-                value={repeatUntil}
-                min={newDate || undefined}
-                onChange={(e) => setRepeatUntil(e.target.value)}
-                required
-              />
-            </div>
-          )}
-        </div>
-      )}
-
-      <div style={{ display: "flex", gap: "10px", marginTop: "10px", gridColumn: "1 / -1" }}>
-        <button type="submit" className="btn-create" style={{ background: isInline ? "#F59E0B" : "#D37474", flex: 1 }}>
-          {isInline ? "SALVAR ALTERAÇÕES" : (repeatWeekly ? "✓ CRIAR MISSAS RECORRENTES" : "CRIAR MISSA")}
-        </button>
-        {isInline && (
-          <button type="button" onClick={handleCancelEdit} style={{ padding: "10px", background: "#e0e0e0", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", color: "#333" }}>
-            CANCELAR
-          </button>
-        )}
-      </div>
-    </form>
-  );
+  // MassForm agora é componente externo — passamos as props
+  const massFormProps: MassFormProps = {
+    newName, setNewName,
+    newDate, setNewDate,
+    newTime, setNewTime,
+    newDeadline, setNewDeadline,
+    newMax, setNewMax,
+    repeatWeekly, setRepeatWeekly,
+    repeatUntil, setRepeatUntil,
+    handleSubmit,
+    handleCancelEdit,
+  };
 
   return (
     <div className="admin-container">
@@ -404,7 +444,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                 animation: "slideDown 0.3s ease"
               }}
             >
-              <MassForm isInline={false} />
+              <MassForm {...massFormProps} isInline={false} />
             </div>
           )}
         </div>
@@ -434,7 +474,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                 <div className="section-title" style={{ color: "#B45309" }}>
                   <Edit size={20} /> <span>Editando: {mass.name || "Missa"}</span>
                 </div>
-                <MassForm isInline={true} />
+                <MassForm {...massFormProps} isInline={true} />
               </div>
             );
           }
