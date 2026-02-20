@@ -41,6 +41,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
   const [swapRequests, setSwapRequests] = useState<SwapRequest[]>([]);
   const [swapLoading, setSwapLoading] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [pendingMassIds, setPendingMassIds] = useState<string[]>([]);
   const { toasts, remove, show } = useToast();
 
   // Confirm modal state
@@ -71,7 +72,13 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
   async function loadUnreadNotifications() {
     try {
       const res = await api.get("/notifications/unread");
-      setUnreadCount(res.data.count);
+      const masses = res.data.masses as Mass[];
+
+      const viewedIds = JSON.parse(localStorage.getItem("viewedMasses") || "[]");
+      const unreadMasses = masses.filter((m: Mass) => !viewedIds.includes(m.id));
+
+      setPendingMassIds(unreadMasses.map((m: Mass) => m.id));
+      setUnreadCount(unreadMasses.length);
     } catch (err) {
       console.error("Erro notifications", err);
     }
@@ -263,35 +270,42 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           <button onClick={() => setActiveTab("documento")} className={`tab-btn ${activeTab === "documento" ? "active" : ""}`} style={{ flex: 1, display: "flex", justifyContent: "center", gap: "5px" }}>
             <FileText size={16} /> <span className="mobile-hide-text">Escala</span>
           </button>
-          <button onClick={() => setShowRanking(true)} className="tab-btn" style={{ color: "#4caf50", borderLeft: "1px solid #ddd", paddingLeft: "10px", marginLeft: "5px", display: "flex", justifyContent: "center" }} title="Placar Mensal">
-            <Medal size={20} />
-          </button>
-          <button onClick={() => setShowBadges(true)} className="tab-btn" style={{ color: "#fbc02d", marginLeft: "5px", display: "flex", justifyContent: "center" }} title="Minhas Conquistas">
-            <Trophy size={20} />
-          </button>
+          <div style={{ display: "flex", gap: "5px", alignItems: "center" }}>
+            <button onClick={() => setShowRanking(true)} className="tab-btn" style={{ color: "#4caf50", borderLeft: "1px solid #ddd", paddingLeft: "10px", display: "flex", justifyContent: "center" }} title="Placar Mensal">
+              <Medal size={20} />
+            </button>
+            <button onClick={() => setShowBadges(true)} className="tab-btn" style={{ color: "#fbc02d", display: "flex", justifyContent: "center" }} title="Minhas Conquistas">
+              <Trophy size={20} />
+            </button>
 
-          <div style={{ position: "relative", marginLeft: "5px" }}>
-            <button
-              onClick={() => {
-                if (unreadCount > 0) {
-                  show(`Você tem ${unreadCount} missa(s) abertas esperando sua inscrição! Acesse a aba "Inscrições" e clique em JUNTAR-SE.`, "info", 8000);
-                } else {
-                  show("Você não tem missas abertas pendentes no momento.", "info");
-                }
-              }}
-              className="tab-btn" style={{ color: unreadCount > 0 ? "#e91e63" : "#aaa", display: "flex", justifyContent: "center" }} title="Notificações do Sistema">
-              <Bell size={18} />
-              {unreadCount > 0 && (
-                <span style={{ position: "absolute", top: 4, right: 4, background: "red", color: "white", fontSize: "0.6rem", fontWeight: "bold", padding: "1px 5px", borderRadius: "10px", minWidth: "14px", textAlign: "center", lineHeight: "1" }}>
-                  {unreadCount}
-                </span>
-              )}
+            <div style={{ position: "relative" }}>
+              <button
+                onClick={() => {
+                  if (unreadCount > 0) {
+                    show(`Você tem ${unreadCount} missa(s) abertas esperando sua inscrição! Acesse a aba "Inscrições" e clique em JUNTAR-SE.`, "info", 8000);
+                    const viewedIds = JSON.parse(localStorage.getItem("viewedMasses") || "[]");
+                    const novosIds = Array.from(new Set([...viewedIds, ...pendingMassIds]));
+                    localStorage.setItem("viewedMasses", JSON.stringify(novosIds));
+                    setUnreadCount(0);
+                    setPendingMassIds([]);
+                  } else {
+                    show("Você não tem missas abertas pendentes no momento.", "info");
+                  }
+                }}
+                className="tab-btn" style={{ color: unreadCount > 0 ? "#e91e63" : "#aaa", display: "flex", justifyContent: "center" }} title="Notificações do Sistema">
+                <Bell size={18} />
+                {unreadCount > 0 && (
+                  <span style={{ position: "absolute", top: 4, right: 4, background: "red", color: "white", fontSize: "0.6rem", fontWeight: "bold", padding: "1px 5px", borderRadius: "10px", minWidth: "14px", textAlign: "center", lineHeight: "1" }}>
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            <button onClick={onLogout} className="tab-btn logout" style={{ display: "flex", justifyContent: "center" }}>
+              <LogOut size={18} />
             </button>
           </div>
-
-          <button onClick={onLogout} className="tab-btn logout" style={{ marginLeft: "5px" }}>
-            <LogOut size={18} />
-          </button>
         </div>
       </div>
 
