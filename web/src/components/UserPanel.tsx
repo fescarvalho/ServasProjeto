@@ -84,9 +84,9 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
     }
   }
 
-  // Poll for notifications every 30 seconds
+  // Poll for notifications every 10 seconds
   useEffect(() => {
-    const p = setInterval(loadUnreadNotifications, 30000);
+    const p = setInterval(loadUnreadNotifications, 10000);
     return () => clearInterval(p);
   }, []);
 
