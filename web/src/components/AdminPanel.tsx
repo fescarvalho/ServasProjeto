@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import {
   Shield,
   FileText,
-  Share2,
   Edit,
   PlusCircle,
   X,
@@ -404,9 +403,6 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
               </button>
               <button className="btn-header btn-white" onClick={() => setViewMode("pdf")}>
                 <FileText size={16} /> PDF
-              </button>
-              <button className="btn-header btn-green" onClick={() => setShowTextModal(true)}>
-                <Share2 size={16} /> ZAP
               </button>
             </>
           )}
