@@ -14,8 +14,7 @@ import {
   ChevronRight,
   Search,
   Hourglass,
-  Bell,
-  BellOff
+  Bell
 } from "lucide-react";
 import { Mass, UserData, Notice, SwapRequest } from "../types/types";
 import { OfficialDocument } from "./OfficialDocument";
@@ -24,7 +23,6 @@ import * as swapRequestService from "../services/api/swap-request.service";
 import { RankingModal } from "./RankingModal";
 import { BadgesModal } from "./BadgesModal";
 import { CountdownTimer } from "./CountdownTimer";
-import { usePushNotifications } from "../hooks/usePushNotifications";
 import { ToastContainer, ConfirmModal, useToast } from "./Toast";
 import "./css/UserPanel.css"; // CSS Importado aqui
 
@@ -42,8 +40,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
   const [notices, setNotices] = useState<Notice[]>([]);
   const [swapRequests, setSwapRequests] = useState<SwapRequest[]>([]);
   const [swapLoading, setSwapLoading] = useState<string | null>(null);
-
-  const { isSubscribed, isSupported, subscribe, unsubscribe } = usePushNotifications();
+  const [unreadCount, setUnreadCount] = useState<number>(0);
   const { toasts, remove, show } = useToast();
 
   // Confirm modal state
@@ -68,6 +65,22 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
   useEffect(() => {
     api.get("/notices").then((res) => setNotices(res.data));
     loadSwapRequests();
+    loadUnreadNotifications();
+  }, []);
+
+  async function loadUnreadNotifications() {
+    try {
+      const res = await api.get("/notifications/unread");
+      setUnreadCount(res.data.count);
+    } catch (err) {
+      console.error("Erro notifications", err);
+    }
+  }
+
+  // Poll for notifications every 30 seconds
+  useEffect(() => {
+    const p = setInterval(loadUnreadNotifications, 30000);
+    return () => clearInterval(p);
   }, []);
 
   async function loadSwapRequests() {
@@ -76,28 +89,6 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
       setSwapRequests(data);
     } catch (err) {
       console.error(err);
-    }
-  }
-
-  async function handleTogglePush() {
-    try {
-      if (isSubscribed) {
-        await unsubscribe();
-        show("Notificações desativadas.", "info");
-      } else {
-        await subscribe(user.id);
-        show("🔔 Notificações ativadas! Você será avisada das escalas.", "success");
-      }
-    } catch (err: any) {
-      const msg = err?.message || "Erro ao configurar notificações.";
-      if (msg.includes("negada") || msg.includes("denied") || msg.includes("blocked")) {
-        show("🚫 Permissão bloqueada. Acesse as configurações do navegador para permitir.", "error", 6000);
-      } else if (msg.includes("HTTPS") || msg.includes("secure")) {
-        show("🔒 Notificações só funcionam com o app instalado via HTTPS (produção).", "warning", 6000);
-      } else {
-        show(msg, "error");
-      }
-      console.error("Push subscribe error:", err);
     }
   }
 
@@ -278,19 +269,29 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           <button onClick={() => setShowBadges(true)} className="tab-btn" style={{ color: "#fbc02d", marginLeft: "5px", display: "flex", justifyContent: "center" }} title="Minhas Conquistas">
             <Trophy size={20} />
           </button>
+
+          <div style={{ position: "relative", marginLeft: "5px" }}>
+            <button
+              onClick={() => {
+                if (unreadCount > 0) {
+                  show(`Você tem ${unreadCount} missa(s) abertas esperando sua inscrição! Acesse a aba "Inscrições" e clique em JUNTAR-SE.`, "info", 8000);
+                } else {
+                  show("Você não tem missas abertas pendentes no momento.", "info");
+                }
+              }}
+              className="tab-btn" style={{ color: unreadCount > 0 ? "#e91e63" : "#aaa", display: "flex", justifyContent: "center" }} title="Notificações do Sistema">
+              <Bell size={18} />
+              {unreadCount > 0 && (
+                <span style={{ position: "absolute", top: 4, right: 4, background: "red", color: "white", fontSize: "0.6rem", fontWeight: "bold", padding: "1px 5px", borderRadius: "10px", minWidth: "14px", textAlign: "center", lineHeight: "1" }}>
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+          </div>
+
           <button onClick={onLogout} className="tab-btn logout" style={{ marginLeft: "5px" }}>
             <LogOut size={18} />
           </button>
-          {isSupported && (
-            <button
-              onClick={handleTogglePush}
-              className="tab-btn"
-              style={{ color: isSubscribed ? "#e91e63" : "#9e9e9e", marginLeft: "5px" }}
-              title={isSubscribed ? "Desativar notificações" : "Ativar notificações"}
-            >
-              {isSubscribed ? <Bell size={18} /> : <BellOff size={18} />}
-            </button>
-          )}
         </div>
       </div>
 

@@ -1,6 +1,5 @@
 import { prisma } from "../config/database";
 import { swapSignup } from "./signup.service";
-import { sendPushToUser } from "./push.service";
 
 /**
  * List all PENDING swap requests with related data
@@ -84,12 +83,7 @@ export async function acceptSwapRequest(swapRequestId: string, acceptorId: strin
     // Perform the actual swap using existing logic
     await swapSignup(swapReq.signupId, acceptorId);
 
-    // Notify the requester that their swap was accepted
-    await sendPushToUser(swapReq.requesterId, {
-        title: "✅ Substituição Aceita!",
-        body: "Outra serva aceitou assumir sua vaga na escala.",
-        url: "/",
-    }).catch(console.error); // Vercel demands await for out-of-band requests
+    // (No futuro, se precisarmos notificar a serva, será via In-App Notice)
 
     return { message: "Substituição realizada com sucesso!" };
 }

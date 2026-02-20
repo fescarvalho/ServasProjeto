@@ -1,6 +1,5 @@
 import { prisma } from "../config/database";
 import { parseDateTime, parseDeadline } from "../utils/date.utils";
-import { sendPushToAll } from "./push.service";
 
 interface MassData {
     date: string;
@@ -89,19 +88,7 @@ export async function togglePublish(id: string, published: boolean) {
         data: { published },
     });
 
-    // When publishing, notify all subscribed users
-    if (published) {
-        const monthName = new Date(mass.date).toLocaleDateString("pt-BR", {
-            month: "long",
-            year: "numeric",
-            timeZone: "America/Sao_Paulo",
-        });
-        await sendPushToAll({
-            title: "📅 Nova Escala Disponível",
-            body: `A escala de ${monthName} acabou de ser liberada! Acesse o app para ver.`,
-            url: "/",
-        }).catch(console.error); // Vercel demands await for out-of-band requests
-    }
+    // (As Notificações In-App/Whatsapp substituem os Pushs de segundo plano aqui)
 
     return mass;
 }

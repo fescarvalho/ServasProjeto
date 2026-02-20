@@ -5,7 +5,7 @@ import noticeRoutes from "./notice.routes";
 import massRoutes from "./mass.routes";
 import signupRoutes from "./signup.routes";
 import swapRequestRoutes from "./swap-request.routes";
-import pushRoutes from "./push.routes";
+import notificationRoutes from "./notification.routes";
 
 const router = Router();
 
@@ -16,6 +16,6 @@ router.use("/notices", noticeRoutes);
 router.use("/masses", massRoutes);
 router.use("/signup", signupRoutes);
 router.use("/swap-requests", swapRequestRoutes);
-router.use("/push", pushRoutes);
+router.use("/notifications", notificationRoutes);
 
 export default router;
