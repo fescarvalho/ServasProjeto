@@ -43,8 +43,8 @@ export function usePushNotifications(): UsePushNotificationsReturn {
         setPermission(perm);
         if (perm !== "granted") throw new Error("Permissão de notificação negada.");
 
-        // Get VAPID public key
-        const { data } = await apiClient.get<{ publicKey: string }>("/push/vapid-public-key");
+        // Get VAPID public key (use timestamp to bypass browser cache)
+        const { data } = await apiClient.get<{ publicKey: string }>(`/push/vapid-public-key?t=${Date.now()}`);
         if (!data.publicKey) throw new Error("VAPID public key não configurada no servidor.");
 
         // Subscribe via PushManager
