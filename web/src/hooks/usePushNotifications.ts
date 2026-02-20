@@ -52,12 +52,15 @@ export function usePushNotifications(): UsePushNotificationsReturn {
         if (!data.publicKey) throw new Error("VAPID public key não configurada no servidor.");
 
         // Subscribe via PushManager
-        // Força registro explicito + timeout par não travar silenciosamente
-        const regPromise = navigator.serviceWorker.register("/sw.js").then(() => navigator.serviceWorker.ready);
-        const timeoutPromise = new Promise<ServiceWorkerRegistration>((_, reject) =>
-            setTimeout(() => reject(new Error("Timeout: Service Worker não iniciou após 10s. Verifique se o app está instalado e operante.")), 10000)
-        );
-        const reg = await Promise.race([regPromise, timeoutPromise]);
+        // No Safari iOS, a promise 'ready' ou 'register' pode travar se o app foi recarregado.
+        // O ideal é tentar pegar o registro ativo primeiro:
+        let reg = await navigator.serviceWorker.getRegistration();
+        if (!reg) {
+            reg = await navigator.serviceWorker.register("/sw.js");
+        }
+        if (!reg) {
+            throw new Error("Service Worker não está disponível no momento.");
+        }
         const subscription = await reg.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(data.publicKey),
