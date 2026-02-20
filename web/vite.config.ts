@@ -6,14 +6,16 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: "autoUpdate", // MUDE TEMPORARIAMENTE PARA autoUpdate
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.ts",
+      registerType: "autoUpdate",
+      injectRegister: "auto",
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "masked-icon.svg"],
-      // Adicione estas configurações de workbox para forçar a limpeza
       workbox: {
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
-        sourcemap: true
       },
       manifest: {
         name: "Escala das Servas",
@@ -38,6 +40,6 @@ export default defineConfig({
     }),
   ],
   build: {
-    target: 'es2020', // <--- Garanta que está es2020 ou esnext
-  }
+    target: "es2020",
+  },
 });

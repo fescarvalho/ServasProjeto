@@ -1,5 +1,6 @@
 import { prisma } from "../config/database";
 import { swapSignup } from "./signup.service";
+import { sendPushToUser } from "./push.service";
 
 /**
  * List all PENDING swap requests with related data
@@ -83,6 +84,13 @@ export async function acceptSwapRequest(swapRequestId: string, acceptorId: strin
         where: { id: swapRequestId },
         data: { status: "ACCEPTED" },
     });
+
+    // Notify the requester that their swap was accepted
+    sendPushToUser(swapReq.requesterId, {
+        title: "✅ Substituição Aceita!",
+        body: "Outra serva aceitou assumir sua vaga na escala.",
+        url: "/",
+    }).catch(console.error);
 
     return { message: "Substituição realizada com sucesso!" };
 }

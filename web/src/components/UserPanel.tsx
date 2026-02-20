@@ -13,7 +13,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
-  Hourglass
+  Hourglass,
+  Bell,
+  BellOff
 } from "lucide-react";
 import { Mass, UserData, Notice, SwapRequest } from "../types/types";
 import { OfficialDocument } from "./OfficialDocument";
@@ -22,6 +24,7 @@ import * as swapRequestService from "../services/api/swap-request.service";
 import { RankingModal } from "./RankingModal";
 import { BadgesModal } from "./BadgesModal";
 import { CountdownTimer } from "./CountdownTimer";
+import { usePushNotifications } from "../hooks/usePushNotifications";
 import "./css/UserPanel.css"; // CSS Importado aqui
 
 interface UserPanelProps {
@@ -37,7 +40,9 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
   const [showRanking, setShowRanking] = useState(false);
   const [notices, setNotices] = useState<Notice[]>([]);
   const [swapRequests, setSwapRequests] = useState<SwapRequest[]>([]);
-  const [swapLoading, setSwapLoading] = useState<string | null>(null); // id being processed
+  const [swapLoading, setSwapLoading] = useState<string | null>(null);
+
+  const { isSubscribed, isSupported, subscribe, unsubscribe } = usePushNotifications(); // id being processed
 
   // Refs para o Auto-Scroll
   const itemsRef = useRef<Map<string, HTMLDivElement> | null>(null);
@@ -235,6 +240,16 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           <button onClick={onLogout} className="tab-btn logout" style={{ marginLeft: "5px" }}>
             <LogOut size={18} />
           </button>
+          {isSupported && (
+            <button
+              onClick={() => isSubscribed ? unsubscribe() : subscribe(user.id)}
+              className="tab-btn"
+              style={{ color: isSubscribed ? "#e91e63" : "#9e9e9e", marginLeft: "5px" }}
+              title={isSubscribed ? "Desativar notificações" : "Ativar notificações"}
+            >
+              {isSubscribed ? <Bell size={18} /> : <BellOff size={18} />}
+            </button>
+          )}
         </div>
       </div>
 

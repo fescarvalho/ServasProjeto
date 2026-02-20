@@ -1,5 +1,6 @@
 import { prisma } from "../config/database";
 import { parseDateTime, parseDeadline } from "../utils/date.utils";
+import { sendPushToAll } from "./push.service";
 
 interface MassData {
     date: string;
@@ -83,10 +84,26 @@ export async function deleteMass(id: string) {
  * Toggle publish status of a mass
  */
 export async function togglePublish(id: string, published: boolean) {
-    return await prisma.mass.update({
+    const mass = await prisma.mass.update({
         where: { id },
         data: { published },
     });
+
+    // When publishing, notify all subscribed users
+    if (published) {
+        const monthName = new Date(mass.date).toLocaleDateString("pt-BR", {
+            month: "long",
+            year: "numeric",
+            timeZone: "America/Sao_Paulo",
+        });
+        sendPushToAll({
+            title: "📅 Nova Escala Disponível",
+            body: `A escala de ${monthName} acabou de ser liberada! Acesse o app para ver.`,
+            url: "/",
+        }).catch(console.error); // fire-and-forget, don't block the response
+    }
+
+    return mass;
 }
 
 /**

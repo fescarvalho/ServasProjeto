@@ -16,13 +16,14 @@ enum SignupStatus {
 // --- MODELS ---
 
 model User {
-  id            String         @id @default(uuid())
-  email         String         @unique
-  name          String
-  password      String
-  role          String         @default("USER")
-  signups       Signup[]
-  swapRequests  SwapRequest[]  @relation("requester")
+  id                String              @id @default(uuid())
+  email             String              @unique
+  name              String
+  password          String
+  role              String              @default("USER")
+  signups           Signup[]
+  swapRequests      SwapRequest[]       @relation("requester")
+  pushSubscriptions PushSubscription[]
 }
 
 model Mass {
@@ -69,4 +70,14 @@ model SwapRequest {
   requesterId String
   status      String   @default("PENDING") // PENDING | ACCEPTED | CANCELLED
   createdAt   DateTime @default(now())
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
 }
