@@ -96,11 +96,11 @@ export async function togglePublish(id: string, published: boolean) {
             year: "numeric",
             timeZone: "America/Sao_Paulo",
         });
-        sendPushToAll({
+        await sendPushToAll({
             title: "📅 Nova Escala Disponível",
             body: `A escala de ${monthName} acabou de ser liberada! Acesse o app para ver.`,
             url: "/",
-        }).catch(console.error); // fire-and-forget, don't block the response
+        }).catch(console.error); // Vercel demands await for out-of-band requests
     }
 
     return mass;

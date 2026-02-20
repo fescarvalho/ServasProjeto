@@ -84,12 +84,12 @@ export async function acceptSwapRequest(swapRequestId: string, acceptorId: strin
     // Perform the actual swap using existing logic
     await swapSignup(swapReq.signupId, acceptorId);
 
-    // Notify the requester that their swap was accepted (fire-and-forget)
-    sendPushToUser(swapReq.requesterId, {
+    // Notify the requester that their swap was accepted
+    await sendPushToUser(swapReq.requesterId, {
         title: "✅ Substituição Aceita!",
         body: "Outra serva aceitou assumir sua vaga na escala.",
         url: "/",
-    }).catch(console.error);
+    }).catch(console.error); // Vercel demands await for out-of-band requests
 
     return { message: "Substituição realizada com sucesso!" };
 }
