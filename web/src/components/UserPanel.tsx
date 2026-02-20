@@ -282,7 +282,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
               <button
                 onClick={() => {
                   if (unreadCount > 0) {
-                    show(`Existem ${unreadCount} escalas disponíveis para você, ${user.name.split(" ")[0]}! Acesse a aba "Inscrições" e clique em JUNTAR-SE.`, "info", 8000);
+                    show(`Existem escalas disponíveis para escolha. Veja na aba de inscrições.`, "info", 8000);
                     const viewedIds = JSON.parse(localStorage.getItem("viewedMasses") || "[]");
                     const novosIds = Array.from(new Set([...viewedIds, ...pendingMassIds]));
                     localStorage.setItem("viewedMasses", JSON.stringify(novosIds));
