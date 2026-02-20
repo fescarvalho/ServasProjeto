@@ -105,7 +105,7 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
             gap: "8px",
           }}
         >
-          🖨️ Imprimir PDF
+          🖨️ Baixar em PDF
         </button>
       </div>
 
