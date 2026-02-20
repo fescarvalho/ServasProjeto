@@ -61,6 +61,8 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [newName, setNewName] = useState("");
   const [newMax, setNewMax] = useState<number>(APP_CONFIG.DEFAULT_MAX_SERVERS);
   const [newDeadline, setNewDeadline] = useState("");
+  const [repeatWeekly, setRepeatWeekly] = useState(false);
+  const [repeatUntil, setRepeatUntil] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"dashboard" | "pdf">("dashboard");
 
@@ -129,6 +131,8 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     setNewName("");
     setNewMax(APP_CONFIG.DEFAULT_MAX_SERVERS);
     setNewDeadline("");
+    setRepeatWeekly(false);
+    setRepeatUntil("");
   }
 
   async function handleTogglePublish(id: string, currentStatus: boolean) {
@@ -165,6 +169,15 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
 
       if (editingId) {
         await updateMass(editingId, payload);
+      } else if (repeatWeekly && repeatUntil) {
+        // Cria uma missa por semana até a data final
+        let current = new Date(newDate + "T12:00:00");
+        const end = new Date(repeatUntil + "T12:00:00");
+        while (current <= end) {
+          const dateStr = current.toISOString().split("T")[0];
+          await createMass({ ...payload, date: dateStr });
+          current.setDate(current.getDate() + 7);
+        }
       } else {
         await createMass(payload);
       }
@@ -266,9 +279,41 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         <label>Vagas</label>
         <input className="form-input" type="number" value={newMax} onChange={(e) => setNewMax(Number(e.target.value))} min="1" />
       </div>
+
+      {/* OPÇÃO DE RECORRÊNCIA — visível apenas na criação */}
+      {!isInline && (
+        <div className="form-group full-width" style={{ borderTop: "1px dashed #e0e0e0", paddingTop: "12px", marginTop: "4px" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", color: "#7b1fa2", fontWeight: "bold", fontSize: "0.95rem" }}>
+            <input
+              type="checkbox"
+              checked={repeatWeekly}
+              onChange={(e) => {
+                setRepeatWeekly(e.target.checked);
+                if (!e.target.checked) setRepeatUntil("");
+              }}
+              style={{ width: "18px", height: "18px", cursor: "pointer" }}
+            />
+            🔁 Repetir toda semana
+          </label>
+          {repeatWeekly && (
+            <div style={{ marginTop: "10px", display: "flex", flexDirection: "column", gap: "4px" }}>
+              <label style={{ fontSize: "0.85rem", color: "#555", fontWeight: "bold" }}>Repetir até (data final):</label>
+              <input
+                className="form-input"
+                type="date"
+                value={repeatUntil}
+                min={newDate || undefined}
+                onChange={(e) => setRepeatUntil(e.target.value)}
+                required
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       <div style={{ display: "flex", gap: "10px", marginTop: "10px", gridColumn: "1 / -1" }}>
         <button type="submit" className="btn-create" style={{ background: isInline ? "#F59E0B" : "#D37474", flex: 1 }}>
-          {isInline ? "SALVAR ALTERAÇÕES" : "CRIAR MISSA"}
+          {isInline ? "SALVAR ALTERAÇÕES" : (repeatWeekly ? "✓ CRIAR MISSAS RECORRENTES" : "CRIAR MISSA")}
         </button>
         {isInline && (
           <button type="button" onClick={handleCancelEdit} style={{ padding: "10px", background: "#e0e0e0", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", color: "#333" }}>
