@@ -29,10 +29,19 @@ export function usePushNotifications(): UsePushNotificationsReturn {
     useEffect(() => {
         if (!isSupported) return;
         setPermission(Notification.permission);
-        navigator.serviceWorker.ready.then(async (reg) => {
-            const sub = await reg.pushManager.getSubscription();
-            setIsSubscribed(!!sub);
-        });
+
+        async function checkSubscription() {
+            try {
+                const reg = await navigator.serviceWorker.getRegistration();
+                if (reg) {
+                    const sub = await reg.pushManager.getSubscription();
+                    setIsSubscribed(!!sub);
+                }
+            } catch (err) {
+                console.error("Erro ao verificar inscrição push local:", err);
+            }
+        }
+        checkSubscription();
     }, [isSupported]);
 
     const subscribe = useCallback(async (userId: string) => {
@@ -72,7 +81,9 @@ export function usePushNotifications(): UsePushNotificationsReturn {
     }, [isSupported]);
 
     const unsubscribe = useCallback(async () => {
-        const reg = await navigator.serviceWorker.ready;
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (!reg) return setIsSubscribed(false);
+
         const sub = await reg.pushManager.getSubscription();
         if (sub) {
             await apiClient.delete("/push/unsubscribe", { data: { endpoint: sub.endpoint } });
