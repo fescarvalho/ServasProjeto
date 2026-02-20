@@ -16,12 +16,13 @@ enum SignupStatus {
 // --- MODELS ---
 
 model User {
-  id       String   @id @default(uuid())
-  email    String   @unique
-  name     String
-  password String
-  role     String   @default("USER")
-  signups  Signup[]
+  id            String         @id @default(uuid())
+  email         String         @unique
+  name          String
+  password      String
+  role          String         @default("USER")
+  signups       Signup[]
+  swapRequests  SwapRequest[]  @relation("requester")
 }
 
 model Mass {
@@ -36,18 +37,19 @@ model Mass {
 }
 
 model Signup {
-  id              String       @id @default(uuid())
-  user            User         @relation(fields: [userId], references: [id])
+  id              String        @id @default(uuid())
+  user            User          @relation(fields: [userId], references: [id])
   userId          String
-  mass            Mass         @relation(fields: [massId], references: [id])
+  mass            Mass          @relation(fields: [massId], references: [id])
   massId          String
   role            String?
-  present         Boolean      @default(false)
-  isSubstitution  Boolean      @default(false)
+  present         Boolean       @default(false)
+  isSubstitution  Boolean       @default(false)
   // --- NOVOS CAMPOS PARA O SISTEMA DE RESERVA ---
-  status          SignupStatus @default(CONFIRMADO)
-  createdAt       DateTime     @default(now()) // Define a ordem de chegada na fila
+  status          SignupStatus  @default(CONFIRMADO)
+  createdAt       DateTime      @default(now()) // Define a ordem de chegada na fila
   substitutedName String?
+  swapRequest     SwapRequest?
 
   @@unique([userId, massId])
 }
@@ -57,4 +59,14 @@ model Notice {
   text      String
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
+}
+
+model SwapRequest {
+  id          String   @id @default(uuid())
+  signup      Signup   @relation(fields: [signupId], references: [id], onDelete: Cascade)
+  signupId    String   @unique
+  requester   User     @relation("requester", fields: [requesterId], references: [id])
+  requesterId String
+  status      String   @default("PENDING") // PENDING | ACCEPTED | CANCELLED
+  createdAt   DateTime @default(now())
 }

@@ -61,3 +61,18 @@ export interface Mass {
   open: boolean;
   signups: Signup[];
 }
+
+export interface SwapRequest {
+  id: string;
+  signupId: string;
+  requesterId: string;
+  status: "PENDING" | "ACCEPTED" | "CANCELLED";
+  createdAt: string;
+  requester: { id: string; name: string };
+  signup: {
+    id: string;
+    role: string | null;
+    mass: { id: string; date: string; name?: string };
+    user: { id: string; name: string };
+  };
+}

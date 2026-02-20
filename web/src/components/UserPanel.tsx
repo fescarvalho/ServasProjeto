@@ -15,9 +15,10 @@ import {
   Search,
   Hourglass
 } from "lucide-react";
-import { Mass, UserData, Notice } from "../types/types";
+import { Mass, UserData, Notice, SwapRequest } from "../types/types";
 import { OfficialDocument } from "./OfficialDocument";
 import { api } from "../services/api";
+import * as swapRequestService from "../services/api/swap-request.service";
 import { RankingModal } from "./RankingModal";
 import { BadgesModal } from "./BadgesModal";
 import { CountdownTimer } from "./CountdownTimer";
@@ -35,6 +36,8 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
   const [showBadges, setShowBadges] = useState(false);
   const [showRanking, setShowRanking] = useState(false);
   const [notices, setNotices] = useState<Notice[]>([]);
+  const [swapRequests, setSwapRequests] = useState<SwapRequest[]>([]);
+  const [swapLoading, setSwapLoading] = useState<string | null>(null); // id being processed
 
   // Refs para o Auto-Scroll
   const itemsRef = useRef<Map<string, HTMLDivElement> | null>(null);
@@ -44,7 +47,58 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
 
   useEffect(() => {
     api.get("/notices").then((res) => setNotices(res.data));
+    loadSwapRequests();
   }, []);
+
+  async function loadSwapRequests() {
+    try {
+      const data = await swapRequestService.getOpenSwapRequests();
+      setSwapRequests(data);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function handleRequestSwap(signupId: string) {
+    if (!confirm("Confirma o pedido de substituição? Outras servas verão este pedido e poderão aceitar.")) return;
+    try {
+      setSwapLoading(signupId);
+      await swapRequestService.createSwapRequest(signupId, user.id);
+      await loadSwapRequests();
+      alert("Pedido de substituição enviado! Aguarde outra serva aceitar.");
+    } catch (err: any) {
+      alert(err?.response?.data?.message || "Erro ao criar pedido.");
+    } finally {
+      setSwapLoading(null);
+    }
+  }
+
+  async function handleAcceptSwap(swapRequestId: string) {
+    if (!confirm("Confirma que você vai assumir esta missa no lugar da serva solicitante?")) return;
+    try {
+      setSwapLoading(swapRequestId);
+      await swapRequestService.acceptSwapRequest(swapRequestId, user.id);
+      await loadSwapRequests();
+      alert("Substituição realizada! A escala foi atualizada.");
+    } catch (err: any) {
+      alert(err?.response?.data?.message || "Erro ao aceitar substituição.");
+    } finally {
+      setSwapLoading(null);
+    }
+  }
+
+  async function handleCancelSwap(swapRequestId: string) {
+    if (!confirm("Cancelar o pedido de substituição?")) return;
+    try {
+      setSwapLoading(swapRequestId);
+      await swapRequestService.cancelSwapRequest(swapRequestId, user.id);
+      await loadSwapRequests();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || "Erro ao cancelar pedido.");
+    } finally {
+      setSwapLoading(null);
+    }
+  }
 
   // Inicializa o Map de refs
   function getMap() {
@@ -71,7 +125,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
     const filtered = masses.filter(mass => {
       const mDate = new Date(mass.date);
       const brDate = new Date(mDate.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-      
+
       return (
         brDate.getMonth() === selectedDate.getMonth() &&
         brDate.getFullYear() === selectedDate.getFullYear()
@@ -85,7 +139,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
   useEffect(() => {
     if (activeTab === "inscricoes" && filteredMasses.length > 0) {
       const now = new Date();
-      now.setHours(0, 0, 0, 0); 
+      now.setHours(0, 0, 0, 0);
 
       const firstUpcoming = filteredMasses.find(m => new Date(m.date) >= now);
 
@@ -93,10 +147,10 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
         const node = getMap().get(firstUpcoming.id);
         if (node) {
           setTimeout(() => {
-            node.scrollIntoView({ 
-              behavior: "smooth", 
-              block: "center", 
-              inline: "start" 
+            node.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+              inline: "start"
             });
           }, 300);
         }
@@ -121,12 +175,12 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
   return (
     <div
       className="user-panel-container"
-      style={{ 
-        width: "100%", 
+      style={{
+        width: "100%",
         minHeight: "100vh",
-        overflowX: "hidden", 
+        overflowX: "hidden",
         position: "relative",
-        display: "flex", 
+        display: "flex",
         flexDirection: "column",
         backgroundColor: "#f5f5f5"
       }}
@@ -143,15 +197,15 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
         <div className="header-icon-wrapper">
           <Flower size={32} strokeWidth={2} color="white" />
         </div>
-        
+
         <h1>GRUPO DE SERVAS SANTA TEREZINHA</h1>
-        
-        <div style={{ 
-          marginTop: "10px", 
+
+        <div style={{
+          marginTop: "10px",
           marginBottom: "5px",
-          background: "rgba(255, 255, 255, 0.2)", 
-          padding: "6px 16px", 
-          borderRadius: "30px", 
+          background: "rgba(255, 255, 255, 0.2)",
+          padding: "6px 16px",
+          borderRadius: "30px",
           display: "inline-block",
           backdropFilter: "blur(5px)"
         }}>
@@ -205,13 +259,13 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
       <div style={{ flex: 1, width: "100%", boxSizing: "border-box" }}>
         {activeTab === "inscricoes" ? (
           <div>
-            
+
             {/* NAVEGADOR DE MESES */}
             <div className="month-navigator">
               <button className="nav-btn" onClick={handlePrevMonth}>
                 <ChevronLeft size={18} />
               </button>
-              
+
               <div className="current-month-label">
                 {currentMonthName}
                 <span className="current-year-label">{currentYear}</span>
@@ -222,11 +276,49 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
               </button>
             </div>
 
+            {/* BANNER DE SUBSTITUIÇÕES ABERTAS */}
+            {swapRequests.length > 0 && (
+              <div className="no-print" style={{ margin: "10px 15px", borderRadius: "12px", overflow: "hidden", border: "1px solid #FFB74D", background: "#FFF8E1" }}>
+                <div style={{ background: "#FF9800", color: "white", padding: "10px 15px", fontWeight: "bold", fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "8px" }}>
+                  🔄 Substituições em Aberto ({swapRequests.length})
+                </div>
+                {swapRequests.map((sr) => {
+                  const massDate = new Date(sr.signup.mass.date).toLocaleString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+                  const isMyRequest = sr.requesterId === user.id;
+                  return (
+                    <div key={sr.id} style={{ padding: "12px 15px", borderBottom: "1px solid #FFE0B2", display: "flex", flexDirection: "column", gap: "6px" }}>
+                      <div style={{ fontSize: "0.9rem", color: "#5D4037" }}>
+                        <strong>{sr.signup.user.name}</strong> não pode atender a <strong>{sr.signup.mass.name || massDate}</strong>
+                      </div>
+                      <div style={{ fontSize: "0.8rem", color: "#8D6E63" }}>{massDate} · Função: {sr.signup.role || "Auxiliar"}</div>
+                      {isMyRequest ? (
+                        <button
+                          onClick={() => handleCancelSwap(sr.id)}
+                          disabled={swapLoading === sr.id}
+                          style={{ alignSelf: "flex-start", padding: "6px 14px", borderRadius: "20px", border: "none", background: "#ef9a9a", color: "#b71c1c", fontWeight: "bold", cursor: "pointer", fontSize: "0.8rem" }}
+                        >
+                          {swapLoading === sr.id ? "..." : "Cancelar pedido"}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleAcceptSwap(sr.id)}
+                          disabled={swapLoading === sr.id}
+                          style={{ alignSelf: "flex-start", padding: "6px 14px", borderRadius: "20px", border: "none", background: "#81C784", color: "#1B5E20", fontWeight: "bold", cursor: "pointer", fontSize: "0.8rem" }}
+                        >
+                          {swapLoading === sr.id ? "..." : "✅ Aceitar e entrar no lugar"}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             {/* LISTA VAZIA */}
             {filteredMasses.length === 0 ? (
-              <div style={{ 
-                textAlign: "center", padding: "40px 20px", color: "#999", 
-                border: "2px dashed #eee", borderRadius: "12px", margin: "10px 15px" 
+              <div style={{
+                textAlign: "center", padding: "40px 20px", color: "#999",
+                border: "2px dashed #eee", borderRadius: "12px", margin: "10px 15px"
               }}>
                 <Search size={32} style={{ opacity: 0.3, marginBottom: 10 }} />
                 <p>Nenhuma escala encontrada para <strong>{currentMonthName}</strong>.</p>
@@ -246,11 +338,11 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                   const estaAberto = mass.open;
                   const prazoEncerrado = checkStatus(mass.date, mass.deadline);
                   const lotado = vagasRestantes <= 0;
-                  
-                  const mostrarFuncao = jaEstouInscrita; 
+
+                  const mostrarFuncao = jaEstouInscrita;
 
                   const botaoDesabilitado = prazoEncerrado || !estaAberto;
-                  const isInativa = prazoEncerrado; 
+                  const isInativa = prazoEncerrado;
                   const isAvailable = estaAberto && !prazoEncerrado;
 
                   // CORREÇÃO TS: Usando as variáveis para definir a classe
@@ -326,25 +418,25 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                           </div>
                         </div>
                       </div>
-                      
+
                       {/* FUNÇÃO / STATUS */}
                       {mostrarFuncao && (
                         <div className={`role-pill ${souReserva ? "reserva" : (!mass.published ? "pendente" : "")}`}>
                           {souReserva ? (
                             <>
-                              <Hourglass size={14}/>
+                              <Hourglass size={14} />
                               Fila de Espera
                             </>
                           ) : (
                             // CORREÇÃO LÓGICA: Verifica se está publicada
                             mass.published ? (
                               <>
-                                <User size={14}/> 
+                                <User size={14} />
                                 Função: {minhaFuncao}
                               </>
                             ) : (
                               <>
-                                <Clock size={14}/>
+                                <Clock size={14} />
                                 Aguardando publicação
                               </>
                             )
@@ -354,17 +446,45 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
 
                       {/* DIVISOR */}
                       <div style={{ height: "1px", background: "#f0f0f0", marginBottom: "15px" }}></div>
-                      
+
                       {/* VAGAS E BOTÃO */}
                       <div>
                         <div className="vagas-text">
                           <User size={18} strokeWidth={2.5} color="#2d3436" />
                           <strong>{totalConfirmados}</strong> <span>/ {mass.maxServers} vagas</span>
                         </div>
-                        
+
                         <button className={btnClass} onClick={() => onToggleSignup(mass.id)} disabled={botaoDesabilitado}>
                           {btnText}
                         </button>
+
+                        {/* BOTÃO PEDIR SUBSTITUIÇÃO — só para quem está confirmada e a missa não passou */}
+                        {jaEstouInscrita && !souReserva && !prazoEncerrado && (
+                          (() => {
+                            const mySignup = mass.signups.find(s => s.userId === user.id);
+                            const hasOpenRequest = swapRequests.some(sr => sr.signupId === mySignup?.id);
+                            return (
+                              <button
+                                onClick={() => mySignup && handleRequestSwap(mySignup.id)}
+                                disabled={hasOpenRequest || swapLoading === mySignup?.id}
+                                style={{
+                                  width: "100%",
+                                  marginTop: "8px",
+                                  padding: "8px",
+                                  borderRadius: "8px",
+                                  border: "1px dashed #FB8C00",
+                                  background: hasOpenRequest ? "#FFF3E0" : "transparent",
+                                  color: hasOpenRequest ? "#E65100" : "#FB8C00",
+                                  fontWeight: "bold",
+                                  cursor: hasOpenRequest ? "default" : "pointer",
+                                  fontSize: "0.82rem"
+                                }}
+                              >
+                                {hasOpenRequest ? "⏳ Aguardando substituta..." : "↔ Pedir Substituição"}
+                              </button>
+                            );
+                          })()
+                        )}
                       </div>
                     </div>
                   );
