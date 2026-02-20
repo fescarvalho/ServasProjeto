@@ -38,8 +38,12 @@ export function usePushNotifications(): UsePushNotificationsReturn {
     const subscribe = useCallback(async (userId: string) => {
         if (!isSupported) throw new Error("Push não suportado neste browser.");
 
-        // Request permission
-        const perm = await Notification.requestPermission();
+        // Request permission with timeout (iOS Safari prevents this and hangs if not installed as PWA properly)
+        const permPromise = Notification.requestPermission();
+        const permTimeout = new Promise<NotificationPermission>((_, reject) =>
+            setTimeout(() => reject(new Error("Timeout: O navegador bloqueou ou não respondeu ao pedido de permissão. Tente verificar as configurações do celular.")), 8000)
+        );
+        const perm = await Promise.race([permPromise, permTimeout]);
         setPermission(perm);
         if (perm !== "granted") throw new Error("Permissão de notificação negada.");
 
