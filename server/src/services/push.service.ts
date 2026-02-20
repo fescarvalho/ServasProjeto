@@ -1,12 +1,20 @@
 import webpush from "web-push";
 import { prisma } from "../config/database";
 
-// Configure VAPID — keys must be set in .env
-webpush.setVapidDetails(
-    process.env.VAPID_EMAIL || "mailto:admin@servas.app",
-    process.env.VAPID_PUBLIC_KEY || "",
-    process.env.VAPID_PRIVATE_KEY || ""
-);
+// Lazy VAPID — only configure when keys are present, won't crash server on startup
+function configureWebPush(): boolean {
+    const email = process.env.VAPID_EMAIL;
+    const pub = process.env.VAPID_PUBLIC_KEY;
+    const priv = process.env.VAPID_PRIVATE_KEY;
+    if (!email || !pub || !priv) return false;
+    try {
+        webpush.setVapidDetails(email, pub, priv);
+        return true;
+    } catch {
+        console.warn("[Push] VAPID configuration failed — verifique as chaves no .env");
+        return false;
+    }
+}
 
 export interface PushPayload {
     title: string;
@@ -101,6 +109,10 @@ async function _sendToSubs(
     subs: { endpoint: string; p256dh: string; auth: string }[],
     payload: PushPayload
 ) {
+    if (!configureWebPush()) {
+        console.warn("[Push] Notificação ignorada — VAPID keys não configuradas.");
+        return;
+    }
     const results = await Promise.allSettled(
         subs.map(async (sub) => {
             try {

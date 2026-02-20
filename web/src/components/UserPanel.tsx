@@ -25,6 +25,7 @@ import { RankingModal } from "./RankingModal";
 import { BadgesModal } from "./BadgesModal";
 import { CountdownTimer } from "./CountdownTimer";
 import { usePushNotifications } from "../hooks/usePushNotifications";
+import { ToastContainer, ConfirmModal, useToast } from "./Toast";
 import "./css/UserPanel.css"; // CSS Importado aqui
 
 interface UserPanelProps {
@@ -42,7 +43,21 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
   const [swapRequests, setSwapRequests] = useState<SwapRequest[]>([]);
   const [swapLoading, setSwapLoading] = useState<string | null>(null);
 
-  const { isSubscribed, isSupported, subscribe, unsubscribe } = usePushNotifications(); // id being processed
+  const { isSubscribed, isSupported, subscribe, unsubscribe } = usePushNotifications();
+  const { toasts, remove, show } = useToast();
+
+  // Confirm modal state
+  const [confirmState, setConfirmState] = useState<{ message: string; onConfirm: () => void } | null>(null);
+
+  function promptConfirm(message: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      setConfirmState({
+        message,
+        onConfirm: () => { setConfirmState(null); resolve(true); },
+      });
+      // Cancel resolves false via ConfirmModal onCancel
+    });
+  }
 
   // Refs para o Auto-Scroll
   const itemsRef = useRef<Map<string, HTMLDivElement> | null>(null);
@@ -65,41 +80,45 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
   }
 
   async function handleRequestSwap(signupId: string) {
-    if (!confirm("Confirma o pedido de substituição? Outras servas verão este pedido e poderão aceitar.")) return;
+    const ok = await promptConfirm("Confirma o pedido de substituição? Outras servas verão este pedido e poderão aceitar.");
+    if (!ok) return;
     try {
       setSwapLoading(signupId);
       await swapRequestService.createSwapRequest(signupId, user.id);
       await loadSwapRequests();
-      alert("Pedido de substituição enviado! Aguarde outra serva aceitar.");
+      show("Pedido de substituição enviado! Aguarde outra serva aceitar.", "success");
     } catch (err: any) {
-      alert(err?.response?.data?.message || "Erro ao criar pedido.");
+      show(err?.response?.data?.message || "Erro ao criar pedido.", "error");
     } finally {
       setSwapLoading(null);
     }
   }
 
   async function handleAcceptSwap(swapRequestId: string) {
-    if (!confirm("Confirma que você vai assumir esta missa no lugar da serva solicitante?")) return;
+    const ok = await promptConfirm("Confirma que você vai assumir esta missa no lugar da serva solicitante?");
+    if (!ok) return;
     try {
       setSwapLoading(swapRequestId);
       await swapRequestService.acceptSwapRequest(swapRequestId, user.id);
       await loadSwapRequests();
-      alert("Substituição realizada! A escala foi atualizada.");
+      show("Substituição realizada! A escala foi atualizada.", "success");
     } catch (err: any) {
-      alert(err?.response?.data?.message || "Erro ao aceitar substituição.");
+      show(err?.response?.data?.message || "Erro ao aceitar substituição.", "error");
     } finally {
       setSwapLoading(null);
     }
   }
 
   async function handleCancelSwap(swapRequestId: string) {
-    if (!confirm("Cancelar o pedido de substituição?")) return;
+    const ok = await promptConfirm("Cancelar o pedido de substituição?");
+    if (!ok) return;
     try {
       setSwapLoading(swapRequestId);
       await swapRequestService.cancelSwapRequest(swapRequestId, user.id);
       await loadSwapRequests();
+      show("Pedido cancelado.", "info");
     } catch (err: any) {
-      alert(err?.response?.data?.message || "Erro ao cancelar pedido.");
+      show(err?.response?.data?.message || "Erro ao cancelar pedido.", "error");
     } finally {
       setSwapLoading(null);
     }
@@ -521,6 +540,15 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           &copy; {new Date().getFullYear()} Santuário Diocesano Nossa Senhora da Natividade - v2.9 (10/02/2026)
         </p>
       </footer>
+      <ToastContainer toasts={toasts} onRemove={remove} />
+
+      {confirmState && (
+        <ConfirmModal
+          message={confirmState.message}
+          onConfirm={confirmState.onConfirm}
+          onCancel={() => setConfirmState(null)}
+        />
+      )}
     </div>
   );
 }

@@ -75,17 +75,16 @@ export async function acceptSwapRequest(swapRequestId: string, acceptorId: strin
     });
     if (alreadyIn) throw new Error("Você já está inscrita nesta missa.");
 
+    // Delete the SwapRequest BEFORE performing the swap.
+    // Reason: swapSignup deletes the old Signup, which would cascade-delete the
+    // SwapRequest (onDelete: Cascade), causing "Record not found" if we try to
+    // update it afterward. Deleting first avoids that race/cascade issue.
+    await prisma.swapRequest.delete({ where: { id: swapRequestId } });
+
     // Perform the actual swap using existing logic
     await swapSignup(swapReq.signupId, acceptorId);
 
-    // The old signup was deleted by swapSignup, but signupId unique constraint on SwapRequest
-    // means we just update the status (the swapRequest row survives for record-keeping)
-    await prisma.swapRequest.update({
-        where: { id: swapRequestId },
-        data: { status: "ACCEPTED" },
-    });
-
-    // Notify the requester that their swap was accepted
+    // Notify the requester that their swap was accepted (fire-and-forget)
     sendPushToUser(swapReq.requesterId, {
         title: "✅ Substituição Aceita!",
         body: "Outra serva aceitou assumir sua vaga na escala.",
