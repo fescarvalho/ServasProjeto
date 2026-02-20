@@ -79,6 +79,28 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
     }
   }
 
+  async function handleTogglePush() {
+    try {
+      if (isSubscribed) {
+        await unsubscribe();
+        show("Notificações desativadas.", "info");
+      } else {
+        await subscribe(user.id);
+        show("🔔 Notificações ativadas! Você será avisada das escalas.", "success");
+      }
+    } catch (err: any) {
+      const msg = err?.message || "Erro ao configurar notificações.";
+      if (msg.includes("negada") || msg.includes("denied") || msg.includes("blocked")) {
+        show("🚫 Permissão bloqueada. Acesse as configurações do navegador para permitir.", "error", 6000);
+      } else if (msg.includes("HTTPS") || msg.includes("secure")) {
+        show("🔒 Notificações só funcionam com o app instalado via HTTPS (produção).", "warning", 6000);
+      } else {
+        show(msg, "error");
+      }
+      console.error("Push subscribe error:", err);
+    }
+  }
+
   async function handleRequestSwap(signupId: string) {
     const ok = await promptConfirm("Confirma o pedido de substituição? Outras servas verão este pedido e poderão aceitar.");
     if (!ok) return;
@@ -261,7 +283,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           </button>
           {isSupported && (
             <button
-              onClick={() => isSubscribed ? unsubscribe() : subscribe(user.id)}
+              onClick={handleTogglePush}
               className="tab-btn"
               style={{ color: isSubscribed ? "#e91e63" : "#9e9e9e", marginLeft: "5px" }}
               title={isSubscribed ? "Desativar notificações" : "Ativar notificações"}
