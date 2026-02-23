@@ -106,12 +106,13 @@ export const notifyCron = async (req: Request, res: Response): Promise<void> => 
                 minute: "2-digit",
             });
 
-            const payload = JSON.stringify({
-                title: "Lembrete de Escala",
-                body: `Você serve amanhã às ${massTime}!`,
-            });
-
             for (const signup of mass.signups) {
+                const userName = signup.user.name ? signup.user.name.split(" ")[0] : "Serva";
+                const payload = JSON.stringify({
+                    title: "Lembrete de Escala",
+                    body: `Olá ${userName}, você serve amanhã às ${massTime}!`,
+                });
+
                 for (const sub of signup.user.pushSubscriptions) {
                     if (sub.keys_p256dh && sub.keys_auth) {
                         const pushSubscription = {
