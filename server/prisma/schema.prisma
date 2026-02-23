@@ -23,6 +23,7 @@ model User {
   role              String              @default("USER")
   signups           Signup[]
   swapRequests      SwapRequest[]       @relation("requester")
+  pushSubscriptions PushSubscription[]
 }
 
 model Mass {
@@ -71,3 +72,12 @@ model SwapRequest {
   createdAt   DateTime @default(now())
 }
 
+model PushSubscription {
+  id          String   @id @default(uuid())
+  endpoint    String   @unique
+  keys_p256dh String?
+  keys_auth   String?
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  createdAt   DateTime @default(now())
+}

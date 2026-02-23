@@ -7,6 +7,7 @@ import { AdminPanel } from "./components/AdminPanel";
 import { UserPanel } from "./components/UserPanel";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { theme } from "./theme/theme";
+import { subscribeToPushNotifications } from "./services/push";
 
 function App() {
   // PWA Hook
@@ -39,6 +40,13 @@ function App() {
   useEffect(() => {
     if (user) {
       fetchMasses();
+
+      // Request push subscription upon successful login, passing the token explicitly
+      setTimeout(() => {
+        if (user.token) {
+          subscribeToPushNotifications(user.token);
+        }
+      }, 1000);
     }
   }, [user, fetchMasses]);
 

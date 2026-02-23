@@ -107,8 +107,27 @@ export async function toggleOpen(id: string, open: boolean) {
  * Patch mass with arbitrary data
  */
 export async function patchMass(id: string, data: any) {
+    const updateData = { ...data };
+
+    if (updateData.date && updateData.time) {
+        updateData.date = parseDateTime(updateData.date, updateData.time);
+        delete updateData.time;
+    }
+
+    if (updateData.maxServers !== undefined) {
+        updateData.maxServers = Number(updateData.maxServers);
+    }
+
+    if (updateData.deadline !== undefined) {
+        updateData.deadline = parseDeadline(updateData.deadline);
+    }
+
+    if (updateData.open !== undefined) {
+        updateData.open = Boolean(updateData.open);
+    }
+
     return await prisma.mass.update({
         where: { id },
-        data,
+        data: updateData,
     });
 }
