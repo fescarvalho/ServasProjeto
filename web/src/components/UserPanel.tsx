@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   Flower,
   Calendar,
@@ -57,8 +58,15 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
     });
   }
 
-  // Refs para o Auto-Scroll
-  const itemsRef = useRef<Map<string, HTMLDivElement> | null>(null);
+  // Ref para o Auto-Scroll e Virtualização
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // --- FILTRO MENSAL ---
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -144,14 +152,6 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
     }
   }
 
-  // Inicializa o Map de refs
-  function getMap() {
-    if (!itemsRef.current) {
-      itemsRef.current = new Map();
-    }
-    return itemsRef.current;
-  }
-
   // Helpers de Data
   const currentMonthName = selectedDate.toLocaleDateString("pt-BR", { month: "long" });
   const currentYear = selectedDate.getFullYear();
@@ -179,28 +179,33 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
     return filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [masses, selectedDate]);
 
+  // --- VIRTUALIZADOR ---
+  const rowVirtualizer = useVirtualizer({
+    count: filteredMasses.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => isMobile ? (window.innerWidth - 40 + 15) : 180, // Largura do card + gap no mobile, altura no desktop
+    horizontal: isMobile,
+    overscan: 3,
+  });
+
   // --- AUTO-SCROLL PARA A PRIMEIRA DATA DISPONÍVEL ---
   useEffect(() => {
     if (activeTab === "inscricoes" && filteredMasses.length > 0) {
       const now = new Date();
       now.setHours(0, 0, 0, 0);
 
-      const firstUpcoming = filteredMasses.find(m => new Date(m.date) >= now);
+      const firstUpcomingIndex = filteredMasses.findIndex(m => new Date(m.date) >= now);
 
-      if (firstUpcoming) {
-        const node = getMap().get(firstUpcoming.id);
-        if (node) {
-          setTimeout(() => {
-            node.scrollIntoView({
-              behavior: "smooth",
-              block: "center",
-              inline: "start"
-            });
-          }, 300);
-        }
+      if (firstUpcomingIndex !== -1) {
+        setTimeout(() => {
+          rowVirtualizer.scrollToIndex(firstUpcomingIndex, {
+            align: "center",
+            behavior: "smooth"
+          });
+        }, 300);
       }
     }
-  }, [selectedDate, activeTab, filteredMasses]);
+  }, [selectedDate, activeTab, filteredMasses, rowVirtualizer]);
 
   // Função robusta para checar se expirou
   const checkStatus = (massDate: string, deadline?: string) => {
@@ -396,171 +401,196 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                 <p style={{ fontSize: "0.8rem" }}>Use as setas acima para navegar.</p>
               </div>
             ) : (
-              /* --- LISTA RESPONSIVA --- */
-              <div className="responsive-list-container">
-                {filteredMasses.map((mass) => {
-                  const totalConfirmados = mass.signups ? mass.signups.filter((s: any) => s.status !== "RESERVA").length : 0;
-                  const vagasRestantes = mass.maxServers - totalConfirmados;
-                  const meuSignup = mass.signups.find((s) => s.userId === user.id);
-                  const jaEstouInscrita = !!meuSignup;
-                  const souReserva = (meuSignup as any)?.status === "RESERVA";
-                  const minhaFuncao = meuSignup?.role || "Auxiliar";
+              /* --- LISTA RESPONSIVA COM VIRTUALIZAÇÃO --- */
+              <div
+                ref={parentRef}
+                className="responsive-list-container no-scrollbar"
+                style={{
+                  display: "block", // Sobrescreve flex
+                  position: "relative",
+                  height: isMobile ? "400px" : "calc(100vh - 250px)",
+                  width: "100%",
+                  overflowX: isMobile ? "auto" : "hidden",
+                  overflowY: isMobile ? "hidden" : "auto",
+                  padding: isMobile ? "10px 0 40px 20px" : "0 30px 40px 30px", // Ajuste para compensar display block
+                  scrollSnapType: isMobile ? "none" : "none", // Virtualizer já cuida do scroll nativo
+                }}
+              >
+                <div
+                  style={{
+                    height: isMobile ? "100%" : `${rowVirtualizer.getTotalSize()}px`,
+                    width: isMobile ? `${rowVirtualizer.getTotalSize()}px` : "100%",
+                    position: "relative",
+                  }}
+                >
+                  {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+                    const mass = filteredMasses[virtualItem.index];
+                    const totalConfirmados = mass.signups ? mass.signups.filter((s: any) => s.status !== "RESERVA").length : 0;
+                    const vagasRestantes = mass.maxServers - totalConfirmados;
+                    const meuSignup = mass.signups.find((s) => s.userId === user.id);
+                    const jaEstouInscrita = !!meuSignup;
+                    const souReserva = (meuSignup as any)?.status === "RESERVA";
+                    const minhaFuncao = meuSignup?.role || "Auxiliar";
 
-                  const estaAberto = mass.open;
-                  const prazoEncerrado = checkStatus(mass.date, mass.deadline);
-                  const lotado = vagasRestantes <= 0;
+                    const estaAberto = mass.open;
+                    const prazoEncerrado = checkStatus(mass.date, mass.deadline);
+                    const lotado = vagasRestantes <= 0;
 
-                  const mostrarFuncao = jaEstouInscrita;
+                    const mostrarFuncao = jaEstouInscrita;
 
-                  const botaoDesabilitado = prazoEncerrado || !estaAberto;
-                  const isInativa = prazoEncerrado;
-                  const isAvailable = estaAberto && !prazoEncerrado;
+                    const botaoDesabilitado = prazoEncerrado || !estaAberto;
+                    const isInativa = prazoEncerrado;
+                    const isAvailable = estaAberto && !prazoEncerrado;
 
-                  // CORREÇÃO TS: Usando as variáveis para definir a classe
-                  let cardClass = "";
-                  if (isInativa) {
-                    cardClass = "card-inactive";
-                  } else if (isAvailable) {
-                    cardClass = "mass-highlight";
-                  }
-
-                  let btnClass = "btn-servir";
-                  let btnText: React.ReactNode = <><Heart size={16} fill="white" /> SERVIR</>;
-
-                  if (jaEstouInscrita) {
-                    if (botaoDesabilitado) {
-                      btnClass = "btn-disabled";
-                      btnText = "FECHADO";
-                    } else {
-                      btnClass = "btn-desistir";
-                      btnText = souReserva ? "SAIR DA RESERVA" : "DESISTIR";
+                    let cardClass = "";
+                    if (isInativa) {
+                      cardClass = "card-inactive";
+                    } else if (isAvailable) {
+                      cardClass = "mass-highlight";
                     }
-                  } else if (!estaAberto) {
-                    btnClass = "btn-disabled";
-                    btnText = "EM BREVE";
-                  } else if (prazoEncerrado) {
-                    btnClass = "btn-disabled";
-                    btnText = "ENCERRADO";
-                  } else if (lotado) {
-                    btnClass = "btn-reserva";
-                    btnText = <><Hourglass size={16} /> FILA DE ESPERA</>;
-                  }
 
-                  return (
-                    <div
-                      key={mass.id}
-                      ref={(node) => {
-                        const map = getMap();
-                        if (node) map.set(mass.id, node);
-                        else map.delete(mass.id);
-                      }}
-                      // CORREÇÃO TS: Usando a variável cardClass aqui
-                      className={`responsive-card ${cardClass}`}
-                    >
-                      {/* Timer */}
-                      {mass.deadline && !prazoEncerrado && estaAberto && (
-                        <div style={{ position: "absolute", top: 15, right: 15, zIndex: 2 }}>
-                          <CountdownTimer deadline={mass.deadline} />
-                        </div>
-                      )}
+                    let btnClass = "btn-servir";
+                    let btnText: React.ReactNode = <><Heart size={16} fill="white" /> SERVIR</>;
 
-                      {/* CABEÇALHO */}
-                      <div style={{ display: "flex", gap: "15px", alignItems: "flex-start", marginBottom: "20px" }}>
-                        <div className="pink-date-badge">
-                          <span className="day">{new Date(mass.date).getDate()}</span>
-                          <span className="month">
-                            {new Date(mass.date).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}
-                          </span>
-                        </div>
+                    if (jaEstouInscrita) {
+                      if (botaoDesabilitado) {
+                        btnClass = "btn-disabled";
+                        btnText = "FECHADO";
+                      } else {
+                        btnClass = "btn-desistir";
+                        btnText = souReserva ? "SAIR DA RESERVA" : "DESISTIR";
+                      }
+                    } else if (!estaAberto) {
+                      btnClass = "btn-disabled";
+                      btnText = "EM BREVE";
+                    } else if (prazoEncerrado) {
+                      btnClass = "btn-disabled";
+                      btnText = "ENCERRADO";
+                    } else if (lotado) {
+                      btnClass = "btn-reserva";
+                      btnText = <><Hourglass size={16} /> FILA DE ESPERA</>;
+                    }
 
-                        <div style={{ flex: 1 }}>
-                          <h3 className="card-title">
-                            {mass.name || new Date(mass.date).toLocaleDateString("pt-BR", { weekday: "long" })}
-                          </h3>
-                          <div className="card-time">
-                            <Clock size={16} color="#ff2e63" />
-                            <span>
-                              {new Date(mass.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                            </span>
-                            <span style={{ color: "#b2bec3" }}>•</span>
-                            <span style={{ textTransform: "capitalize" }}>
-                              {new Date(mass.date).toLocaleDateString("pt-BR", { weekday: "long" })}
+                    return (
+                      <div
+                        key={virtualItem.key}
+                        data-index={virtualItem.index}
+                        ref={rowVirtualizer.measureElement}
+                        className={`responsive-card ${cardClass}`}
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: isMobile ? `${virtualItem.start}px` : 0,
+                          transform: isMobile ? undefined : `translateY(${virtualItem.start}px)`,
+                          height: isMobile ? '100%' : undefined, // Ocupa altura do contêiner no mobile
+                          margin: 0,
+                          scrollSnapAlign: "none"
+                        }}
+                      >
+                        {/* Timer */}
+                        {mass.deadline && !prazoEncerrado && estaAberto && (
+                          <div style={{ position: "absolute", top: 15, right: 15, zIndex: 2 }}>
+                            <CountdownTimer deadline={mass.deadline} />
+                          </div>
+                        )}
+
+                        {/* CABEÇALHO */}
+                        <div style={{ display: "flex", gap: "15px", alignItems: "flex-start", marginBottom: "20px" }}>
+                          <div className="pink-date-badge">
+                            <span className="day">{new Date(mass.date).getDate()}</span>
+                            <span className="month">
+                              {new Date(mass.date).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}
                             </span>
                           </div>
-                        </div>
-                      </div>
 
-                      {/* FUNÇÃO / STATUS */}
-                      {mostrarFuncao && (
-                        <div className={`role-pill ${souReserva ? "reserva" : (!mass.published ? "pendente" : "")}`}>
-                          {souReserva ? (
-                            <>
-                              <Hourglass size={14} />
-                              Fila de Espera
-                            </>
-                          ) : (
-                            // CORREÇÃO LÓGICA: Verifica se está publicada
-                            mass.published ? (
+                          <div style={{ flex: 1 }}>
+                            <h3 className="card-title">
+                              {mass.name || new Date(mass.date).toLocaleDateString("pt-BR", { weekday: "long" })}
+                            </h3>
+                            <div className="card-time">
+                              <Clock size={16} color="#ff2e63" />
+                              <span>
+                                {new Date(mass.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                              <span style={{ color: "#b2bec3" }}>•</span>
+                              <span style={{ textTransform: "capitalize" }}>
+                                {new Date(mass.date).toLocaleDateString("pt-BR", { weekday: "long" })}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* FUNÇÃO / STATUS */}
+                        {mostrarFuncao && (
+                          <div className={`role-pill ${souReserva ? "reserva" : (!mass.published ? "pendente" : "")}`}>
+                            {souReserva ? (
                               <>
-                                <User size={14} />
-                                Função: {minhaFuncao}
+                                <Hourglass size={14} />
+                                Fila de Espera
                               </>
                             ) : (
-                              <>
-                                <Clock size={14} />
-                                Aguardando publicação
-                              </>
-                            )
+                              // CORREÇÃO LÓGICA: Verifica se está publicada
+                              mass.published ? (
+                                <>
+                                  <User size={14} />
+                                  Função: {minhaFuncao}
+                                </>
+                              ) : (
+                                <>
+                                  <Clock size={14} />
+                                  Aguardando publicação
+                                </>
+                              )
+                            )}
+                          </div>
+                        )}
+
+                        {/* DIVISOR */}
+                        <div style={{ height: "1px", background: "#f0f0f0", marginBottom: "15px" }}></div>
+
+                        {/* VAGAS E BOTÃO */}
+                        <div>
+                          <div className="vagas-text">
+                            <User size={18} strokeWidth={2.5} color="#2d3436" />
+                            <strong>{totalConfirmados}</strong> <span>/ {mass.maxServers} vagas</span>
+                          </div>
+
+                          <button className={btnClass} onClick={() => onToggleSignup(mass.id)} disabled={botaoDesabilitado}>
+                            {btnText}
+                          </button>
+
+                          {/* BOTÃO PEDIR SUBSTITUIÇÃO — só para quem está confirmada e a missa não passou */}
+                          {jaEstouInscrita && !souReserva && !prazoEncerrado && (
+                            (() => {
+                              const mySignup = mass.signups.find(s => s.userId === user.id);
+                              const hasOpenRequest = swapRequests.some(sr => sr.signupId === mySignup?.id);
+                              return (
+                                <button
+                                  onClick={() => mySignup && handleRequestSwap(mySignup.id)}
+                                  disabled={hasOpenRequest || swapLoading === mySignup?.id}
+                                  style={{
+                                    width: "100%",
+                                    marginTop: "8px",
+                                    padding: "8px",
+                                    borderRadius: "8px",
+                                    border: "1px dashed #FB8C00",
+                                    background: hasOpenRequest ? "#FFF3E0" : "transparent",
+                                    color: hasOpenRequest ? "#E65100" : "#FB8C00",
+                                    fontWeight: "bold",
+                                    cursor: hasOpenRequest ? "default" : "pointer",
+                                    fontSize: "0.82rem"
+                                  }}
+                                >
+                                  {hasOpenRequest ? "⏳ Aguardando substituta..." : "↔ Pedir Substituição"}
+                                </button>
+                              );
+                            })()
                           )}
                         </div>
-                      )}
-
-                      {/* DIVISOR */}
-                      <div style={{ height: "1px", background: "#f0f0f0", marginBottom: "15px" }}></div>
-
-                      {/* VAGAS E BOTÃO */}
-                      <div>
-                        <div className="vagas-text">
-                          <User size={18} strokeWidth={2.5} color="#2d3436" />
-                          <strong>{totalConfirmados}</strong> <span>/ {mass.maxServers} vagas</span>
-                        </div>
-
-                        <button className={btnClass} onClick={() => onToggleSignup(mass.id)} disabled={botaoDesabilitado}>
-                          {btnText}
-                        </button>
-
-                        {/* BOTÃO PEDIR SUBSTITUIÇÃO — só para quem está confirmada e a missa não passou */}
-                        {jaEstouInscrita && !souReserva && !prazoEncerrado && (
-                          (() => {
-                            const mySignup = mass.signups.find(s => s.userId === user.id);
-                            const hasOpenRequest = swapRequests.some(sr => sr.signupId === mySignup?.id);
-                            return (
-                              <button
-                                onClick={() => mySignup && handleRequestSwap(mySignup.id)}
-                                disabled={hasOpenRequest || swapLoading === mySignup?.id}
-                                style={{
-                                  width: "100%",
-                                  marginTop: "8px",
-                                  padding: "8px",
-                                  borderRadius: "8px",
-                                  border: "1px dashed #FB8C00",
-                                  background: hasOpenRequest ? "#FFF3E0" : "transparent",
-                                  color: hasOpenRequest ? "#E65100" : "#FB8C00",
-                                  fontWeight: "bold",
-                                  cursor: hasOpenRequest ? "default" : "pointer",
-                                  fontSize: "0.82rem"
-                                }}
-                              >
-                                {hasOpenRequest ? "⏳ Aguardando substituta..." : "↔ Pedir Substituição"}
-                              </button>
-                            );
-                          })()
-                        )}
                       </div>
-                    </div>
-                  );
-                })}
-                <div className="mobile-only-spacer" style={{ minWidth: "10px" }}></div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
