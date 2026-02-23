@@ -5,6 +5,29 @@ import { swapSignup } from "./signup.service";
  * List all PENDING swap requests with related data
  */
 export async function getOpenSwapRequests() {
+    // 1. Fetch pending requests to check for expiration
+    const pendingRequests = await prisma.swapRequest.findMany({
+        where: { status: "PENDING" },
+        include: {
+            signup: {
+                include: { mass: { select: { date: true } } }
+            }
+        }
+    });
+
+    // 2. Identify and delete requests where the mass has already passed
+    const now = new Date();
+    const expiredIds = pendingRequests
+        .filter(req => new Date(req.signup.mass.date) < now)
+        .map(req => req.id);
+
+    if (expiredIds.length > 0) {
+        await prisma.swapRequest.deleteMany({
+            where: { id: { in: expiredIds } }
+        });
+    }
+
+    // 3. Return the remaining valid requests
     return await prisma.swapRequest.findMany({
         where: { status: "PENDING" },
         orderBy: { createdAt: "desc" },
