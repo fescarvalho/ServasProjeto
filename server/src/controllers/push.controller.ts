@@ -107,7 +107,7 @@ export const notifyCron = async (req: Request, res: Response): Promise<void> => 
             });
 
             const payload = JSON.stringify({
-                title: "Lembrete de Serviço",
+                title: "Lembrete de Escala",
                 body: `Você serve amanhã às ${massTime}!`,
             });
 
