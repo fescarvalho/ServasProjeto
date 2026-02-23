@@ -25,7 +25,9 @@ import { RankingModal } from "./RankingModal";
 import { BadgesModal } from "./BadgesModal";
 import { CountdownTimer } from "./CountdownTimer";
 import { ToastContainer, ConfirmModal, useToast } from "./Toast";
+import { WinnerModal } from "./WinnerModal";
 import { theme } from "../theme/theme";
+import { calculateRanking } from "../utils/ranking.utils";
 import "./css/UserPanel.css"; // CSS Importado aqui
 
 interface UserPanelProps {
@@ -45,6 +47,9 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [pendingMassIds, setPendingMassIds] = useState<string[]>([]);
   const { toasts, remove, show } = useToast();
+
+  const [showWinnerModal, setShowWinnerModal] = useState(false);
+  const [winnerDetails, setWinnerDetails] = useState<{ score: number; month: number; year: number } | null>(null);
 
   // Confirm modal state
   const [confirmState, setConfirmState] = useState<{ message: string; onConfirm: () => void } | null>(null);
@@ -98,6 +103,51 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
     const p = setInterval(loadUnreadNotifications, 10000);
     return () => clearInterval(p);
   }, []);
+
+  // --- Lógica da Serva Campeã ---
+  useEffect(() => {
+    if (masses.length === 0 || !user) return;
+
+    const now = new Date();
+    const day = now.getDate();
+    const month = now.getMonth();
+    const year = now.getFullYear();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    let checkMonth = month;
+    let checkYear = year;
+    let shouldCheck = false;
+
+    // Últimos 3 dias do mês ou primeiros 5 dias do próximo mês
+    if (day >= daysInMonth - 2) {
+      shouldCheck = true;
+    } else if (day <= 5) {
+      shouldCheck = true;
+      checkMonth = month === 0 ? 11 : month - 1;
+      checkYear = month === 0 ? year - 1 : year;
+    }
+
+    if (shouldCheck) {
+      const storageKey = `winner_notified_${checkYear}_${checkMonth}`;
+      const alreadyNotified = localStorage.getItem(storageKey);
+
+      if (!alreadyNotified) {
+        const ranking = calculateRanking(masses, checkMonth, checkYear);
+        // Se eu sou a primeira colocada e tenho pontuação maior que 0
+        if (ranking.length > 0 && ranking[0].id === user.id && ranking[0].score > 0) {
+          setWinnerDetails({ score: ranking[0].score, month: checkMonth, year: checkYear });
+          setShowWinnerModal(true);
+        }
+      }
+    }
+  }, [masses, user]);
+
+  const handleCloseWinnerModal = () => {
+    if (winnerDetails) {
+      localStorage.setItem(`winner_notified_${winnerDetails.year}_${winnerDetails.month}`, "true");
+    }
+    setShowWinnerModal(false);
+  };
 
   async function loadSwapRequests() {
     try {
@@ -240,6 +290,15 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
       )}
       {showRanking && (
         <RankingModal masses={masses} onClose={() => setShowRanking(false)} />
+      )}
+      {showWinnerModal && winnerDetails && (
+        <WinnerModal
+          score={winnerDetails.score}
+          month={winnerDetails.month}
+          year={winnerDetails.year}
+          userName={user.name}
+          onClose={handleCloseWinnerModal}
+        />
       )}
 
       {/* HEADER HERO */}
