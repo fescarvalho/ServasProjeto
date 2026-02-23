@@ -138,6 +138,54 @@ export const notifyCron = async (req: Request, res: Response): Promise<void> => 
             }
         }
 
+        // === BIRTHDAY NOTIFICATIONS ===
+        const todayForBday = new Date();
+        const currentMonth = todayForBday.getMonth() + 1;
+        const currentDay = todayForBday.getDate();
+
+        const usersWithBirthday = await prisma.user.findMany({
+            where: { birthDate: { not: null } },
+            include: { pushSubscriptions: true },
+        });
+
+        const birthdayGirls = usersWithBirthday.filter((user) => {
+            if (!user.birthDate) return false;
+            return (
+                user.birthDate.getUTCMonth() + 1 === currentMonth &&
+                user.birthDate.getUTCDate() === currentDay
+            );
+        });
+
+        for (const user of birthdayGirls) {
+            const userName = user.name.split(" ")[0];
+            const bdayPayload = JSON.stringify({
+                title: `Parabéns ${userName}! 🎉`,
+                body: `Que a alegria de servir ao altar transborde em todos os dias da sua vida. Seu zelo e carinho nas missas no Santuário são um testemunho lindo de fé para todos nós. Que Deus te abençoe com muita saúde, paz e que sua caminhada seja sempre guiada pelo amor!`,
+            });
+
+            for (const sub of user.pushSubscriptions) {
+                if (sub.keys_p256dh && sub.keys_auth) {
+                    const pushSubscription = {
+                        endpoint: sub.endpoint,
+                        keys: {
+                            p256dh: sub.keys_p256dh,
+                            auth: sub.keys_auth,
+                        },
+                    };
+
+                    try {
+                        await webpush.sendNotification(pushSubscription, bdayPayload);
+                        sentCount++;
+                    } catch (err: any) {
+                        console.error("Error sending birthday push to endpoint", sub.endpoint, err);
+                        if (err.statusCode === 410 || err.statusCode === 404) {
+                            await prisma.pushSubscription.delete({ where: { endpoint: sub.endpoint } });
+                        }
+                    }
+                }
+            }
+        }
+
         res.status(200).json({ message: `Cron executed. Sent ${sentCount} notifications.` });
     } catch (error) {
         console.error("Error executing cron:", error);
