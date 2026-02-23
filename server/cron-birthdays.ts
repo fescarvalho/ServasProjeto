@@ -68,7 +68,7 @@ async function checkBirthdays() {
 
         let sentForThisUser = 0;
 
-        for (const sub of user.pushSubscriptions) {
+        for (const sub of (user as any).pushSubscriptions) {
             if (sub.keys_p256dh && sub.keys_auth) {
                 const pushSubscription = {
                     endpoint: sub.endpoint,
