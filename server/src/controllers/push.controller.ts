@@ -144,15 +144,15 @@ export const notifyCron = async (req: Request, res: Response): Promise<void> => 
         const currentDay = todayForBday.getDate();
 
         const usersWithBirthday = await prisma.user.findMany({
-            where: { birthDate: { not: null } },
-            include: { pushSubscriptions: true },
+            where: { birthDate: { not: null } } as any,
+            include: { pushSubscriptions: true } as any,
         });
 
-        const birthdayGirls = usersWithBirthday.filter((user) => {
-            if (!user.birthDate) return false;
+        const birthdayGirls = usersWithBirthday.filter((u: any) => {
+            if (!u.birthDate) return false;
             return (
-                user.birthDate.getUTCMonth() + 1 === currentMonth &&
-                user.birthDate.getUTCDate() === currentDay
+                u.birthDate.getUTCMonth() + 1 === currentMonth &&
+                u.birthDate.getUTCDate() === currentDay
             );
         });
 
@@ -163,7 +163,7 @@ export const notifyCron = async (req: Request, res: Response): Promise<void> => 
                 body: `Que a alegria de servir ao altar transborde em todos os dias da sua vida. Seu zelo e carinho nas missas no Santuário são um testemunho lindo de fé para todos nós. Que Deus te abençoe com muita saúde, paz e que sua caminhada seja sempre guiada pelo amor!`,
             });
 
-            for (const sub of user.pushSubscriptions) {
+            for (const sub of (user as any).pushSubscriptions) {
                 if (sub.keys_p256dh && sub.keys_auth) {
                     const pushSubscription = {
                         endpoint: sub.endpoint,

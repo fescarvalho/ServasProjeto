@@ -33,15 +33,15 @@ async function checkBirthdays() {
             birthDate: {
                 not: null,
             },
-        },
-        include: { pushSubscriptions: true },
+        } as any,
+        include: { pushSubscriptions: true } as any,
     });
 
-    const birthdayGirls = users.filter((user) => {
-        if (!user.birthDate) return false;
+    const birthdayGirls = users.filter((u: any) => {
+        if (!u.birthDate) return false;
         return (
-            user.birthDate.getUTCMonth() + 1 === currentMonth &&
-            user.birthDate.getUTCDate() === currentDay
+            u.birthDate.getUTCMonth() + 1 === currentMonth &&
+            u.birthDate.getUTCDate() === currentDay
         );
     });
 
