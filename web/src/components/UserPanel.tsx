@@ -406,20 +406,21 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                 ref={parentRef}
                 className="responsive-list-container no-scrollbar"
                 style={{
-                  display: "block", // Sobrescreve flex
+                  display: "block",
                   position: "relative",
-                  height: isMobile ? "400px" : "calc(100vh - 250px)",
+                  height: isMobile ? "370px" : "calc(100vh - 250px)",
                   width: "100%",
                   overflowX: isMobile ? "auto" : "hidden",
                   overflowY: isMobile ? "hidden" : "auto",
-                  padding: isMobile ? "10px 0 40px 20px" : "0 30px 40px 30px", // Ajuste para compensar display block
-                  scrollSnapType: isMobile ? "none" : "none", // Virtualizer já cuida do scroll nativo
+                  padding: isMobile ? "10px 0 10px 0" : "0 30px 40px 30px",
+                  scrollSnapType: "none",
+                  boxSizing: "border-box"
                 }}
               >
                 <div
                   style={{
                     height: isMobile ? "100%" : `${rowVirtualizer.getTotalSize()}px`,
-                    width: isMobile ? `${rowVirtualizer.getTotalSize()}px` : "100%",
+                    width: isMobile ? `${rowVirtualizer.getTotalSize() + 40}px` : "100%",
                     position: "relative",
                   }}
                 >
@@ -476,116 +477,129 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                         key={virtualItem.key}
                         data-index={virtualItem.index}
                         ref={rowVirtualizer.measureElement}
-                        className={`responsive-card ${cardClass}`}
                         style={{
                           position: "absolute",
                           top: 0,
-                          left: isMobile ? `${virtualItem.start}px` : 0,
-                          transform: isMobile ? undefined : `translateY(${virtualItem.start}px)`,
-                          height: isMobile ? '100%' : undefined, // Ocupa altura do contêiner no mobile
-                          margin: 0,
-                          scrollSnapAlign: "none"
+                          left: 0,
+                          transform: isMobile ? `translateX(${virtualItem.start + 20}px)` : `translateY(${virtualItem.start}px)`,
+                          width: isMobile ? `${window.innerWidth - 40 + 15}px` : "100%",
+                          height: isMobile ? "100%" : undefined,
+                          paddingRight: isMobile ? "15px" : "0",
+                          paddingBottom: isMobile ? "0" : "20px",
+                          boxSizing: "border-box"
                         }}
                       >
-                        {/* Timer */}
-                        {mass.deadline && !prazoEncerrado && estaAberto && (
-                          <div style={{ position: "absolute", top: 15, right: 15, zIndex: 2 }}>
-                            <CountdownTimer deadline={mass.deadline} />
-                          </div>
-                        )}
+                        <div
+                          className={`responsive-card ${cardClass}`}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            margin: 0,
+                            minWidth: "auto",
+                            boxSizing: "border-box",
+                            justifyContent: "flex-start"
+                          }}
+                        >
+                          {/* Timer */}
+                          {mass.deadline && !prazoEncerrado && estaAberto && (
+                            <div style={{ position: "absolute", top: 15, right: 15, zIndex: 2 }}>
+                              <CountdownTimer deadline={mass.deadline} />
+                            </div>
+                          )}
 
-                        {/* CABEÇALHO */}
-                        <div style={{ display: "flex", gap: "15px", alignItems: "flex-start", marginBottom: "20px" }}>
-                          <div className="pink-date-badge">
-                            <span className="day">{new Date(mass.date).getDate()}</span>
-                            <span className="month">
-                              {new Date(mass.date).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}
-                            </span>
-                          </div>
-
-                          <div style={{ flex: 1 }}>
-                            <h3 className="card-title">
-                              {mass.name || new Date(mass.date).toLocaleDateString("pt-BR", { weekday: "long" })}
-                            </h3>
-                            <div className="card-time">
-                              <Clock size={16} color="#ff2e63" />
-                              <span>
-                                {new Date(mass.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                              </span>
-                              <span style={{ color: "#b2bec3" }}>•</span>
-                              <span style={{ textTransform: "capitalize" }}>
-                                {new Date(mass.date).toLocaleDateString("pt-BR", { weekday: "long" })}
+                          {/* CABEÇALHO */}
+                          <div style={{ display: "flex", gap: "15px", alignItems: "flex-start", marginBottom: "20px" }}>
+                            <div className="pink-date-badge">
+                              <span className="day">{new Date(mass.date).getDate()}</span>
+                              <span className="month">
+                                {new Date(mass.date).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}
                               </span>
                             </div>
-                          </div>
-                        </div>
 
-                        {/* FUNÇÃO / STATUS */}
-                        {mostrarFuncao && (
-                          <div className={`role-pill ${souReserva ? "reserva" : (!mass.published ? "pendente" : "")}`}>
-                            {souReserva ? (
-                              <>
-                                <Hourglass size={14} />
-                                Fila de Espera
-                              </>
-                            ) : (
-                              // CORREÇÃO LÓGICA: Verifica se está publicada
-                              mass.published ? (
+                            <div style={{ flex: 1 }}>
+                              <h3 className="card-title">
+                                {mass.name || new Date(mass.date).toLocaleDateString("pt-BR", { weekday: "long" })}
+                              </h3>
+                              <div className="card-time">
+                                <Clock size={16} color="#ff2e63" />
+                                <span>
+                                  {new Date(mass.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                                </span>
+                                <span style={{ color: "#b2bec3" }}>•</span>
+                                <span style={{ textTransform: "capitalize" }}>
+                                  {new Date(mass.date).toLocaleDateString("pt-BR", { weekday: "long" })}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* FUNÇÃO / STATUS */}
+                          {mostrarFuncao && (
+                            <div className={`role-pill ${souReserva ? "reserva" : (!mass.published ? "pendente" : "")}`}>
+                              {souReserva ? (
                                 <>
-                                  <User size={14} />
-                                  Função: {minhaFuncao}
+                                  <Hourglass size={14} />
+                                  Fila de Espera
                                 </>
                               ) : (
-                                <>
-                                  <Clock size={14} />
-                                  Aguardando publicação
-                                </>
-                              )
+                                // CORREÇÃO LÓGICA: Verifica se está publicada
+                                mass.published ? (
+                                  <>
+                                    <User size={14} />
+                                    Função: {minhaFuncao}
+                                  </>
+                                ) : (
+                                  <>
+                                    <Clock size={14} />
+                                    Aguardando publicação
+                                  </>
+                                )
+                              )}
+                            </div>
+                          )}
+
+                          {/* DIVISOR */}
+                          <div style={{ height: "1px", background: "#f0f0f0", marginBottom: "15px", flexShrink: 0 }}></div>
+
+                          {/* VAGAS E BOTÃO */}
+                          <div style={{ marginTop: "auto" }}>
+                            <div className="vagas-text">
+                              <User size={18} strokeWidth={2.5} color="#2d3436" />
+                              <strong>{totalConfirmados}</strong> <span>/ {mass.maxServers} vagas</span>
+                            </div>
+
+                            <button className={btnClass} onClick={() => onToggleSignup(mass.id)} disabled={botaoDesabilitado}>
+                              {btnText}
+                            </button>
+
+                            {/* BOTÃO PEDIR SUBSTITUIÇÃO — só para quem está confirmada e a missa não passou */}
+                            {jaEstouInscrita && !souReserva && !prazoEncerrado && (
+                              (() => {
+                                const mySignup = mass.signups.find(s => s.userId === user.id);
+                                const hasOpenRequest = swapRequests.some(sr => sr.signupId === mySignup?.id);
+                                return (
+                                  <button
+                                    onClick={() => mySignup && handleRequestSwap(mySignup.id)}
+                                    disabled={hasOpenRequest || swapLoading === mySignup?.id}
+                                    style={{
+                                      width: "100%",
+                                      marginTop: "8px",
+                                      padding: "8px",
+                                      borderRadius: "8px",
+                                      border: "1px dashed #FB8C00",
+                                      background: hasOpenRequest ? "#FFF3E0" : "transparent",
+                                      color: hasOpenRequest ? "#E65100" : "#FB8C00",
+                                      fontWeight: "bold",
+                                      cursor: hasOpenRequest ? "default" : "pointer",
+                                      fontSize: "0.82rem"
+                                    }}
+                                  >
+                                    {hasOpenRequest ? "⏳ Aguardando substituta..." : "↔ Pedir Substituição"}
+                                  </button>
+                                );
+                              })()
                             )}
                           </div>
-                        )}
-
-                        {/* DIVISOR */}
-                        <div style={{ height: "1px", background: "#f0f0f0", marginBottom: "15px" }}></div>
-
-                        {/* VAGAS E BOTÃO */}
-                        <div>
-                          <div className="vagas-text">
-                            <User size={18} strokeWidth={2.5} color="#2d3436" />
-                            <strong>{totalConfirmados}</strong> <span>/ {mass.maxServers} vagas</span>
-                          </div>
-
-                          <button className={btnClass} onClick={() => onToggleSignup(mass.id)} disabled={botaoDesabilitado}>
-                            {btnText}
-                          </button>
-
-                          {/* BOTÃO PEDIR SUBSTITUIÇÃO — só para quem está confirmada e a missa não passou */}
-                          {jaEstouInscrita && !souReserva && !prazoEncerrado && (
-                            (() => {
-                              const mySignup = mass.signups.find(s => s.userId === user.id);
-                              const hasOpenRequest = swapRequests.some(sr => sr.signupId === mySignup?.id);
-                              return (
-                                <button
-                                  onClick={() => mySignup && handleRequestSwap(mySignup.id)}
-                                  disabled={hasOpenRequest || swapLoading === mySignup?.id}
-                                  style={{
-                                    width: "100%",
-                                    marginTop: "8px",
-                                    padding: "8px",
-                                    borderRadius: "8px",
-                                    border: "1px dashed #FB8C00",
-                                    background: hasOpenRequest ? "#FFF3E0" : "transparent",
-                                    color: hasOpenRequest ? "#E65100" : "#FB8C00",
-                                    fontWeight: "bold",
-                                    cursor: hasOpenRequest ? "default" : "pointer",
-                                    fontSize: "0.82rem"
-                                  }}
-                                >
-                                  {hasOpenRequest ? "⏳ Aguardando substituta..." : "↔ Pedir Substituição"}
-                                </button>
-                              );
-                            })()
-                          )}
                         </div>
                       </div>
                     );
