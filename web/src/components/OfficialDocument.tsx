@@ -1,5 +1,6 @@
 import { Mass } from "../types/types";
 import { Flower, ArrowLeft, Calendar, Clock } from "lucide-react";
+import { theme } from "../theme/theme";
 
 interface OfficialDocumentProps {
   masses: Mass[];
@@ -59,9 +60,9 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
         maxWidth: "800px",
         margin: "10px auto",
         backgroundColor: "white",
-        boxShadow: "0 5px 15px rgba(0,0,0,0.05)",
+        boxShadow: theme.colors.shadowBase,
         fontFamily: "'Georgia', 'Times New Roman', serif",
-        color: "#444",
+        color: theme.colors.textMain,
       }}
     >
       {/* Botões (Não saem na impressão) */}
@@ -77,11 +78,11 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
               alignItems: "center",
               gap: "8px",
               background: "white",
-              border: "1px solid #ddd",
+              border: `1px solid ${theme.colors.borderDark}`,
               padding: "10px 20px",
               borderRadius: "8px",
               cursor: "pointer",
-              color: "#666",
+              color: theme.colors.textSecondary,
               fontWeight: "500",
               boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
             }}
@@ -92,14 +93,14 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
         <button
           onClick={handlePrint}
           style={{
-            background: "#e91e63",
+            background: theme.colors.primary,
             color: "white",
             border: "none",
             padding: "12px 25px",
             borderRadius: "8px",
             cursor: "pointer",
             fontWeight: "bold",
-            boxShadow: "0 4px 10px rgba(233, 30, 99, 0.3)",
+            boxShadow: theme.colors.shadowPrimary,
             display: "flex",
             alignItems: "center",
             gap: "8px",
@@ -121,7 +122,7 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
             backgroundColor: "#fce4ec",
             borderRadius: "50%",
             marginBottom: "10px",
-            color: "#e91e63",
+            color: theme.colors.primary,
           }}
         >
           <Flower size={32} strokeWidth={2} />
@@ -131,7 +132,7 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
           style={{
             margin: "0",
             fontSize: "22px",
-            color: "#e91e63",
+            color: theme.colors.primary,
             textTransform: "uppercase",
             letterSpacing: "1px",
             fontWeight: "normal",
@@ -143,13 +144,13 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
           style={{
             height: "3px",
             width: "50px",
-            backgroundColor: "#e91e63",
+            backgroundColor: theme.colors.primary,
             margin: "10px auto",
             borderRadius: "2px",
           }}
         ></div>
         <h2
-          style={{ margin: "5px 0", fontSize: "14px", fontWeight: "bold", color: "#333" }}
+          style={{ margin: "5px 0", fontSize: "14px", fontWeight: "bold", color: theme.colors.textMain }}
         >
           Santuário Diocesano Nossa Senhora da Natividade
         </h2>
@@ -157,7 +158,7 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
           style={{
             margin: "5px 0 0 0",
             fontSize: "12px",
-            color: "#888",
+            color: theme.colors.textMuted,
             fontStyle: "italic",
           }}
         >
@@ -255,8 +256,8 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
                     style={{
                       padding: "15px 10px",
                       verticalAlign: "middle",
-                      borderBottom: "1px solid #eee",
-                      borderRight: "1px solid #eee",
+                      borderBottom: `1px solid ${theme.colors.border}`,
+                      borderRight: `1px solid ${theme.colors.border}`,
                     }}
                   >
                     {massName && (
@@ -264,8 +265,8 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
                         style={{
                           marginBottom: "10px",
                           paddingBottom: "8px",
-                          borderBottom: "1px dashed #e0e0e0",
-                          color: "#e91e63",
+                          borderBottom: `1px dashed ${theme.colors.borderDark}`,
+                          color: theme.colors.primary,
                           fontWeight: "bold",
                           fontSize: "10px",
                           lineHeight: "1.2",
@@ -282,12 +283,12 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
                         alignItems: "center",
                         gap: "5px",
                         marginBottom: "4px",
-                        color: "#333",
+                        color: theme.colors.textMain,
                         fontWeight: "bold",
                         fontSize: "15px",
                       }}
                     >
-                      <Calendar size={16} color="#e91e63" />
+                      <Calendar size={16} color={theme.colors.primary} />
                       {new Date(mass.date).toLocaleDateString("pt-BR", {
                         day: "2-digit",
                         month: "2-digit",
@@ -297,7 +298,7 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
                     <div
                       style={{
                         fontSize: "10px",
-                        color: "#666",
+                        color: theme.colors.textSecondary,
                         textTransform: "uppercase",
                         marginBottom: "12px",
                         paddingLeft: "21px",
@@ -313,7 +314,7 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
                         display: "inline-flex",
                         alignItems: "center",
                         gap: "6px",
-                        color: "#e91e63",
+                        color: theme.colors.primary,
                         fontWeight: "900",
                         fontSize: "14px",
                         backgroundColor: "#fce4ec",
@@ -334,7 +335,7 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
                     style={{
                       padding: "15px 10px",
                       verticalAlign: "middle",
-                      borderBottom: "1px solid #eee",
+                      borderBottom: `1px solid ${theme.colors.border}`,
                     }}
                   >
                     <div
@@ -352,7 +353,7 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
                               fontSize: "12px",
                               textTransform: "uppercase",
                               fontWeight: "bold",
-                              color: "#e91e63",
+                              color: theme.colors.primary,
                               marginBottom: "2px",
                               letterSpacing: "0.5px",
                             }}
@@ -362,7 +363,7 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
                           <div
                             style={{
                               fontSize: "15px",
-                              color: "#333",
+                              color: theme.colors.textMain,
                               lineHeight: "1.3",
                             }}
                           >

@@ -4,14 +4,15 @@
 .admin-container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 15px; /* Margem segura para não colar na borda do celular */
+  padding: 15px;
+  /* Margem segura para não colar na borda do celular */
   font-family: sans-serif;
 }
 
 /* --- 1. Header (Caixa Preta) --- */
 .admin-header {
-  background-color: #262626;
-  color: white;
+  background-color: var(--color-text-main);
+  color: var(--color-white);
   padding: 20px;
   border-radius: 16px;
   display: flex;
@@ -19,16 +20,19 @@
   align-items: center;
   margin-bottom: 25px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  flex-wrap: wrap; /* Permite quebrar linha se apertar */
+  flex-wrap: wrap;
+  /* Permite quebrar linha se apertar */
   gap: 15px;
 }
 
 .header-brand h1 {
   margin: 0;
   font-size: 1.4rem;
-  color: #fff;
-  font-family: serif; /* Estilo elegante da imagem */
+  color: var(--color-white);
+  font-family: serif;
+  /* Estilo elegante da imagem */
 }
+
 .header-brand span {
   font-size: 0.75rem;
   color: #bbb;
@@ -62,29 +66,33 @@
 
 /* Cores específicas dos botões */
 .btn-white {
-  background: white;
-  color: #333;
+  background: var(--color-white);
+  color: var(--color-text-main);
 }
+
 .btn-green {
-  background: #25d366;
-  color: white;
+  background: var(--color-success);
+  color: var(--color-white);
 }
+
 .btn-dark {
-  background: #444;
-  color: white;
+  background: var(--color-text-secondary);
+  color: var(--color-white);
 }
 
 /* --- 2. Formulário de Criação (Caixa Rosa) --- */
 .new-mass-card {
-  background-color: #fff5f5; /* Rosa bem clarinho */
-  border: 1px solid #ffcdd2;
+  background-color: var(--color-danger-light);
+  /* Rosa bem clarinho */
+  border: 1px solid var(--color-danger);
   border-radius: 20px;
   padding: 25px;
   margin-bottom: 30px;
 }
 
 .section-title {
-  color: #c62828; /* Vermelho vinho */
+  color: var(--color-danger-dark);
+  /* Vermelho vinho */
   display: flex;
   align-items: center;
   gap: 8px;
@@ -96,9 +104,11 @@
 /* O GRANDE SEGREDO: CSS GRID */
 .form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr; /* Computador: 2 colunas */
+  grid-template-columns: 1fr 1fr;
+  /* Computador: 2 colunas */
   gap: 15px;
-  align-items: end; /* Alinha os inputs com o botão na base */
+  align-items: end;
+  /* Alinha os inputs com o botão na base */
 }
 
 /* Inputs que devem ocupar a linha inteira */
@@ -133,14 +143,16 @@
 }
 
 .btn-create {
-  background-color: #d37474; /* Tom rosa queimado da imagem */
-  color: white;
+  background-color: var(--color-primary);
+  /* Tom rosa queimado da imagem */
+  color: var(--color-white);
   border: none;
   padding: 12px;
   border-radius: 10px;
   font-weight: bold;
   cursor: pointer;
-  height: 45px; /* Altura fixa para alinhar com inputs */
+  height: 45px;
+  /* Altura fixa para alinhar com inputs */
   font-size: 0.9rem;
 }
 
@@ -176,12 +188,14 @@
   opacity: 0.6;
   transition: opacity 0.2s;
 }
+
 .icon-btn:hover {
   opacity: 1;
 }
 
 /* --- 📱 MÁGICA MOBILE --- */
 @media (max-width: 768px) {
+
   /* Header: Um embaixo do outro */
   .admin-header {
     flex-direction: column;
@@ -194,13 +208,15 @@
   }
 
   .btn-header {
-    flex: 1; /* Botões esticam para encher a tela */
+    flex: 1;
+    /* Botões esticam para encher a tela */
     justify-content: center;
   }
 
   /* Form: Tudo vira 1 coluna */
   .form-grid {
-    grid-template-columns: 1fr; /* Apenas 1 coluna */
+    grid-template-columns: 1fr;
+    /* Apenas 1 coluna */
   }
 
   .btn-create {
@@ -216,7 +232,8 @@
 
   .mass-actions {
     width: 100%;
-    justify-content: flex-end; /* Botões de editar/excluir à direita */
+    justify-content: flex-end;
+    /* Botões de editar/excluir à direita */
     border-top: 1px solid #f5f5f5;
     padding-top: 10px;
   }
@@ -228,9 +245,9 @@
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
-

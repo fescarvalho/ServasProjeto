@@ -25,6 +25,7 @@ import { RankingModal } from "./RankingModal";
 import { BadgesModal } from "./BadgesModal";
 import { CountdownTimer } from "./CountdownTimer";
 import { ToastContainer, ConfirmModal, useToast } from "./Toast";
+import { theme } from "../theme/theme";
 import "./css/UserPanel.css"; // CSS Importado aqui
 
 interface UserPanelProps {
@@ -231,7 +232,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
         position: "relative",
         display: "flex",
         flexDirection: "column",
-        backgroundColor: "#f5f5f5"
+        backgroundColor: theme.colors.background
       }}
     >
       {showBadges && (
@@ -276,10 +277,10 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
             <FileText size={16} /> <span className="mobile-hide-text">Escala</span>
           </button>
           <div style={{ display: "flex", gap: "5px", alignItems: "center" }}>
-            <button onClick={() => setShowRanking(true)} className="tab-btn" style={{ color: "#4caf50", borderLeft: "1px solid #ddd", paddingLeft: "10px", display: "flex", justifyContent: "center" }} title="Placar Mensal">
+            <button onClick={() => setShowRanking(true)} className="tab-btn" style={{ color: theme.colors.success, borderLeft: `1px solid ${theme.colors.borderDark}`, paddingLeft: "10px", display: "flex", justifyContent: "center" }} title="Placar Mensal">
               <Medal size={20} />
             </button>
-            <button onClick={() => setShowBadges(true)} className="tab-btn" style={{ color: "#fbc02d", display: "flex", justifyContent: "center" }} title="Minhas Conquistas">
+            <button onClick={() => setShowBadges(true)} className="tab-btn" style={{ color: theme.colors.warning, display: "flex", justifyContent: "center" }} title="Minhas Conquistas">
               <Trophy size={20} />
             </button>
 
@@ -297,7 +298,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                     show("Você não tem missas abertas pendentes no momento.", "info");
                   }
                 }}
-                className="tab-btn" style={{ color: unreadCount > 0 ? "#e91e63" : "#aaa", display: "flex", justifyContent: "center" }} title="Notificações do Sistema">
+                className="tab-btn" style={{ color: unreadCount > 0 ? theme.colors.danger : theme.colors.textMuted, display: "flex", justifyContent: "center" }} title="Notificações do Sistema">
                 <Bell size={18} />
                 {unreadCount > 0 && (
                   <span style={{ position: "absolute", top: 4, right: 4, background: "red", color: "white", fontSize: "0.6rem", fontWeight: "bold", padding: "1px 5px", borderRadius: "10px", minWidth: "14px", textAlign: "center", lineHeight: "1" }}>
@@ -307,7 +308,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
               </button>
             </div>
 
-            <button onClick={onLogout} className="tab-btn logout" style={{ display: "flex", justifyContent: "center" }}>
+            <button onClick={onLogout} className="tab-btn logout" style={{ display: "flex", justifyContent: "center", color: theme.colors.dangerDark }}>
               <LogOut size={18} />
             </button>
           </div>
@@ -318,12 +319,12 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
       {notices.length > 0 && (
         <div className="no-print" style={{ margin: "15px 15px 5px 15px", display: "flex", flexDirection: "column", gap: "10px" }}>
           {notices.map((notice) => (
-            <div key={notice.id} className="notice-animated" style={{ background: "#fff9c4", borderLeft: "5px solid #ffc107", color: "#856404", padding: "15px", borderRadius: "8px", display: "flex", alignItems: "center", gap: "12px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>
-              <div style={{ background: "#ffc107", padding: "8px", borderRadius: "50%", color: "white" }}>
+            <div key={notice.id} className="notice-animated" style={{ background: theme.colors.warningLight, borderLeft: `5px solid ${theme.colors.warning}`, color: theme.colors.warningDark, padding: "15px", borderRadius: theme.borderRadius.md, display: "flex", alignItems: "center", gap: "12px", boxShadow: theme.colors.shadowBase }}>
+              <div style={{ background: theme.colors.warning, padding: "8px", borderRadius: "50%", color: "white" }}>
                 <Megaphone size={20} fill="white" />
               </div>
               <div>
-                <strong style={{ display: "block", fontSize: "0.8rem", textTransform: "uppercase", color: "#b08d55", marginBottom: "2px" }}>Atenção, servas!</strong>
+                <strong style={{ display: "block", fontSize: "0.8rem", textTransform: "uppercase", color: theme.colors.warningDark, marginBottom: "2px" }}>Atenção, servas!</strong>
                 <span style={{ fontSize: "1rem", fontWeight: "bold" }}>{notice.text}</span>
               </div>
             </div>
@@ -354,24 +355,24 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
 
             {/* BANNER DE SUBSTITUIÇÕES ABERTAS */}
             {swapRequests.length > 0 && (
-              <div className="no-print" style={{ margin: "10px 15px", borderRadius: "12px", overflow: "hidden", border: "1px solid #FFB74D", background: "#FFF8E1" }}>
-                <div style={{ background: "#FF9800", color: "white", padding: "10px 15px", fontWeight: "bold", fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "8px" }}>
+              <div className="no-print" style={{ margin: "10px 15px", borderRadius: "12px", overflow: "hidden", border: `1px solid ${theme.colors.warning}`, background: theme.colors.warningLight }}>
+                <div style={{ background: theme.colors.warning, color: "white", padding: "10px 15px", fontWeight: "bold", fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "8px" }}>
                   🔄 Substituições em Aberto ({swapRequests.length})
                 </div>
                 {swapRequests.map((sr) => {
                   const massDate = new Date(sr.signup.mass.date).toLocaleString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
                   const isMyRequest = sr.requesterId === user.id;
                   return (
-                    <div key={sr.id} style={{ padding: "12px 15px", borderBottom: "1px solid #FFE0B2", display: "flex", flexDirection: "column", gap: "6px" }}>
-                      <div style={{ fontSize: "0.9rem", color: "#5D4037" }}>
+                    <div key={sr.id} style={{ padding: "12px 15px", borderBottom: `1px solid ${theme.colors.warningLight}`, display: "flex", flexDirection: "column", gap: "6px" }}>
+                      <div style={{ fontSize: "0.9rem", color: theme.colors.textMain }}>
                         <strong>{sr.signup.user.name}</strong> não pode atender a <strong>{sr.signup.mass.name || massDate}</strong>
                       </div>
-                      <div style={{ fontSize: "0.8rem", color: "#8D6E63" }}>{massDate} · Função: {sr.signup.role || "Auxiliar"}</div>
+                      <div style={{ fontSize: "0.8rem", color: theme.colors.textSecondary }}>{massDate} · Função: {sr.signup.role || "Auxiliar"}</div>
                       {isMyRequest ? (
                         <button
                           onClick={() => handleCancelSwap(sr.id)}
                           disabled={swapLoading === sr.id}
-                          style={{ alignSelf: "flex-start", padding: "6px 14px", borderRadius: "20px", border: "none", background: "#ef9a9a", color: "#b71c1c", fontWeight: "bold", cursor: "pointer", fontSize: "0.8rem" }}
+                          style={{ alignSelf: "flex-start", padding: "6px 14px", borderRadius: "20px", border: "none", background: theme.colors.dangerLight, color: theme.colors.dangerDark, fontWeight: "bold", cursor: "pointer", fontSize: "0.8rem" }}
                         >
                           {swapLoading === sr.id ? "..." : "Cancelar pedido"}
                         </button>
@@ -379,7 +380,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                         <button
                           onClick={() => handleAcceptSwap(sr.id)}
                           disabled={swapLoading === sr.id}
-                          style={{ alignSelf: "flex-start", padding: "6px 14px", borderRadius: "20px", border: "none", background: "#81C784", color: "#1B5E20", fontWeight: "bold", cursor: "pointer", fontSize: "0.8rem" }}
+                          style={{ alignSelf: "flex-start", padding: "6px 14px", borderRadius: "20px", border: "none", background: theme.colors.successLight, color: theme.colors.successDark, fontWeight: "bold", cursor: "pointer", fontSize: "0.8rem" }}
                         >
                           {swapLoading === sr.id ? "..." : "✅ Aceitar e entrar no lugar"}
                         </button>
@@ -393,8 +394,8 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
             {/* LISTA VAZIA */}
             {filteredMasses.length === 0 ? (
               <div style={{
-                textAlign: "center", padding: "40px 20px", color: "#999",
-                border: "2px dashed #eee", borderRadius: "12px", margin: "10px 15px"
+                textAlign: "center", padding: "40px 20px", color: theme.colors.textMuted,
+                border: `2px dashed ${theme.colors.border}`, borderRadius: "12px", margin: "10px 15px"
               }}>
                 <Search size={32} style={{ opacity: 0.3, marginBottom: 10 }} />
                 <p>Nenhuma escala encontrada para <strong>{currentMonthName}</strong>.</p>
@@ -559,12 +560,12 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                           )}
 
                           {/* DIVISOR */}
-                          <div style={{ height: "1px", background: "#f0f0f0", marginBottom: "15px", flexShrink: 0 }}></div>
+                          <div style={{ height: "1px", background: theme.colors.borderLight, marginBottom: "15px", flexShrink: 0 }}></div>
 
                           {/* VAGAS E BOTÃO */}
                           <div style={{ marginTop: "auto" }}>
                             <div className="vagas-text">
-                              <User size={18} strokeWidth={2.5} color="#2d3436" />
+                              <User size={18} strokeWidth={2.5} color={theme.colors.textMain} />
                               <strong>{totalConfirmados}</strong> <span>/ {mass.maxServers} vagas</span>
                             </div>
 
@@ -586,9 +587,9 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                                       marginTop: "8px",
                                       padding: "8px",
                                       borderRadius: "8px",
-                                      border: "1px dashed #FB8C00",
-                                      background: hasOpenRequest ? "#FFF3E0" : "transparent",
-                                      color: hasOpenRequest ? "#E65100" : "#FB8C00",
+                                      border: `1px dashed ${theme.colors.warning}`,
+                                      background: hasOpenRequest ? theme.colors.warningLight : "transparent",
+                                      color: hasOpenRequest ? theme.colors.warningDark : theme.colors.warning,
                                       fontWeight: "bold",
                                       cursor: hasOpenRequest ? "default" : "pointer",
                                       fontSize: "0.82rem"
@@ -615,7 +616,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
 
       <footer className="app-footer no-print" style={{ width: "100%", boxSizing: "border-box" }}>
         <p>
-          Desenvolvido por <a href="https://www.linkedin.com/in/fecarvalhodev/" target="_blank" rel="noopener noreferrer" style={{ color: "#e91e63", textDecoration: "none", fontWeight: "bold" }}>Fernando Carvalho</a>
+          Desenvolvido por <a href="https://www.linkedin.com/in/fecarvalhodev/" target="_blank" rel="noopener noreferrer" style={{ color: theme.colors.danger, textDecoration: "none", fontWeight: "bold" }}>Fernando Carvalho</a>
         </p>
         <p style={{ marginTop: "5px", opacity: 0.7 }}>
           &copy; {new Date().getFullYear()} Santuário Diocesano Nossa Senhora da Natividade - v3.0 (20/02/2026)

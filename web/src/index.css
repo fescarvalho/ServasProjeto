@@ -1,17 +1,44 @@
 :root {
-  /* Paleta Santa Terezinha */
-  --rose-primary: #d48c95;      /* Rosa Antigo */
-  --rose-dark: #a85d68;         /* Rosa Escuro para botões hover */
-  --cream-bg: #fdfbf7;          /* Fundo Creme suave */
-  --white-card: #ffffff;
-  --gold-accent: #d4af37;       /* Detalhes dourados */
-  --text-main: #5c4b4b;         /* Marrom café (mais suave que preto) */
-  --text-light: #8a7878;
-  --success: #88b04b;
-  --danger: #e07a5f;
+  /* Design Tokens - Colors */
+  --color-primary: #ff2e63;
+  --color-primary-dark: #ff0055;
+  --color-primary-light: #ff4081;
+  --color-secondary: #91163f;
   
-  --shadow: 0 10px 30px -10px rgba(212, 140, 149, 0.2);
-  --radius: 16px;
+  --color-background: #f5f5f5;
+  --color-background-light: #f8f9fa;
+  --color-white: #ffffff;
+  
+  --color-text-main: #333333;
+  --color-text-secondary: #666666;
+  --color-text-light: #b2bec3;
+  
+  --color-success: #4caf50;
+  --color-warning: #ffc107;
+  --color-danger: #e91e63;
+  --color-info: #2196f3;
+
+  --color-border-light: #f0f0f0;
+  --color-border: #eee;
+
+  /* Design Tokens - Shadows */
+  --shadow-base: 0 5px 15px rgba(0, 0, 0, 0.08);
+  --shadow-primary: 0 8px 20px rgba(255, 46, 99, 0.3);
+  --shadow-secondary: 0 4px 15px rgba(145, 22, 63, 0.3);
+
+  /* Design Tokens - Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  /* Design Tokens - Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-pill: 50px;
 }
 
 body {

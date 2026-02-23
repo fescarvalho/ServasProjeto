@@ -1,14 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap');
 
 :root {
-  --primary-rose: #91163f;
-  --bg-light: #f8f9fa;
-  --text-dark: #b0acac;
+  --primary-rose: var(--color-secondary);
+  --bg-light: var(--color-background-light);
+  --text-dark: var(--color-text-light);
 }
 
 /* --- GERAL --- */
 body {
-  background-color: var(--bg-light);
+  background-color: var(--color-background-light);
   margin: 0;
   font-family: 'Inter', sans-serif;
 }
@@ -22,13 +22,13 @@ body {
 
 /* --- HERO HEADER --- */
 .header-hero {
-  background: linear-gradient(135deg, #5d112a 0%, #a32553 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--color-secondary) 0%, #a32553 100%);
+  color: var(--color-white);
   padding: 30px 20px 60px;
   text-align: center;
   border-bottom-left-radius: 30px;
   border-bottom-right-radius: 30px;
-  box-shadow: 0 4px 15px rgba(145, 22, 63, 0.3);
+  box-shadow: var(--shadow-secondary);
 }
 
 .header-hero h1 {
@@ -91,21 +91,32 @@ body {
 }
 
 .tab-btn.active {
-  background-color: var(--primary-rose);
+  background-color: var(--color-primary);
   color: white;
-  box-shadow: 0 2px 8px rgba(145, 22, 63, 0.4);
+  box-shadow: 0 2px 8px rgba(255, 46, 99, 0.4);
 }
 
 .tab-btn.logout {
-  color: #d32f2f;
+  color: var(--color-danger);
   flex: 0.5;
 }
 
 /* --- ANIMAÇÕES --- */
 @keyframes pulse-alert {
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
-  50% { transform: scale(1.02); box-shadow: 0 0 10px 5px rgba(255, 193, 7, 0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7);
+  }
+
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 10px 5px rgba(255, 193, 7, 0);
+  }
+
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0);
+  }
 }
 
 .notice-animated {
@@ -126,25 +137,29 @@ body {
   scrollbar-width: none;
   scroll-padding-left: 20px;
 }
-.responsive-list-container::-webkit-scrollbar { display: none; }
+
+.responsive-list-container::-webkit-scrollbar {
+  display: none;
+}
 
 /* CARD (Ocupando quase toda a tela) */
 .responsive-card {
   /* Largura calculada para ocupar a tela inteira menos as margens laterais */
-  min-width: calc(100vw - 40px); 
+  min-width: calc(100vw - 40px);
   width: calc(100vw - 40px);
-  
-  scroll-snap-align: center; 
+
+  scroll-snap-align: center;
   flex-shrink: 0;
-  
+
   background: white;
   border-radius: 20px;
-  
+
   /* Sombra bonita, SEM BORDA */
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-  border: none; 
-  
-  padding: 24px; /* Mais espaço interno */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  border: none;
+
+  padding: 24px;
+  /* Mais espaço interno */
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -180,8 +195,8 @@ body {
 
 .mass-highlight {
   /* Removemos a borda rosa para ficar clean, mantendo só sombra */
-  box-shadow: 0 15px 40px rgba(233, 30, 99, 0.15) !important;
-  background-color: #fff !important;
+  box-shadow: var(--shadow-primary) !important;
+  background-color: var(--color-white) !important;
   border: none !important;
 }
 
@@ -191,16 +206,16 @@ body {
 .pink-date-badge {
   width: 70px;
   height: 70px;
-  background: linear-gradient(180deg, #ff2e63 0%, #ff0055 100%);
-  border-radius: 16px;
+  background: linear-gradient(180deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  border-radius: var(--radius-lg, 16px);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--color-white);
   position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 15px rgba(255, 46, 99, 0.4);
+  box-shadow: var(--shadow-primary);
   flex-shrink: 0;
 }
 
@@ -216,8 +231,20 @@ body {
   transform: scaleX(1.5);
 }
 
-.pink-date-badge .day { font-size: 1.8rem; font-weight: 800; line-height: 1; z-index: 2; }
-.pink-date-badge .month { font-size: 0.75rem; text-transform: uppercase; font-weight: 700; z-index: 2; margin-top: 2px; }
+.pink-date-badge .day {
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1;
+  z-index: 2;
+}
+
+.pink-date-badge .month {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  z-index: 2;
+  margin-top: 2px;
+}
 
 /* Título e Hora */
 .card-title {
@@ -232,7 +259,7 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #666;
+  color: var(--color-text-secondary);
   font-size: 1rem;
   font-weight: 600;
 }
@@ -251,8 +278,18 @@ body {
   margin: 15px 0;
   width: fit-content;
 }
-.role-pill.reserva { background-color: #fff3e0; color: #e65100; border: none; }
-.role-pill.pendente { background-color: #f5f5f5; color: #616161; border: none; }
+
+.role-pill.reserva {
+  background-color: #fff3e0;
+  color: #e65100;
+  border: none;
+}
+
+.role-pill.pendente {
+  background-color: #f5f5f5;
+  color: #616161;
+  border: none;
+}
 
 /* Vagas */
 .vagas-text {
@@ -263,20 +300,33 @@ body {
   color: #2d3436;
   margin-bottom: 15px;
 }
-.vagas-text strong { font-weight: 800; font-size: 1.1rem; }
-.vagas-text span { color: #636e72; }
+
+.vagas-text strong {
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+
+.vagas-text span {
+  color: #636e72;
+}
 
 /* --- BOTÕES (GRANDE E 100% LARGURA) --- */
 .btn-action {
-  width: 100% !important; /* Força largura total */
-  display: block; /* Garante bloco */
-  padding: 16px 0; /* Padding vertical apenas */
+  width: 100% !important;
+  /* Força largura total */
+  display: block;
+  /* Garante bloco */
+  padding: 16px 0;
+  /* Padding vertical apenas */
   border-radius: 14px;
-  border: none; /* Sem borda */
+  border: none;
+  /* Sem borda */
   font-weight: 800;
   cursor: pointer;
-  font-size: 1rem; /* Fonte maior */
-  text-align: center; /* Centraliza texto */
+  font-size: 1rem;
+  /* Fonte maior */
+  text-align: center;
+  /* Centraliza texto */
   transition: transform 0.1s;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -286,31 +336,54 @@ body {
 .btn-servir {
   width: 100%;
   height: 50px;
-  background: linear-gradient(90deg, #ff2e63 0%, #ff4081 100%);
-  color: white;
-  box-shadow: 0 8px 20px rgba(255, 46, 99, 0.3);
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+  color: var(--color-white);
+  box-shadow: var(--shadow-primary);
   position: relative;
   overflow: hidden;
   border: none;
 }
+
 .btn-servir::after {
-  content: ''; position: absolute; bottom: -15px; right: -10px; width: 80px; height: 80px;
-  background: rgba(255, 255, 255, 0.15); border-radius: 50%;
+  content: '';
+  position: absolute;
+  bottom: -15px;
+  right: -10px;
+  width: 80px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
 }
 
-.btn-desistir { 
+.btn-desistir {
   width: 100%;
   height: 50px;
-  background: #fff; 
-  color: #ff2e63; 
-  border: 2px solid #ff2e63 !important; /* Única borda mantida para diferenciar o desistir */
+  background: var(--color-white);
+  color: var(--color-primary);
+  border: 2px solid var(--color-primary) !important;
+  /* Única borda mantida para diferenciar o desistir */
 }
 
-.btn-disabled { width: 100%;
-  height: 50px;background: #e0e0e0; color: #999; cursor: not-allowed; box-shadow: none; }
-.btn-reserva { width: 100%;
-  height: 50px;background: linear-gradient(90deg, #ff9800, #ffb74d); color: white; box-shadow: 0 8px 20px rgba(255, 152, 0, 0.3); }
-.btn-action:active { transform: scale(0.98); }
+.btn-disabled {
+  width: 100%;
+  height: 50px;
+  background: #e0e0e0;
+  color: #999;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-reserva {
+  width: 100%;
+  height: 50px;
+  background: linear-gradient(90deg, #ff9800, #ffb74d);
+  color: white;
+  box-shadow: 0 8px 20px rgba(255, 152, 0, 0.3);
+}
+
+.btn-action:active {
+  transform: scale(0.98);
+}
 
 /* --- NAVEGAÇÃO MENSAL (CENTRALIZADA) --- */
 .month-navigator {
@@ -321,7 +394,7 @@ body {
   width: 100%;
   padding: 15px 20px;
   border-bottom: 1px solid #eee;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
   margin-bottom: 10px;
   box-sizing: border-box;
 }
@@ -329,7 +402,7 @@ body {
 .nav-btn {
   background: #fff0f3;
   border: none;
-  color: #ff2e63;
+  color: var(--color-primary);
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -340,7 +413,7 @@ body {
 }
 
 .current-month-label {
-  flex: 1; 
+  flex: 1;
   font-size: 1.2rem;
   font-weight: 800;
   color: #333;

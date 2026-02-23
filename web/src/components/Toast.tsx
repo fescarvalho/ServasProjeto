@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { CheckCircle, XCircle, AlertTriangle, Info, X } from "lucide-react";
+import { theme } from "../theme/theme";
 
 export type ToastType = "success" | "error" | "warning" | "info";
 
@@ -15,17 +16,17 @@ interface ToastProps {
 }
 
 const ICONS = {
-    success: <CheckCircle size={20} color="#2e7d32" />,
-    error: <XCircle size={20} color="#c62828" />,
-    warning: <AlertTriangle size={20} color="#e65100" />,
-    info: <Info size={20} color="#1565c0" />,
+    success: <CheckCircle size={20} color={theme.colors.success} />,
+    error: <XCircle size={20} color={theme.colors.dangerDark} />,
+    warning: <AlertTriangle size={20} color={theme.colors.warningDark} />,
+    info: <Info size={20} color={theme.colors.info} />,
 };
 
 const BG = {
-    success: { bg: "#f1f8e9", border: "#a5d6a7", color: "#1b5e20" },
-    error: { bg: "#ffebee", border: "#ef9a9a", color: "#b71c1c" },
-    warning: { bg: "#fff3e0", border: "#ffcc80", color: "#e65100" },
-    info: { bg: "#e3f2fd", border: "#90caf9", color: "#0d47a1" },
+    success: { bg: theme.colors.successLight, border: theme.colors.success, color: theme.colors.successDark },
+    error: { bg: theme.colors.dangerLight, border: theme.colors.danger, color: theme.colors.dangerDark },
+    warning: { bg: theme.colors.warningLight, border: theme.colors.warning, color: theme.colors.warningDark },
+    info: { bg: theme.colors.infoLight, border: theme.colors.info, color: theme.colors.infoDark },
 };
 
 export function ToastContainer({ toasts, onRemove }: ToastProps) {
@@ -116,16 +117,16 @@ export function ConfirmModal({ message, onConfirm, onCancel }: ConfirmModalProps
                 animation: "fadeScale 0.2s ease",
             }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", marginBottom: "20px" }}>
-                    <AlertTriangle size={24} color="#e65100" style={{ flexShrink: 0, marginTop: 2 }} />
-                    <p style={{ margin: 0, fontSize: "0.95rem", color: "#333", lineHeight: 1.5 }}>{message}</p>
+                    <AlertTriangle size={24} color={theme.colors.warningDark} style={{ flexShrink: 0, marginTop: 2 }} />
+                    <p style={{ margin: 0, fontSize: "0.95rem", color: theme.colors.textMain, lineHeight: 1.5 }}>{message}</p>
                 </div>
                 <div style={{ display: "flex", gap: "10px" }}>
                     <button
                         onClick={onCancel}
                         style={{
                             flex: 1, padding: "10px", borderRadius: "8px",
-                            border: "1px solid #ddd", background: "#f5f5f5",
-                            color: "#555", fontWeight: "bold", cursor: "pointer", fontSize: "0.9rem",
+                            border: `1px solid ${theme.colors.border}`, background: theme.colors.background,
+                            color: theme.colors.textSecondary, fontWeight: "bold", cursor: "pointer", fontSize: "0.9rem",
                         }}
                     >
                         Cancelar
@@ -134,7 +135,7 @@ export function ConfirmModal({ message, onConfirm, onCancel }: ConfirmModalProps
                         onClick={onConfirm}
                         style={{
                             flex: 1, padding: "10px", borderRadius: "8px",
-                            border: "none", background: "#e91e63",
+                            border: "none", background: theme.colors.primary,
                             color: "white", fontWeight: "bold", cursor: "pointer", fontSize: "0.9rem",
                         }}
                     >

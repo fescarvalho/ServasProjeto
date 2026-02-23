@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Mass } from "../types/types";
 import { X, Trophy, Medal, Calendar, Crown, Info } from "lucide-react";
+import { theme } from "../theme/theme";
 
 interface RankingModalProps {
   masses: Mass[];
@@ -115,7 +116,7 @@ export function RankingModal({ masses, onClose }: RankingModalProps) {
     >
       <div
         style={{
-          backgroundColor: "#f5f5f5",
+          backgroundColor: theme.colors.background,
           width: "90%",
           maxWidth: "450px",
           borderRadius: "20px",
@@ -123,7 +124,7 @@ export function RankingModal({ masses, onClose }: RankingModalProps) {
           position: "relative",
           maxHeight: "85vh",
           overflowY: "auto",
-          boxShadow: "0 20px 50px rgba(0,0,0,0.3)",
+          boxShadow: theme.colors.shadowBase,
           display: "flex",
           flexDirection: "column",
         }}
@@ -131,7 +132,7 @@ export function RankingModal({ masses, onClose }: RankingModalProps) {
         {/* HEADER ROSA */}
         <div
           style={{
-            background: "linear-gradient(135deg, #e91e63 0%, #ff4081 100%)",
+            background: theme.colors.primaryGradient,
             padding: "25px 20px 50px 20px",
             color: "white",
             textAlign: "center",
@@ -225,9 +226,9 @@ export function RankingModal({ masses, onClose }: RankingModalProps) {
               border: "none",
               fontSize: "0.9rem",
               fontWeight: "bold",
-              color: "#e91e63",
+              color: theme.colors.primary,
               backgroundColor: "white",
-              boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+              boxShadow: theme.colors.shadowBase,
               flex: 1,
               cursor: "pointer",
               outline: "none",
@@ -248,9 +249,9 @@ export function RankingModal({ masses, onClose }: RankingModalProps) {
               border: "none",
               fontSize: "0.9rem",
               fontWeight: "bold",
-              color: "#e91e63",
+              color: theme.colors.primary,
               backgroundColor: "white",
-              boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+              boxShadow: theme.colors.shadowBase,
               width: "80px",
               cursor: "pointer",
               outline: "none",
@@ -290,19 +291,19 @@ export function RankingModal({ masses, onClose }: RankingModalProps) {
                 };
 
                 let rankBadge;
-                let scoreColor = "#e91e63";
+                let scoreColor = theme.colors.primary;
 
                 if (index === 0) {
                   cardStyle = {
                     ...cardStyle,
-                    background: "linear-gradient(to right, #fffde7, #fff)",
-                    border: "1px solid #fbc02d",
+                    background: `linear-gradient(to right, ${theme.colors.warningLight}, #fff)`,
+                    border: `1px solid ${theme.colors.warning}`,
                   };
-                  scoreColor = "#f57f17";
-                  rankBadge = <Trophy size={24} color="#fbc02d" fill="#fbc02d" />;
+                  scoreColor = theme.colors.warningDark;
+                  rankBadge = <Trophy size={24} color={theme.colors.warning} fill={theme.colors.warning} />;
                 } else if (index === 1) {
-                  scoreColor = "#757575";
-                  rankBadge = <Medal size={24} color="#9e9e9e" fill="#e0e0e0" />;
+                  scoreColor = theme.colors.textSecondary;
+                  rankBadge = <Medal size={24} color={theme.colors.textMuted} fill="#e0e0e0" />;
                 } else if (index === 2) {
                   scoreColor = "#8d6e63";
                   rankBadge = <Medal size={24} color="#8d6e63" fill="#d7ccc8" />;
@@ -354,7 +355,7 @@ export function RankingModal({ masses, onClose }: RankingModalProps) {
                       <div
                         style={{
                           background:
-                            index === 0 ? "rgba(251, 192, 45, 0.15)" : "#fce4ec",
+                            index === 0 ? "rgba(251, 192, 45, 0.15)" : theme.colors.primary + "1A", // 10% opacity
                           color: scoreColor,
                           padding: "4px 10px",
                           borderRadius: "20px",
@@ -385,7 +386,7 @@ export function RankingModal({ masses, onClose }: RankingModalProps) {
                           <span
                             style={{
                               fontSize: "0.7rem",
-                              color: "#e91e628c",
+                              color: theme.colors.primary + "8C", // Semi-transparent primary
                               fontWeight: "600",
                             }}
                           >
@@ -394,7 +395,7 @@ export function RankingModal({ masses, onClose }: RankingModalProps) {
                         )}
 
                         {serva.countNormal > 0 && (
-                          <span style={{ fontSize: "0.7rem", color: "#999" }}>
+                          <span style={{ fontSize: "0.7rem", color: theme.colors.textMuted }}>
                             {serva.countNormal}x outros
                           </span>
                         )}

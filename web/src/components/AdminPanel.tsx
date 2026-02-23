@@ -29,6 +29,7 @@ import { OfficialDocument } from "./OfficialDocument";
 import { StatisticsModal } from "./StatisticsModal";
 import { GeneralRankingModal } from "./GeneralRankingModal";
 import { NoticeBoard } from "./NoticeBoard";
+import { theme } from "../theme/theme";
 import "./css/AdminPanel.css";
 
 // ── MassForm extracted OUTSIDE AdminPanel to prevent unmount on every keystroke ──
@@ -72,7 +73,7 @@ function MassForm({
         <input className="form-input" type="time" value={newTime} onChange={(e) => setNewTime(e.target.value)} required />
       </div>
       <div className="form-group full-width">
-        <label style={{ color: "#d32f2f" }}>Prazo (Opcional)</label>
+        <label style={{ color: theme.colors.dangerDark }}>Prazo (Opcional)</label>
         <input className="form-input" type="datetime-local" value={newDeadline} onChange={(e) => setNewDeadline(e.target.value)} />
       </div>
       <div className="form-group">
@@ -82,8 +83,8 @@ function MassForm({
 
       {/* OPÇÃO DE RECORRÊNCIA — visível apenas na criação */}
       {!isInline && (
-        <div className="form-group full-width" style={{ borderTop: "1px dashed #e0e0e0", paddingTop: "12px", marginTop: "4px" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", color: "#7b1fa2", fontWeight: "bold", fontSize: "0.95rem" }}>
+        <div className="form-group full-width" style={{ borderTop: `1px dashed ${theme.colors.borderDark}`, paddingTop: "12px", marginTop: "4px" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", color: theme.colors.secondary, fontWeight: "bold", fontSize: "0.95rem" }}>
             <input
               type="checkbox"
               checked={repeatWeekly}
@@ -112,11 +113,11 @@ function MassForm({
       )}
 
       <div style={{ display: "flex", gap: "10px", marginTop: "10px", gridColumn: "1 / -1" }}>
-        <button type="submit" className="btn-create" style={{ background: isInline ? "#F59E0B" : "#D37474", flex: 1 }}>
+        <button type="submit" className="btn-create" style={{ background: isInline ? theme.colors.warning : theme.colors.primary, flex: 1 }}>
           {isInline ? "SALVAR ALTERAÇÕES" : (repeatWeekly ? "✓ CRIAR MISSAS RECORRENTES" : "CRIAR MISSA")}
         </button>
         {isInline && (
-          <button type="button" onClick={handleCancelEdit} style={{ padding: "10px", background: "#e0e0e0", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", color: "#333" }}>
+          <button type="button" onClick={handleCancelEdit} style={{ padding: "10px", background: theme.colors.borderDark, border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", color: theme.colors.textMain }}>
             CANCELAR
           </button>
         )}
@@ -424,7 +425,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
             style={{
               width: "100%",
               padding: "16px",
-              background: showCreateForm ? "#C62828" : "#D37474",
+              background: showCreateForm ? theme.colors.dangerDark : theme.colors.primary,
               color: "white",
               border: "none",
               borderRadius: "12px",
@@ -436,7 +437,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
               justifyContent: "center",
               gap: "10px",
               transition: "all 0.3s ease",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+              boxShadow: theme.colors.shadowBase
             }}
           >
             <PlusCircle size={20} />
@@ -447,8 +448,8 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
             <div
               className="new-mass-card"
               style={{
-                borderColor: "#FFCDD2",
-                background: "#FFF5F5",
+                borderColor: theme.colors.dangerLight,
+                background: theme.colors.backgroundLight,
                 marginTop: "10px",
                 animation: "slideDown 0.3s ease"
               }}
@@ -460,14 +461,14 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
       )}
 
       {/* FILTROS */}
-      <div className="filter-section no-print" style={{ background: "#fff", padding: "20px", borderRadius: "16px", marginBottom: "20px", boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#e91e63", fontWeight: "bold", marginBottom: "15px" }}>
+      <div className="filter-section no-print" style={{ background: "#fff", padding: "20px", borderRadius: "16px", marginBottom: "20px", boxShadow: theme.colors.shadowBase }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", color: theme.colors.primary, fontWeight: "bold", marginBottom: "15px" }}>
           <Filter size={18} /> Filtrar Datas
         </div>
         <div style={{ display: "flex", gap: "15px", alignItems: "flex-end", flexWrap: "wrap" }}>
           <input type="date" className="form-input" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={{ padding: "8px" }} />
           <input type="date" className="form-input" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={{ padding: "8px" }} />
-          <button onClick={() => { setStartDate(""); setEndDate(""); }} style={{ background: "#f5f5f5", border: "1px solid #ddd", padding: "10px 15px", borderRadius: "8px", cursor: "pointer" }}>
+          <button onClick={() => { setStartDate(""); setEndDate(""); }} style={{ background: theme.colors.background, border: `1px solid ${theme.colors.border}`, padding: "10px 15px", borderRadius: "8px", cursor: "pointer" }}>
             Limpar
           </button>
         </div>
