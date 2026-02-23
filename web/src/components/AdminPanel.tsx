@@ -17,13 +17,14 @@ import {
   Filter,
   User as UserIcon
 } from "lucide-react";
-import { Mass, User } from "../types/types";
+import { Mass, User, Signup } from "../types/types";
 import { useMasses } from "../hooks/useMasses";
 import { useSignup } from "../hooks/useSignup";
 import { getRoleWeight } from "../utils/format.utils";
 import { toLocalDate, toLocalDateTime } from "../utils/date.utils";
 import { APP_CONFIG } from "../constants/config";
 import { getUsersList } from "../services/api/notice.service";
+import { autoAssign } from "../utils/autoAssign";
 import { ScaleModal } from "./ScaleModal";
 import { OfficialDocument } from "./OfficialDocument";
 import { StatisticsModal } from "./StatisticsModal";
@@ -35,6 +36,10 @@ import "./css/AdminPanel.css";
 // ── MassForm extracted OUTSIDE AdminPanel to prevent unmount on every keystroke ──
 interface MassFormProps {
   isInline?: boolean;
+  mass?: Mass;
+  allMasses?: Mass[];
+  localSignups?: Signup[];
+  setLocalSignups?: React.Dispatch<React.SetStateAction<Signup[]>>;
   newName: string; setNewName: (v: string) => void;
   newDate: string; setNewDate: (v: string) => void;
   newTime: string; setNewTime: (v: string) => void;
@@ -48,6 +53,10 @@ interface MassFormProps {
 
 function MassForm({
   isInline = false,
+  mass,
+  allMasses,
+  localSignups,
+  setLocalSignups,
   newName, setNewName,
   newDate, setNewDate,
   newTime, setNewTime,
@@ -76,10 +85,72 @@ function MassForm({
         <label style={{ color: theme.colors.dangerDark }}>Prazo (Opcional)</label>
         <input className="form-input" type="datetime-local" value={newDeadline} onChange={(e) => setNewDeadline(e.target.value)} />
       </div>
-      <div className="form-group">
+      <div className="form-group" style={{ gridColumn: isInline ? "1 / -1" : "auto" }}>
         <label>Vagas</label>
         <input className="form-input" type="number" value={newMax} onChange={(e) => setNewMax(Number(e.target.value))} min="1" />
       </div>
+
+      {isInline && mass && allMasses && localSignups && setLocalSignups && (
+        <div className="form-group full-width" style={{ marginTop: "10px", padding: "15px", background: "#f8f9fa", borderRadius: "8px", border: "1px solid #e0e0e0" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+            <h4 style={{ margin: 0, color: theme.colors.primary }}>Pré-visualização da Escala</h4>
+            <button
+              type="button"
+              onClick={() => {
+                const newSignups = autoAssign({ ...mass, maxServers: newMax, signups: localSignups }, allMasses);
+                setLocalSignups(newSignups);
+              }}
+              style={{ background: theme.colors.secondary, color: "#fff", border: "none", padding: "8px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "0.85rem", display: "flex", gap: "5px", alignItems: "center" }}
+            >
+              <RefreshCw size={14} /> GERAR ESCALA AUTOMÁTICA
+            </button>
+          </div>
+
+          {localSignups.length === 0 ? (
+            <p style={{ fontSize: "0.85rem", color: "#666" }}>Nenhuma inscrição para esta missa.</p>
+          ) : (
+            <div style={{ maxHeight: "200px", overflowY: "auto", border: "1px solid #ddd", borderRadius: "4px", background: "#fff" }}>
+              <table className="admin-table" style={{ margin: 0 }}>
+                <thead style={{ position: "sticky", top: 0, background: "#f1f1f1" }}>
+                  <tr>
+                    <th style={{ padding: "8px", fontSize: "0.8rem", textAlign: "left" }}>Serva</th>
+                    <th style={{ padding: "8px", fontSize: "0.8rem", textAlign: "left" }}>Status</th>
+                    <th style={{ padding: "8px", fontSize: "0.8rem", textAlign: "left" }}>Função</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {localSignups.map((s: Signup) => (
+                    <tr key={s.id} style={{ borderBottom: "1px solid #eee" }}>
+                      <td style={{ padding: "8px", fontSize: "0.85rem" }}>{s.user?.name || 'Desconhecido'} {s.isSubstitution && <span style={{ color: "#888", fontSize: "0.7rem" }}>(Subst.)</span>}</td>
+                      <td style={{ padding: "8px", fontSize: "0.85rem", color: s.status === 'CONFIRMADO' ? '#2e7d32' : '#ed6c02', fontWeight: "bold" }}>{s.status}</td>
+                      <td style={{ padding: "8px" }}>
+                        <select
+                          value={s.role || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (setLocalSignups) {
+                              setLocalSignups((prev: Signup[]) => prev.map((item: Signup) => item.id === s.id ? { ...item, role: val || null } : item));
+                            }
+                          }}
+                          style={{ padding: "4px", fontSize: "0.85rem", borderRadius: "4px", border: "1px solid #ccc" }}
+                        >
+                          <option value="">Nenhuma</option>
+                          <option value="Auxiliar">Auxiliar</option>
+                          <option value="Cerimoniária">Cerimoniária</option>
+                          <option value="Librífera">Librífera</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <p style={{ fontSize: "0.75rem", color: "#888", marginTop: "8px", fontStyle: "italic" }}>
+            As alterações feitas aqui só serão salvas ao clicar em "SALVAR ALTERAÇÕES".
+          </p>
+        </div>
+      )}
 
       {/* OPÇÃO DE RECORRÊNCIA — visível apenas na criação */}
       {!isInline && (
@@ -138,7 +209,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const isAdmin = user.role === "ADMIN";
 
   // Use mass hook for mass operations
-  const { createMass, updateMass, deleteMass, togglePublish, toggleOpen } = useMasses();
+  const { createMass, deleteMass, togglePublish, toggleOpen, patchMass } = useMasses();
 
   // Use signup hook for all signup operations
   const {
@@ -159,6 +230,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [repeatWeekly, setRepeatWeekly] = useState(false);
   const [repeatUntil, setRepeatUntil] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [localSignups, setLocalSignups] = useState<Signup[]>([]);
   const [viewMode, setViewMode] = useState<"dashboard" | "pdf">("dashboard");
 
   // Modais
@@ -188,9 +260,20 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   }, [isAdmin]);
 
   const filteredMasses = masses.filter((mass) => {
-    const massDate = new Date(mass.date).toISOString().split("T")[0];
-    if (startDate && massDate < startDate) return false;
-    if (endDate && massDate > endDate) return false;
+    const massDate = new Date(mass.date);
+    // Ajusta para o timezone local antes de extrair YYYY-MM-DD
+    const massDateStr = new Date(massDate.getTime() - massDate.getTimezoneOffset() * 60000).toISOString().split("T")[0];
+
+    if (startDate && massDateStr < startDate) return false;
+    if (endDate && massDateStr > endDate) return false;
+
+    // Se o usuário não usar os filtros de data, oculta as missas de dias anteriores
+    if (!startDate && !endDate) {
+      const today = new Date();
+      const todayStr = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().split("T")[0];
+      if (massDateStr < todayStr) return false;
+    }
+
     return true;
   });
 
@@ -204,6 +287,9 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   function handleStartEdit(mass: Mass) {
     const d = new Date(mass.date);
     setEditingId(mass.id);
+
+    // Configura os signups num estado local para edição em lote
+    setLocalSignups(JSON.parse(JSON.stringify(mass.signups)));
 
     // Fill states with mass data
     setNewDate(toLocalDate(d));
@@ -228,6 +314,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     setNewDeadline("");
     setRepeatWeekly(false);
     setRepeatUntil("");
+    setLocalSignups([]);
   }
 
   async function handleTogglePublish(id: string, currentStatus: boolean) {
@@ -276,7 +363,27 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
       };
 
       if (editingId) {
-        await updateMass(editingId, payload);
+        // Para edições, usar patchMass pois ele pode levar atualizações aninhadas de Signups e lidar com payloads customizados.
+        const diffSignups = localSignups.filter(ls => {
+          const orig = masses.find(m => m.id === editingId)?.signups.find(s => s.id === ls.id);
+          if (!orig) return false;
+          return orig.role !== ls.role || orig.status !== ls.status;
+        });
+
+        const patchPayload: any = {
+          ...payload
+        };
+
+        if (diffSignups.length > 0) {
+          patchPayload.signups = {
+            update: diffSignups.map(s => ({
+              where: { id: s.id },
+              data: { role: s.role, status: s.status }
+            }))
+          };
+        }
+
+        await patchMass(editingId, patchPayload);
       } else if (repeatWeekly && repeatUntil) {
         // Cria uma missa por semana até a data final
         let current = new Date(newDate + "T12:00:00");
@@ -366,6 +473,8 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
 
   // MassForm agora é componente externo — passamos as props
   const massFormProps: MassFormProps = {
+    allMasses: masses,
+    localSignups, setLocalSignups,
     newName, setNewName,
     newDate, setNewDate,
     newTime, setNewTime,
@@ -484,7 +593,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                 <div className="section-title" style={{ color: "#B45309" }}>
                   <Edit size={20} /> <span>Editando: {mass.name || "Missa"}</span>
                 </div>
-                <MassForm {...massFormProps} isInline={true} />
+                <MassForm {...massFormProps} isInline={true} mass={mass} />
               </div>
             );
           }

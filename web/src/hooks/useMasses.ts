@@ -11,6 +11,7 @@ interface UseMassesReturn {
     deleteMass: (id: string) => Promise<void>;
     togglePublish: (id: string, published: boolean) => Promise<void>;
     toggleOpen: (id: string, open: boolean) => Promise<void>;
+    patchMass: (id: string, data: any) => Promise<void>;
 }
 
 /**
@@ -82,6 +83,16 @@ export function useMasses(): UseMassesReturn {
         }
     }, [fetchMasses]);
 
+    const patchMass = useCallback(async (id: string, data: any) => {
+        try {
+            await massService.patchMass(id, data);
+            await fetchMasses();
+        } catch (error) {
+            console.error("Erro ao aplicar patchMass:", error);
+            throw error;
+        }
+    }, [fetchMasses]);
+
     return {
         masses,
         isLoading,
@@ -91,5 +102,6 @@ export function useMasses(): UseMassesReturn {
         deleteMass,
         togglePublish,
         toggleOpen,
+        patchMass,
     };
 }

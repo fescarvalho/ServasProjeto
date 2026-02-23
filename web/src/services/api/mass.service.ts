@@ -62,3 +62,11 @@ export async function toggleOpen(id: string, open: boolean): Promise<Mass> {
     const response = await apiClient.patch<Mass>(`/masses/${id}/toggle-open`, { open });
     return response.data;
 }
+
+/**
+ * Patch mass (update genérico, ex: signups em aninhamento)
+ */
+export async function patchMass(id: string, data: any): Promise<Mass> {
+    const response = await apiClient.patch<Mass>(`/masses/${id}`, data);
+    return response.data;
+}
