@@ -28,7 +28,7 @@ import { autoAssign } from "../utils/autoAssign";
 import { ScaleModal } from "./ScaleModal";
 import { OfficialDocument } from "./OfficialDocument";
 import { StatisticsModal } from "./StatisticsModal";
-import { GeneralRankingModal } from "./GeneralRankingModal";
+import { RankingModal } from "./RankingModal";
 import { NoticeBoard } from "./NoticeBoard";
 import { theme } from "../theme/theme";
 import "./css/AdminPanel.css";
@@ -490,7 +490,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     <div className="admin-container">
       {/* MODAIS */}
       {showTextModal && isAdmin && <ScaleModal masses={filteredMasses} onClose={() => setShowTextModal(false)} />}
-      {showRankingModal && isAdmin && <GeneralRankingModal masses={masses} onClose={() => setShowRankingModal(false)} />}
+      {showRankingModal && isAdmin && <RankingModal masses={masses} onClose={() => setShowRankingModal(false)} />}
       {showStatsModal && isAdmin && <StatisticsModal masses={masses} onClose={() => setShowStatsModal(false)} />}
 
       <div className="admin-header no-print">
