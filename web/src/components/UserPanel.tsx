@@ -675,7 +675,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
 
       <footer className="app-footer no-print" style={{ width: "100%", boxSizing: "border-box" }}>
         <p>
-          Desenvolvido por <a href="https://www.linkedin.com/in/fecarvalhodev/" target="_blank" rel="noopener noreferrer" style={{ color: theme.colors.danger, textDecoration: "none", fontWeight: "bold" }}>Fernando Carvalho</a>
+          Desenvolvido por <a href="https://fescarvpage.vercel.app/" target="_blank" rel="noopener noreferrer" style={{ color: theme.colors.danger, textDecoration: "none", fontWeight: "bold" }}>Fernando Carvalho</a>
         </p>
         <p style={{ marginTop: "5px", opacity: 0.7 }}>
           &copy; {new Date().getFullYear()} Santuário Diocesano Nossa Senhora da Natividade - v3.0 (20/02/2026)
