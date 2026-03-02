@@ -1,5 +1,7 @@
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { theme } from "../theme/theme";
+import { api } from "../services/api";
+import { Loader2, BookOpen, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
 
 // ── TIPOS ───────────────────────────────────────────────────────────────────
 type LiturgicalColor = "roxo" | "verde" | "branco" | "vermelho" | "rosa";
@@ -8,6 +10,15 @@ interface DayData {
     color: LiturgicalColor;
     celebration?: string;
     history?: string;
+}
+
+interface LiturgySection {
+    title: string;
+    content: string;
+}
+
+interface LiturgyData {
+    sections: LiturgySection[];
 }
 
 // ── DADOS DE 2026 ───────────────────────────────────────────────────────────
@@ -280,8 +291,9 @@ const LITURGICAL_DATA_2026: Record<string, DayData> = {
     },
     "04-04": {
         season: "Sábado Santo",
-        color: "roxo",
-        history: "Dia de grande silêncio junto ao sepulcro do Senhor. A Igreja aguarda em oração e jejum a ressurreição. À noite, celebramos a Vígilia Pascal, a 'Mãe de todas as vigílias'."
+        color: "branco",
+        celebration: "Vigília Pascal",
+        history: "A 'Mãe de todas as Vigílias'. Nesta noite santa, a Igreja celebra a Ressurreição de Cristo, passando das trevas à luz. É a celebração mais importante do ano litúrgico, com a bênção do fogo novo, a proclamação do Precônio Pascal e a liturgia batismal."
     },
     "04-05": {
         season: "Páscoa",
@@ -779,6 +791,9 @@ export function LiturgicalCalendar() {
     const today = useMemo(() => getToday(), []);
     const [selectedDate, setSelectedDate] = useState<Date>(today);
     const [showHistory, setShowHistory] = useState(false);
+    const [liturgy, setLiturgy] = useState<LiturgyData | null>(null);
+    const [loadingLiturgy, setLoadingLiturgy] = useState(false);
+    const [liturgyError, setLiturgyError] = useState(false);
     const dateInputRef = useRef<HTMLInputElement>(null);
 
     const isToday = selectedDate.toDateString() === today.toDateString();
@@ -803,6 +818,25 @@ export function LiturgicalCalendar() {
         setSelectedDate(prev);
         setShowHistory(false);
     };
+
+    useEffect(() => {
+        const fetchLiturgy = async () => {
+            setLoadingLiturgy(true);
+            setLiturgyError(false);
+            try {
+                const dateStr = selectedDate.toISOString().split('T')[0];
+                const response = await api.get(`/liturgy?date=${dateStr}`);
+                setLiturgy(response.data);
+            } catch (error) {
+                console.error("Error fetching liturgy:", error);
+                setLiturgyError(true);
+            } finally {
+                setLoadingLiturgy(false);
+            }
+        };
+
+        fetchLiturgy();
+    }, [selectedDate]);
 
     const { dayData, dateLabel } = useMemo(() => {
         const key = getDateKey(selectedDate);
@@ -1002,9 +1036,133 @@ export function LiturgicalCalendar() {
                 <LiturgicalInfo color={dayData.color} />
             </div>
 
+            {/* SEÇÃO DE LITURGIA DIÁRIA */}
+            <div style={{
+                background: "white",
+                border: `1px solid ${theme.colors.border}`,
+                borderRadius: "12px",
+                overflow: "hidden",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+            }}>
+                <div style={{
+                    padding: "16px 20px",
+                    borderBottom: `1px solid ${theme.colors.border}`,
+                    background: "#fdf8f5",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px"
+                }}>
+                    <BookOpen size={18} color={theme.colors.primary} />
+                    <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: "800", color: "#1a1a2e" }}>Liturgia do Dia</h3>
+                </div>
+
+                <div style={{ padding: "20px" }}>
+                    {loadingLiturgy ? (
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", padding: "20px 0" }}>
+                            <Loader2 className="animate-spin" size={24} color={theme.colors.primary} />
+                            <p style={{ fontSize: "0.85rem", color: "#666" }}>Buscando leituras...</p>
+                        </div>
+                    ) : liturgyError ? (
+                        <div style={{ textAlign: "center", padding: "10px 0" }}>
+                            <AlertCircle size={32} color={theme.colors.danger} style={{ margin: "0 auto 10px" }} />
+                            <p style={{ fontSize: "0.9rem", color: "#666", margin: "0 0 10px" }}>Não foi possível carregar a liturgia.</p>
+                            <button
+                                onClick={() => {
+                                    const dateStr = selectedDate.toISOString().split('T')[0];
+                                    api.get(`/liturgy?date=${dateStr}`).then(res => setLiturgy(res.data)).catch(() => setLiturgyError(true));
+                                }}
+                                style={{
+                                    background: theme.colors.primary,
+                                    color: "white",
+                                    border: "none",
+                                    padding: "8px 16px",
+                                    borderRadius: "20px",
+                                    fontSize: "0.8rem",
+                                    fontWeight: "bold",
+                                    cursor: "pointer"
+                                }}
+                            >
+                                Tentar novamente
+                            </button>
+                        </div>
+                    ) : liturgy ? (
+                        <div className="liturgy-content" style={{
+                            fontFamily: "'Playfair Display', 'Georgia', serif",
+                            lineHeight: "1.8",
+                            color: "#2c3e50"
+                        }}>
+                            {liturgy.sections.map((section, idx) => (
+                                <LiturgySectionComponent key={idx} title={section.title} content={section.content} />
+                            ))}
+                        </div>
+                    ) : (
+                        <p style={{ textAlign: "center", fontStyle: "italic", color: "#888" }}>Nenhuma leitura disponível para esta data.</p>
+                    )}
+                </div>
+            </div>
+
             <p style={{ textAlign: "center", fontSize: "0.72rem", color: theme.colors.textMuted, margin: 0 }}>
                 Calendário Litúrgico Romano • Ano Litúrgico 2025–2026
             </p>
+        </div>
+    );
+}
+
+function LiturgySectionComponent({ title, content }: { title: string; content: string }) {
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    // Pequeno truque para mostrar apenas o início se não estiver expandido
+    const previewContent = content.length > 200 ? content.substring(0, 200) + "..." : content;
+
+    return (
+        <div style={{ marginBottom: "24px", borderBottom: "1px solid #f0f0f0", paddingBottom: "16px" }}>
+            <h4 style={{
+                fontFamily: "Inter, sans-serif",
+                fontSize: "0.9rem",
+                fontWeight: "800",
+                color: "#a32553",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                margin: "0 0 12px 0",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center"
+            }}>
+                {title}
+            </h4>
+            <div style={{
+                fontSize: "1.05rem",
+                textAlign: "justify",
+                whiteSpace: "pre-wrap",
+                color: "#333"
+            }}>
+                {isExpanded ? content : previewContent}
+            </div>
+            {content.length > 200 && (
+                <button
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    style={{
+                        background: "none",
+                        border: "none",
+                        color: "#a32553",
+                        fontSize: "0.85rem",
+                        fontWeight: "700",
+                        padding: "8px 0",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        marginTop: "8px",
+                        fontFamily: "Inter, sans-serif"
+                    }}
+                >
+                    {isExpanded ? (
+                        <>Ver menos <ChevronUp size={14} /></>
+                    ) : (
+                        <>Ler tudo <ChevronDown size={14} /></>
+                    )}
+                </button>
+            )}
         </div>
     );
 }

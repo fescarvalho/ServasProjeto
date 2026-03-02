@@ -340,17 +340,28 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
       {/* ABAS */}
       <div className="container-tabs no-print" style={{ width: "100%", boxSizing: "border-box" }}>
         {/* Linha 1: Abas de navegação */}
-        <div style={{ display: "flex", width: "100%", background: "white", borderRadius: "50px 50px 0 0", padding: "5px 5px 0", boxSizing: "border-box", boxShadow: "0 -2px 10px rgba(0,0,0,0.05)" }}>
-          <button onClick={() => setActiveTab("inscricoes")} className={`tab-btn ${activeTab === "inscricoes" ? "active" : ""}`} style={{ flex: 1, display: "flex", justifyContent: "center", gap: "5px" }}>
+        <div className="menu-tabs-scroll-wrapper" style={{
+          display: "flex",
+          width: "100%",
+          background: "white",
+          borderRadius: "50px 50px 0 0",
+          padding: "5px 5px 0",
+          boxSizing: "border-box",
+          boxShadow: "0 -2px 10px rgba(0,0,0,0.05)",
+          overflowX: "auto",
+          scrollbarWidth: "none",
+          msOverflowStyle: "none"
+        }}>
+          <button onClick={() => setActiveTab("inscricoes")} className={`tab-btn ${activeTab === "inscricoes" ? "active" : ""}`} style={{ flex: "1 0 auto", minWidth: isMobile ? "80px" : "auto", display: "flex", justifyContent: "center", gap: "5px" }}>
             <Calendar size={16} /> <span className="mobile-hide-text">Inscrições</span>
           </button>
-          <button onClick={() => setActiveTab("documento")} className={`tab-btn ${activeTab === "documento" ? "active" : ""}`} style={{ flex: 1, display: "flex", justifyContent: "center", gap: "5px" }}>
+          <button onClick={() => setActiveTab("documento")} className={`tab-btn ${activeTab === "documento" ? "active" : ""}`} style={{ flex: "1 0 auto", minWidth: isMobile ? "80px" : "auto", display: "flex", justifyContent: "center", gap: "5px" }}>
             <FileText size={16} /> <span className="mobile-hide-text">Escala</span>
           </button>
-          <button onClick={() => setActiveTab("calendario")} className={`tab-btn ${activeTab === "calendario" ? "active" : ""}`} style={{ flex: 1, display: "flex", justifyContent: "center", gap: "5px" }} title="Calendário Litúrgico">
-            <BookOpen size={16} /> <span className="mobile-hide-text">Litúrgico</span>
+          <button onClick={() => setActiveTab("calendario")} className={`tab-btn ${activeTab === "calendario" ? "active" : ""}`} style={{ flex: "1 0 auto", minWidth: isMobile ? "60px" : "auto", display: "flex", justifyContent: "center", gap: "5px" }} title="Calendário Litúrgico">
+            <BookOpen size={16} /> <span className="mobile-hide-text">Santos</span>
           </button>
-          <button onClick={() => setActiveTab("oracoes")} className={`tab-btn ${activeTab === "oracoes" ? "active" : ""}`} style={{ flex: 1, display: "flex", justifyContent: "center", gap: "5px" }} title="Orações">
+          <button onClick={() => setActiveTab("oracoes")} className={`tab-btn ${activeTab === "oracoes" ? "active" : ""}`} style={{ flex: "1 0 auto", minWidth: isMobile ? "80px" : "auto", display: "flex", justifyContent: "center", gap: "5px" }} title="Orações">
             <BookHeart size={16} /> <span className="mobile-hide-text">Orações</span>
           </button>
         </div>
@@ -701,7 +712,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           Desenvolvido por <a href="https://fescarvpage.vercel.app/" target="_blank" rel="noopener noreferrer" style={{ color: theme.colors.danger, textDecoration: "none", fontWeight: "bold" }}>Fernando Carvalho</a>
         </p>
         <p style={{ marginTop: "5px", opacity: 0.7 }}>
-          &copy; {new Date().getFullYear()} Santuário Diocesano Nossa Senhora da Natividade - v4.0 (02/03/2026)
+          &copy; {new Date().getFullYear()} Santuário Diocesano Nossa Senhora da Natividade - v4.1 (02/03/2026)
         </p>
       </footer>
       <ToastContainer toasts={toasts} onRemove={remove} />

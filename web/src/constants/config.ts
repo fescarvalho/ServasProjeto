@@ -6,5 +6,7 @@ export const APP_CONFIG = {
 } as const;
 
 export const API_CONFIG = {
-    BASE_URL: import.meta.env.VITE_API_URL || "http://localhost:3001",
+    BASE_URL: (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+        ? "http://localhost:3001"
+        : (import.meta.env.VITE_API_URL || "http://localhost:3001"),
 } as const;

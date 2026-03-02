@@ -7,6 +7,7 @@ import signupRoutes from "./signup.routes";
 import swapRequestRoutes from "./swap-request.routes";
 import notificationRoutes from "./notification.routes";
 import pushRoutes from "./push.routes";
+import liturgyRoutes from "./liturgy.routes";
 
 const router = Router();
 
@@ -19,5 +20,6 @@ router.use("/signup", signupRoutes);
 router.use("/swap-requests", swapRequestRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/push", pushRoutes);
+router.use("/liturgy", liturgyRoutes);
 
 export default router;

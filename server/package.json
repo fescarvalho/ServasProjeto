@@ -18,6 +18,9 @@
   "description": "",
   "dependencies": {
     "@prisma/client": "^5.10.2",
+    "@types/cheerio": "^0.22.35",
+    "axios": "^1.13.6",
+    "cheerio": "^1.2.0",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",

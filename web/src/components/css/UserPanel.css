@@ -60,8 +60,17 @@ body {
 /* --- MENU DE ABAS --- */
 .container-tabs {
   margin-top: -30px;
-  padding: 0 20px;
+  padding: 0 10px;
   margin-bottom: 20px;
+}
+
+.menu-tabs-scroll-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.menu-tabs-scroll-wrapper {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .menu-tabs {
@@ -102,9 +111,13 @@ body {
 }
 
 /* Esconde texto de abas quando tela é muito estreita */
-@media (max-width: 420px) {
+@media (max-width: 480px) {
   .mobile-hide-text {
     display: none;
+  }
+  .tab-btn {
+    padding: 12px 8px;
+    font-size: 0.75rem;
   }
 }
 
