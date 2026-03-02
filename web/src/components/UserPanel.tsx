@@ -15,7 +15,9 @@ import {
   ChevronRight,
   Search,
   Hourglass,
-  Bell
+  Bell,
+  BookOpen,
+  BookHeart
 } from "lucide-react";
 import { Mass, UserData, Notice, SwapRequest } from "../types/types";
 import { OfficialDocument } from "./OfficialDocument";
@@ -28,6 +30,8 @@ import { ToastContainer, ConfirmModal, useToast } from "./Toast";
 import { WinnerModal } from "./WinnerModal";
 import { theme } from "../theme/theme";
 import { calculateRanking } from "../utils/ranking.utils";
+import { LiturgicalCalendar } from "./LiturgicalCalendar";
+import { Prayers } from "./Prayers";
 import "./css/UserPanel.css"; // CSS Importado aqui
 
 interface UserPanelProps {
@@ -38,7 +42,7 @@ interface UserPanelProps {
 }
 
 export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelProps) {
-  const [activeTab, setActiveTab] = useState<"inscricoes" | "documento">("inscricoes");
+  const [activeTab, setActiveTab] = useState<"inscricoes" | "documento" | "calendario" | "oracoes">("inscricoes");
   const [showBadges, setShowBadges] = useState(false);
   const [showRanking, setShowRanking] = useState(false);
   const [notices, setNotices] = useState<Notice[]>([]);
@@ -335,51 +339,59 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
 
       {/* ABAS */}
       <div className="container-tabs no-print" style={{ width: "100%", boxSizing: "border-box" }}>
-        <div className="menu-tabs" style={{ display: "flex", width: "100%", justifyContent: "space-between", alignItems: "center", padding: "0 5px", boxSizing: "border-box" }}>
+        {/* Linha 1: Abas de navegação */}
+        <div style={{ display: "flex", width: "100%", background: "white", borderRadius: "50px 50px 0 0", padding: "5px 5px 0", boxSizing: "border-box", boxShadow: "0 -2px 10px rgba(0,0,0,0.05)" }}>
           <button onClick={() => setActiveTab("inscricoes")} className={`tab-btn ${activeTab === "inscricoes" ? "active" : ""}`} style={{ flex: 1, display: "flex", justifyContent: "center", gap: "5px" }}>
             <Calendar size={16} /> <span className="mobile-hide-text">Inscrições</span>
           </button>
           <button onClick={() => setActiveTab("documento")} className={`tab-btn ${activeTab === "documento" ? "active" : ""}`} style={{ flex: 1, display: "flex", justifyContent: "center", gap: "5px" }}>
             <FileText size={16} /> <span className="mobile-hide-text">Escala</span>
           </button>
-          <div style={{ display: "flex", gap: "5px", alignItems: "center" }}>
-            <button onClick={() => setShowRanking(true)} className="tab-btn" style={{ color: theme.colors.success, borderLeft: `1px solid ${theme.colors.borderDark}`, paddingLeft: "10px", display: "flex", justifyContent: "center" }} title="Placar Mensal">
-              <Medal size={20} />
-            </button>
-            <button onClick={() => setShowBadges(true)} className="tab-btn" style={{ color: theme.colors.warning, display: "flex", justifyContent: "center" }} title="Minhas Conquistas">
-              <Trophy size={20} />
-            </button>
+          <button onClick={() => setActiveTab("calendario")} className={`tab-btn ${activeTab === "calendario" ? "active" : ""}`} style={{ flex: 1, display: "flex", justifyContent: "center", gap: "5px" }} title="Calendário Litúrgico">
+            <BookOpen size={16} /> <span className="mobile-hide-text">Litúrgico</span>
+          </button>
+          <button onClick={() => setActiveTab("oracoes")} className={`tab-btn ${activeTab === "oracoes" ? "active" : ""}`} style={{ flex: 1, display: "flex", justifyContent: "center", gap: "5px" }} title="Orações">
+            <BookHeart size={16} /> <span className="mobile-hide-text">Orações</span>
+          </button>
+        </div>
 
-            <div style={{ position: "relative" }}>
-              <button
-                onClick={() => {
-                  if (unreadCount > 0) {
-                    show(`Existem escalas disponíveis para escolha. Veja na aba de inscrições.`, "info", 8000);
-                    const viewedIds = JSON.parse(localStorage.getItem("viewedMasses") || "[]");
-                    const novosIds = Array.from(new Set([...viewedIds, ...pendingMassIds]));
-                    localStorage.setItem("viewedMasses", JSON.stringify(novosIds));
-                    setUnreadCount(0);
-                    setPendingMassIds([]);
-                  } else {
-                    show("Você não tem missas abertas pendentes no momento.", "info");
-                  }
-                }}
-                className="tab-btn" style={{ color: unreadCount > 0 ? theme.colors.danger : theme.colors.textMuted, display: "flex", justifyContent: "center" }} title="Notificações do Sistema">
-                <Bell size={18} />
-                {unreadCount > 0 && (
-                  <span style={{ position: "absolute", top: 4, right: 4, background: "red", color: "white", fontSize: "0.6rem", fontWeight: "bold", padding: "1px 5px", borderRadius: "10px", minWidth: "14px", textAlign: "center", lineHeight: "1" }}>
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
-            </div>
-
-            <button onClick={onLogout} className="tab-btn logout" style={{ display: "flex", justifyContent: "center", color: theme.colors.dangerDark }}>
-              <LogOut size={18} />
+        {/* Linha 2: Botões de ação */}
+        <div style={{ display: "flex", width: "100%", background: "white", borderRadius: "0 0 50px 50px", padding: "0 5px 5px", boxSizing: "border-box", borderTop: "1px solid #f0f0f0", boxShadow: "0 5px 15px rgba(0,0,0,0.08)", justifyContent: "flex-end", gap: "2px" }}>
+          <button onClick={() => setShowRanking(true)} className="tab-btn" style={{ flex: 1, color: theme.colors.success, display: "flex", justifyContent: "center" }} title="Placar Mensal">
+            <Medal size={18} />
+          </button>
+          <button onClick={() => setShowBadges(true)} className="tab-btn" style={{ flex: 1, color: theme.colors.warning, display: "flex", justifyContent: "center" }} title="Minhas Conquistas">
+            <Trophy size={18} />
+          </button>
+          <div style={{ position: "relative", flex: 1 }}>
+            <button
+              onClick={() => {
+                if (unreadCount > 0) {
+                  show(`Existem escalas disponíveis para escolha. Veja na aba de inscrições.`, "info", 8000);
+                  const viewedIds = JSON.parse(localStorage.getItem("viewedMasses") || "[]");
+                  const novosIds = Array.from(new Set([...viewedIds, ...pendingMassIds]));
+                  localStorage.setItem("viewedMasses", JSON.stringify(novosIds));
+                  setUnreadCount(0);
+                  setPendingMassIds([]);
+                } else {
+                  show("Você não tem missas abertas pendentes no momento.", "info");
+                }
+              }}
+              className="tab-btn" style={{ width: "100%", color: unreadCount > 0 ? theme.colors.danger : theme.colors.textMuted, display: "flex", justifyContent: "center" }} title="Notificações do Sistema">
+              <Bell size={18} />
+              {unreadCount > 0 && (
+                <span style={{ position: "absolute", top: 4, right: 4, background: "red", color: "white", fontSize: "0.6rem", fontWeight: "bold", padding: "1px 5px", borderRadius: "10px", minWidth: "14px", textAlign: "center", lineHeight: "1" }}>
+                  {unreadCount}
+                </span>
+              )}
             </button>
           </div>
+          <button onClick={onLogout} className="tab-btn logout" style={{ flex: 1, display: "flex", justifyContent: "center", color: theme.colors.dangerDark }}>
+            <LogOut size={18} />
+          </button>
         </div>
       </div>
+
 
       {/* AVISOS */}
       {notices.length > 0 && (
@@ -675,6 +687,10 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
               </div>
             )}
           </div>
+        ) : activeTab === "calendario" ? (
+          <LiturgicalCalendar />
+        ) : activeTab === "oracoes" ? (
+          <Prayers />
         ) : (
           <OfficialDocument masses={masses.filter((m) => m.published)} />
         )}
@@ -685,7 +701,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           Desenvolvido por <a href="https://fescarvpage.vercel.app/" target="_blank" rel="noopener noreferrer" style={{ color: theme.colors.danger, textDecoration: "none", fontWeight: "bold" }}>Fernando Carvalho</a>
         </p>
         <p style={{ marginTop: "5px", opacity: 0.7 }}>
-          &copy; {new Date().getFullYear()} Santuário Diocesano Nossa Senhora da Natividade - v3.1 (01/03/2026)
+          &copy; {new Date().getFullYear()} Santuário Diocesano Nossa Senhora da Natividade - v4.0 (02/03/2026)
         </p>
       </footer>
       <ToastContainer toasts={toasts} onRemove={remove} />

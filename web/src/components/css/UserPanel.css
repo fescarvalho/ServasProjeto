@@ -101,6 +101,14 @@ body {
   flex: 0.5;
 }
 
+/* Esconde texto de abas quando tela é muito estreita */
+@media (max-width: 420px) {
+  .mobile-hide-text {
+    display: none;
+  }
+}
+
+
 /* --- ANIMAÇÕES --- */
 @keyframes pulse-alert {
   0% {

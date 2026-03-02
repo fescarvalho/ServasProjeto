@@ -6,7 +6,7 @@ import {
   PlusCircle,
   X,
   Trash2,
-  CheckCircle,
+  CheckCircle as _CheckCircle,
   Lock,
   LockOpen,
   Trophy,
@@ -676,7 +676,23 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                                         <button onClick={() => handleRemoveSignup(signup.id)} className="icon-btn-small" style={{ color: "#c62828", border: "none", background: "none" }}><Trash2 size={14} /></button>
                                         {isReserva && <button onClick={() => handlePromote(signup.id)} className="icon-btn-small" style={{ color: "#ef6c00", border: "none", background: "none" }}><ArrowUpCircle size={16} /></button>}
                                         {!isReserva && <button onClick={() => setSwappingSignupId(signup.id)} className="icon-btn-small" style={{ color: "#1976d2", border: "none", background: "none" }}><RefreshCw size={14} /></button>}
-                                        {!isReserva && <button onClick={() => handleTogglePresence(signup.id)} style={{ border: "none", background: "none" }}><CheckCircle size={22} color={signup.present ? "#2e7d32" : "#e0e0e0"} fill={signup.present ? "#e8f5e9" : "none"} /></button>}
+                                        {!isReserva && <button
+                                          onClick={() => handleTogglePresence(signup.id)}
+                                          style={{
+                                            border: "none",
+                                            borderRadius: "6px",
+                                            padding: "3px 8px",
+                                            fontSize: "0.7rem",
+                                            fontWeight: "bold",
+                                            cursor: "pointer",
+                                            background: signup.present ? "#e8f5e9" : "#ffebee",
+                                            color: signup.present ? "#2e7d32" : "#c62828",
+                                            minWidth: "60px",
+                                          }}
+                                          title={signup.present ? "Marcar como faltou" : "Marcar como presente"}
+                                        >
+                                          {signup.present ? "✅ Presente" : "❌ Faltou"}
+                                        </button>}
                                       </div>
                                     )}
                                     <div style={{ display: "flex", flexDirection: "column" }}>
