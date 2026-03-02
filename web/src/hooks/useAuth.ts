@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { UserData } from "../types/types";
 import * as authService from "../services/api/auth.service";
-import { getStoredUser } from "../services/storage/localStorage.service";
+import { getStoredUser, setLastOnline, clearLastOnline } from "../services/storage/localStorage.service";
 
 interface UseAuthReturn {
     user: UserData | null;
@@ -26,6 +26,9 @@ export function useAuth(): UseAuthReturn {
 
             const userData = await authService.login({ email, password });
             setUser(userData);
+
+            // Registra o momento do login como "online"
+            setLastOnline();
         } catch (err) {
             console.error("Erro no login:", err);
             setError("E-mail ou senha incorretos.");
@@ -37,6 +40,7 @@ export function useAuth(): UseAuthReturn {
 
     function logout(): void {
         authService.logout();
+        clearLastOnline();
         setUser(null);
     }
 

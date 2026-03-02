@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Flower, RefreshCw } from "lucide-react";
 import { useAuth } from "./hooks/useAuth";
 import { useMasses } from "./hooks/useMasses";
@@ -8,6 +8,10 @@ import { UserPanel } from "./components/UserPanel";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { theme } from "./theme/theme";
 import { subscribeToPushNotifications } from "./services/push";
+import { getLastOnline, setLastOnline } from "./services/storage/localStorage.service";
+
+// Tempo máximo offline antes de forçar logout (2 minutos em ms)
+const OFFLINE_TIMEOUT_MS = 2 * 60 * 1000;
 
 function App() {
   // PWA Hook
@@ -36,10 +40,63 @@ function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  // --- LÓGICA DE EXPIRAÇÃO POR TEMPO OFFLINE ---
+  const checkExpiration = useCallback(() => {
+    if (!user) return;
+
+    const lastOnline = getLastOnline();
+    const now = Date.now();
+
+    if (lastOnline !== null && now - lastOnline > OFFLINE_TIMEOUT_MS) {
+      // Ficou ausente/offline por mais de 2 minutos → força logout
+      logout();
+      return;
+    }
+
+    // Ainda dentro do prazo → atualiza o timestamp
+    setLastOnline();
+  }, [user, logout]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Verifica ao voltar a ter conexão (offline → online)
+    const handleOnline = () => checkExpiration();
+
+    // Verifica ao voltar do segundo plano (celular)
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        checkExpiration();
+      }
+    };
+
+    // Atualiza o timestamp enquanto está ativo e conectado (a cada 30s)
+    const keepAlive = setInterval(() => {
+      if (navigator.onLine && document.visibilityState === "visible") {
+        setLastOnline();
+      }
+    }, 30_000);
+
+    window.addEventListener("online", handleOnline);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    // Verifica também ao montar (app aberto/recarregado)
+    checkExpiration();
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      clearInterval(keepAlive);
+    };
+  }, [user, checkExpiration]);
+
   // Fetch masses when user logs in
   useEffect(() => {
     if (user) {
       fetchMasses();
+
+      // Busca atualização do PWA ao fazer login
+      updateServiceWorker(false);
 
       // Request push subscription upon successful login, passing the token explicitly
       setTimeout(() => {
@@ -48,7 +105,7 @@ function App() {
         }
       }, 1000);
     }
-  }, [user, fetchMasses]);
+  }, [user, fetchMasses, updateServiceWorker]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();

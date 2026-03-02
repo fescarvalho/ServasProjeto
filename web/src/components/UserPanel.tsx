@@ -75,7 +75,14 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
   }, []);
 
   // --- FILTRO MENSAL ---
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  // Sempre inicia no mês de Brasília, independente do fuso do dispositivo
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const now = new Date();
+    const brStr = now.toLocaleDateString("en-US", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" });
+    // brStr formato: "MM/DD/YYYY"
+    const [month, , year] = brStr.split("/").map(Number);
+    return new Date(year, month - 1, 1);
+  });
 
   useEffect(() => {
     api.get("/notices").then((res) => setNotices(res.data));
@@ -678,7 +685,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           Desenvolvido por <a href="https://fescarvpage.vercel.app/" target="_blank" rel="noopener noreferrer" style={{ color: theme.colors.danger, textDecoration: "none", fontWeight: "bold" }}>Fernando Carvalho</a>
         </p>
         <p style={{ marginTop: "5px", opacity: 0.7 }}>
-          &copy; {new Date().getFullYear()} Santuário Diocesano Nossa Senhora da Natividade - v3.0 (20/02/2026)
+          &copy; {new Date().getFullYear()} Santuário Diocesano Nossa Senhora da Natividade - v3.1 (01/03/2026)
         </p>
       </footer>
       <ToastContainer toasts={toasts} onRemove={remove} />
