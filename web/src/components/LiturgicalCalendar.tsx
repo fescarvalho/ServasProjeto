@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { theme } from "../theme/theme";
 import { api } from "../services/api";
 import { Loader2, BookOpen, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
@@ -794,7 +794,6 @@ export function LiturgicalCalendar() {
     const [liturgy, setLiturgy] = useState<LiturgyData | null>(null);
     const [loadingLiturgy, setLoadingLiturgy] = useState(false);
     const [liturgyError, setLiturgyError] = useState(false);
-    const dateInputRef = useRef<HTMLInputElement>(null);
 
     const isToday = selectedDate.toDateString() === today.toDateString();
 
@@ -867,34 +866,44 @@ export function LiturgicalCalendar() {
                     alignItems: "center", justifyContent: "center", fontSize: "1rem", flexShrink: 0,
                 }}>◀</button>
 
-                {/* Input date oculto — abre o seletor nativo ao clicar no botão 📅 */}
-                <input
-                    ref={dateInputRef}
-                    type="date"
-                    value={inputValue}
-                    min="2026-01-01"
-                    max="2026-12-31"
-                    onChange={(e) => {
-                        if (!e.target.value) return;
-                        const [y, m, d] = e.target.value.split("-").map(Number);
-                        setSelectedDate(new Date(y, m - 1, d));
-                        setShowHistory(false);
-                    }}
-                    style={{ position: "absolute", opacity: 0, width: 0, height: 0, pointerEvents: "none" }}
-                />
-
                 <div style={{ flex: 1, textAlign: "center" }}>
                     <p style={{ margin: 0, fontSize: "0.85rem", fontWeight: "700", color: "#1a1a2e", textTransform: "capitalize" }}>
                         {dateLabel}
                     </p>
                 </div>
 
-                {/* Botão calendário */}
-                <button onClick={() => dateInputRef.current?.showPicker()} style={{
-                    border: "none", background: "#f3f4f6", borderRadius: "50%",
-                    width: 36, height: 36, cursor: "pointer", display: "flex",
-                    alignItems: "center", justifyContent: "center", fontSize: "1.1rem", flexShrink: 0,
-                }} title="Escolher data">📅</button>
+                {/* Botão calendário — agora usando overlay para compatibilidade iOS */}
+                <div style={{ position: "relative", width: 36, height: 36, flexShrink: 0 }}>
+                    <button style={{
+                        border: "none", background: "#f3f4f6", borderRadius: "50%",
+                        width: "100%", height: "100%", cursor: "pointer", display: "flex",
+                        alignItems: "center", justifyContent: "center", fontSize: "1.1rem",
+                    }} title="Escolher data">📅</button>
+
+                    <input
+                        type="date"
+                        value={inputValue}
+                        min="2026-01-01"
+                        max="2026-12-31"
+                        onChange={(e) => {
+                            if (!e.target.value) return;
+                            const [y, m, d] = e.target.value.split("-").map(Number);
+                            setSelectedDate(new Date(y, m - 1, d));
+                            setShowHistory(false);
+                        }}
+                        style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            height: "100%",
+                            opacity: 0,
+                            cursor: "pointer",
+                            appearance: "none",
+                            WebkitAppearance: "none",
+                        }}
+                    />
+                </div>
 
                 <button onClick={goNext} style={{
                     border: "none", background: "#f3f4f6", borderRadius: "50%",
