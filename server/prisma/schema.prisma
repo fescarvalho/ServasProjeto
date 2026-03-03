@@ -25,6 +25,7 @@ model User {
   signups           Signup[]
   swapRequests      SwapRequest[]       @relation("requester")
   pushSubscriptions PushSubscription[]
+  loginLogs         LoginLog[]
 }
 
 model Mass {
@@ -81,4 +82,11 @@ model PushSubscription {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      String
   createdAt   DateTime @default(now())
+}
+
+model LoginLog {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  timestamp DateTime @default(now())
 }

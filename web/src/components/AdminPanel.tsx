@@ -30,6 +30,7 @@ import { OfficialDocument } from "./OfficialDocument";
 import { StatisticsModal } from "./StatisticsModal";
 import { RankingModal } from "./RankingModal";
 import { NoticeBoard } from "./NoticeBoard";
+import { LoginLogs } from "./LoginLogs";
 import { theme } from "../theme/theme";
 import "./css/AdminPanel.css";
 
@@ -240,6 +241,9 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
 
   // Form visibility
   const [showCreateForm, setShowCreateForm] = useState(false);
+
+  // Histórico de Acessos
+  const [showLoginLogs, setShowLoginLogs] = useState(false);
 
   // Filtros
   const [startDate, setStartDate] = useState("");
@@ -524,6 +528,48 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
       </div>
 
       {isAdmin && <NoticeBoard />}
+
+      {/* HISTÓRICO DE ACESSOS */}
+      {isAdmin && (
+        <div className="no-print" style={{ marginBottom: "20px" }}>
+          <button
+            onClick={() => setShowLoginLogs(!showLoginLogs)}
+            style={{
+              width: "100%",
+              padding: "12px 16px",
+              background: showLoginLogs ? "#1565c0" : "#e3f2fd",
+              color: showLoginLogs ? "#fff" : "#1565c0",
+              border: "1px solid #90caf9",
+              borderRadius: "12px",
+              cursor: "pointer",
+              fontWeight: "bold",
+              fontSize: "0.9rem",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              transition: "all 0.2s",
+            }}
+          >
+            🔍 {showLoginLogs ? "Ocultar Histórico de Acessos" : "Ver Histórico de Acessos"}
+          </button>
+          {showLoginLogs && (
+            <div
+              style={{
+                background: "#fff",
+                borderRadius: "12px",
+                marginTop: "8px",
+                padding: "16px 20px",
+                boxShadow: theme.colors.shadowBase,
+                border: "1px solid #e3eaf4",
+                animation: "slideDown 0.3s ease",
+              }}
+            >
+              <LoginLogs />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* BOTÃO E FORMULÁRIO DE NOVA MISSA (COLAPSÁVEL) */}
       {isAdmin && !editingId && (

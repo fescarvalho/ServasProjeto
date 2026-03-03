@@ -32,6 +32,15 @@ export async function login(data: LoginData): Promise<UserResponse | null> {
         return null;
     }
 
+    // Registrar log de acesso apenas para Servas (não Admin)
+    if (user.role !== "ADMIN") {
+        try {
+            await prisma.loginLog.create({ data: { userId: user.id } });
+        } catch (logError: any) {
+            console.error("[LoginLog] Falha ao registrar acesso:", logError?.message);
+        }
+    }
+
     const token = generateToken(user.id);
 
     return {
