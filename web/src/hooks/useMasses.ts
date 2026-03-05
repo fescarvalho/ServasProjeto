@@ -12,6 +12,7 @@ interface UseMassesReturn {
     togglePublish: (id: string, published: boolean) => Promise<void>;
     toggleOpen: (id: string, open: boolean) => Promise<void>;
     patchMass: (id: string, data: any) => Promise<void>;
+    uploadScheduleImage: (file: File) => Promise<any[]>;
 }
 
 /**
@@ -93,6 +94,15 @@ export function useMasses(): UseMassesReturn {
         }
     }, [fetchMasses]);
 
+    const uploadScheduleImage = useCallback(async (file: File) => {
+        try {
+            return await massService.uploadScheduleImage(file);
+        } catch (error) {
+            console.error("Erro ao fazer upload da agenda:", error);
+            throw error;
+        }
+    }, []);
+
     return {
         masses,
         isLoading,
@@ -103,5 +113,6 @@ export function useMasses(): UseMassesReturn {
         togglePublish,
         toggleOpen,
         patchMass,
+        uploadScheduleImage,
     };
 }

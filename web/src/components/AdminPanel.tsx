@@ -15,7 +15,10 @@ import {
   RefreshCw,
   Save,
   Filter,
-  User as UserIcon
+  User as UserIcon,
+  Camera,
+  Loader2,
+  Check
 } from "lucide-react";
 import { Mass, User, Signup } from "../types/types";
 import { useMasses } from "../hooks/useMasses";
@@ -210,7 +213,12 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const isAdmin = user.role === "ADMIN";
 
   // Use mass hook for mass operations
-  const { createMass, deleteMass, togglePublish, toggleOpen, patchMass } = useMasses();
+  const { createMass, deleteMass, togglePublish, toggleOpen, patchMass, uploadScheduleImage } = useMasses();
+
+  // AI States
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiExtractedMasses, setAiExtractedMasses] = useState<any[]>([]);
+  const [showAiPreview, setShowAiPreview] = useState(false);
 
   // Use signup hook for all signup operations
   const {
@@ -470,8 +478,51 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
       setSwappingSignupId(null);
       setSelectedReplacementId("");
     } catch (error) {
-      console.error(error);
+      console.error("Erro ao realizar troca.");
       alert("Erro ao realizar troca.");
+    }
+  }
+
+  async function handleAiUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsAiLoading(true);
+      const data = await uploadScheduleImage(file);
+      setAiExtractedMasses(data);
+      setShowAiPreview(true);
+    } catch (error: any) {
+      console.error(error);
+      const msg = error.response?.data?.error || "Erro ao processar arquivo da agenda.";
+      alert(msg);
+    } finally {
+      setIsAiLoading(false);
+      // Reset input
+      e.target.value = "";
+    }
+  }
+
+  async function handleConfirmAiMasses() {
+    try {
+      setIsAiLoading(true);
+      for (const m of aiExtractedMasses) {
+        await createMass({
+          date: m.date,
+          time: m.time,
+          name: m.name,
+          maxServers: 4 // Padrão
+        });
+      }
+      setShowAiPreview(false);
+      setAiExtractedMasses([]);
+      onUpdate();
+      alert("Missas criadas com sucesso!");
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao criar algumas missas.");
+    } finally {
+      setIsAiLoading(false);
     }
   }
 
@@ -531,11 +582,11 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
 
       {/* HISTÓRICO DE ACESSOS */}
       {isAdmin && (
-        <div className="no-print" style={{ marginBottom: "20px" }}>
+        <div className="no-print" style={{ marginBottom: "20px", display: "flex", gap: "10px" }}>
           <button
             onClick={() => setShowLoginLogs(!showLoginLogs)}
             style={{
-              width: "100%",
+              flex: 1,
               padding: "12px 16px",
               background: showLoginLogs ? "#1565c0" : "#e3f2fd",
               color: showLoginLogs ? "#fff" : "#1565c0",
@@ -551,23 +602,131 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
               transition: "all 0.2s",
             }}
           >
-            🔍 {showLoginLogs ? "Ocultar Histórico de Acessos" : "Ver Histórico de Acessos"}
+            🔍 {showLoginLogs ? "Ocultar Acessos" : "Ver Acessos"}
           </button>
-          {showLoginLogs && (
-            <div
+
+          <label
+            style={{
+              flex: 1,
+              padding: "12px 16px",
+              background: "#f3e5f5",
+              color: "#7b1fa2",
+              border: "1px solid #ce93d8",
+              borderRadius: "12px",
+              cursor: isAiLoading ? "not-allowed" : "pointer",
+              fontWeight: "bold",
+              fontSize: "0.9rem",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              transition: "all 0.2s",
+            }}
+          >
+            {isAiLoading ? (
+              <Loader2 className="animate-spin" size={18} />
+            ) : (
+              <Camera size={18} />
+            )}
+            {isAiLoading ? "Lendo Arquivo..." : "Criar via Arquivo (Foto/PDF)"}
+            <input
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={handleAiUpload}
+              style={{ display: "none" }}
+              disabled={isAiLoading}
+            />
+          </label>
+        </div>
+      )}
+
+      {showLoginLogs && isAdmin && (
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: "12px",
+            marginBottom: "20px",
+            padding: "16px 20px",
+            boxShadow: theme.colors.shadowBase,
+            border: "1px solid #e3eaf4",
+            animation: "slideDown 0.3s ease",
+          }}
+        >
+          <LoginLogs />
+        </div>
+      )}
+
+      {/* PREVIEW DA IA */}
+      {showAiPreview && (
+        <div className="no-print" style={{
+          background: "#fff",
+          borderRadius: "16px",
+          marginBottom: "20px",
+          padding: "20px",
+          boxShadow: "0 10px 25px rgba(123, 31, 162, 0.15)",
+          border: "2px solid #ce93d8",
+          animation: "slideDown 0.3s ease"
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
+            <h3 style={{ color: "#7b1fa2", margin: 0, display: "flex", alignItems: "center", gap: "10px" }}>
+              <Camera /> Missas Identificadas pela IA
+            </h3>
+            <button onClick={() => setShowAiPreview(false)} style={{ background: "none", border: "none", color: "#666", cursor: "pointer" }}><X /></button>
+          </div>
+
+          <div style={{ maxHeight: "300px", overflowY: "auto", marginBottom: "15px", border: "1px solid #eee", borderRadius: "8px" }}>
+            <table className="admin-table" style={{ margin: 0 }}>
+              <thead>
+                <tr style={{ background: "#f3e5f5" }}>
+                  <th style={{ padding: "10px", textAlign: "left" }}>Data</th>
+                  <th style={{ padding: "10px", textAlign: "left" }}>Hora</th>
+                  <th style={{ padding: "10px", textAlign: "left" }}>Local</th>
+                </tr>
+              </thead>
+              <tbody>
+                {aiExtractedMasses.map((m, idx) => (
+                  <tr key={idx}>
+                    <td style={{ padding: "10px" }}>{new Date(m.date + "T12:00:00").toLocaleDateString("pt-BR")}</td>
+                    <td style={{ padding: "10px" }}>{m.time}</td>
+                    <td style={{ padding: "10px", fontWeight: "bold" }}>{m.name}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ display: "flex", gap: "10px" }}>
+            <button
+              onClick={handleConfirmAiMasses}
+              disabled={isAiLoading}
               style={{
-                background: "#fff",
-                borderRadius: "12px",
-                marginTop: "8px",
-                padding: "16px 20px",
-                boxShadow: theme.colors.shadowBase,
-                border: "1px solid #e3eaf4",
-                animation: "slideDown 0.3s ease",
+                flex: 1,
+                padding: "12px",
+                background: "#7b1fa2",
+                color: "#fff",
+                border: "none",
+                borderRadius: "8px",
+                fontWeight: "bold",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px"
               }}
             >
-              <LoginLogs />
-            </div>
-          )}
+              {isAiLoading ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}
+              CRIAR TODAS ESTAS MISSAS
+            </button>
+            <button
+              onClick={() => setShowAiPreview(false)}
+              style={{ padding: "12px", background: "#f5f5f5", color: "#666", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}
+            >
+              CANCELAR
+            </button>
+          </div>
+          <p style={{ fontSize: "0.8rem", color: "#888", marginTop: "10px", textAlign: "center" }}>
+            Nota: Todas as missas serão criadas com 4 vagas e como rascunho (não públicas).
+          </p>
         </div>
       )}
 

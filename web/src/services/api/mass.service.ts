@@ -70,3 +70,19 @@ export async function patchMass(id: string, data: any): Promise<Mass> {
     const response = await apiClient.patch<Mass>(`/masses/${id}`, data);
     return response.data;
 }
+
+/**
+ * Envia imagem da agenda para ser processada pela IA
+ */
+export async function uploadScheduleImage(file: File): Promise<any[]> {
+    const formData = new FormData();
+    formData.append("schedule", file);
+
+    const response = await apiClient.post<any[]>("/admin/upload-schedule", formData, {
+        headers: {
+            "Content-Type": "multipart/form-data",
+        },
+    });
+
+    return response.data;
+}
