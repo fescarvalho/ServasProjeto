@@ -105,13 +105,8 @@ export const getLiturgy = async (dateStr: string): Promise<LiturgyData> => {
         return cached.data;
     }
 
-    console.log(`[LiturgyService] Scraping data for ${dateStr}`);
-    const [year, month, day] = dateStr.split('-');
-
-    // URL format: https://liturgia.cancaonova.com/pb/?sDia=22&sMes=2&sAno=2026
-    // Note: Canção Nova month is 1-indexed (Jan=1, Feb=2...) but let's double check if we need to adjust.
-    // Based on previous research: sMes=03 is March. So it's 1-indexed.
-    const url = `https://liturgia.cancaonova.com/pb/?sDia=${parseInt(day)}&sMes=${parseInt(month)}&sAno=${year}`;
+    console.log(`[LiturgyService] Scraping data from Sagrada Liturgia for ${dateStr}`);
+    const url = `https://sagradaliturgia.com.br/liturgia_diaria.php?date=${dateStr}`;
 
     try {
         const { data: html } = await axios.get(url, {
@@ -123,52 +118,89 @@ export const getLiturgy = async (dateStr: string): Promise<LiturgyData> => {
         const $ = cheerio.load(html);
         const sections: LiturgySection[] = [];
 
-        // Dynamic extraction based on the tab navigation or available content divs
-        // Canção Nova uses a tab system: .nav-tabs li a contains the titles, 
-        // and their href points to IDs like #liturgia-1, #liturgia-2, etc.
-        const tabs = $('.nav-tabs li a');
+        // Sagrada Liturgia uses jQuery Mobile. The content is inside div.ui-content.
+        const container = $('div.ui-content').first();
 
-        if (tabs.length > 0) {
-            tabs.each((_, el) => {
-                const title = $(el).text().replace(/\s+/g, ' ').trim();
-                const contentId = $(el).attr('href');
-                if (contentId && contentId.startsWith('#')) {
-                    const container = $(contentId);
-                    let content = '';
+        if (container.length > 0) {
+            // CRITICAL: Remove scripts, styles and specific labels first
+            container.find('script, style, label#cbb, .ui-header, .ui-footer').remove();
 
-                    container.find('p, h2, h3, .com-titulo, .com-subtitulo').each((_, contentEl) => {
-                        const part = $(contentEl).text().trim();
-                        if (part) content += part + '\n\n';
-                    });
+            // Get full text and clean it from common web junk
+            let fullText = container.text()
+                .replace(/google\.tag\.cmd\.push\(function\(\)\s*\{[\s\S]*?\}\);/g, '')
+                .replace(/setTimeout\(function\s*\(\)\s*\{[\s\S]*?\}\s*,\s*\d+\);/g, '')
+                .replace(/Escolher outra data/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
 
-                    if (!content) {
-                        content = container.text().trim();
-                    }
+            // We use markers to split the text. Order matters for prioritizing titles.
+            const markers = [
+                { id: '1a Leitura', pattern: /(Primeira leitura:?|1ª Leitura:?)/i },
+                { id: 'Salmo', pattern: /Salmo/i },
+                { id: '2a Leitura', pattern: /(Segunda leitura:?|2ª Leitura:?)/i },
+                { id: 'Evangelho', pattern: /(Evangelho do dia:?|Proclamação do Evangelho:?|Evangelho:?)/i }
+            ];
 
-                    if (content) {
-                        sections.push({ title, content: content.trim() });
+            // Find all matches and their positions
+            const foundMarkers: { id: string, title: string, start: number }[] = [];
+
+            // First pass: find all positions where markers occur
+            markers.forEach(m => {
+                const regex = new RegExp(m.pattern, 'gi');
+                let match;
+                while ((match = regex.exec(fullText)) !== null) {
+                    // Avoid overlapping or redundant markers
+                    if (!foundMarkers.some(fm => Math.abs(fm.start - match!.index) < 10)) {
+                        foundMarkers.push({
+                            id: m.id,
+                            title: match[0],
+                            start: match.index
+                        });
                     }
                 }
             });
-        } else {
-            // Fallback for pages without tabs (unlikely but safe)
-            $('div[id^="liturgia-"]').each((_, el) => {
-                const id = $(el).attr('id');
-                const contentId = `#${id}`;
-                const container = $(el);
 
-                let title = id?.replace('liturgia-', 'Leitura ') || 'Leitura';
-                let content = '';
+            // Sort matches by position
+            foundMarkers.sort((a, b) => a.start - b.start);
 
-                container.find('p, h2, h3, .com-titulo, .com-subtitulo').each((_, contentEl) => {
-                    const part = $(contentEl).text().trim();
-                    if (part) content += part + '\n\n';
+            // Extract content between matches
+            for (let i = 0; i < foundMarkers.length; i++) {
+                const start = foundMarkers[i].start;
+                const nextStart = (i + 1 < foundMarkers.length) ? foundMarkers[i + 1].start : fullText.length;
+
+                let chunk = fullText.substring(start, nextStart).trim();
+
+                // Try to separate title from content more accurately
+                // Titles usually look like "Primeira leitura: Livro de..." or "Salmo 102..."
+                let splitIdx = chunk.indexOf(':', foundMarkers[i].title.length);
+                if (splitIdx === -1) splitIdx = chunk.indexOf(' - ', foundMarkers[i].title.length);
+
+                let title = "";
+                let content = "";
+
+                if (splitIdx !== -1 && splitIdx < 100) {
+                    title = chunk.substring(0, splitIdx + 1).trim();
+                    content = chunk.substring(splitIdx + 1).trim();
+                } else {
+                    // Fallback: title is the marker + some words
+                    const words = chunk.split(' ');
+                    title = words.slice(0, 5).join(' ');
+                    content = words.slice(5).join(' ');
+                }
+
+                // Final cleanup for each section
+                content = content
+                    .replace(/ - Palavra do Senhor/g, '\n\n- Palavra do Senhor')
+                    .replace(/ - Graças a Deus/g, '\n\n- Graças a Deus')
+                    .replace(/ - Palavra da Salvação/g, '\n\n- Palavra da Salvação')
+                    .replace(/ - Glória a vós, Senhor/g, '\n\n- Glória a vós, Senhor')
+                    .replace(/ R: /g, '\n\nRefrão: ');
+
+                sections.push({
+                    title: title,
+                    content: content
                 });
-
-                if (content) {
-                    sections.push({ title, content: content.trim() });
-                }
-            });
+            }
         }
 
         const liturgyData: LiturgyData = {
@@ -176,9 +208,19 @@ export const getLiturgy = async (dateStr: string): Promise<LiturgyData> => {
             sections
         };
 
-        // Basic validation
+        // Final validation and fallback
         if (sections.length === 0) {
-            throw new Error('Failed to extract liturgy content. Site structure might have changed.');
+            console.warn(`[LiturgyService] No sections found for ${dateStr}. Using text fallback.`);
+            const fullText = container.text()
+                .replace(/google\.tag\.cmd\.push\(function\(\)\s*\{[\s\S]*?\}\);/g, '')
+                .replace(/setTimeout\(function\s*\(\)\s*\{[\s\S]*?\}\s*,\s*\d+\);/g, '')
+                .trim();
+
+            if (fullText.includes('Leitura') || fullText.includes('Evangelho')) {
+                sections.push({ title: 'Liturgia do Dia', content: fullText });
+            } else {
+                throw new Error('Failed to extract liturgy content from Sagrada Liturgia.');
+            }
         }
 
         // Save to cache
