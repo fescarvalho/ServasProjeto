@@ -72,11 +72,19 @@ export const notifyCron = async (req: Request, res: Response): Promise<void> => 
             return;
         }
 
-        // Get tomorrow's date range
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const startOfTomorrow = new Date(tomorrow.setHours(0, 0, 0, 0));
-        const endOfTomorrow = new Date(tomorrow.setHours(23, 59, 59, 999));
+        // Get tomorrow's date range (in Brazil timezone)
+        const nowBrazilStr = new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" });
+        const nowInBrazil = new Date(nowBrazilStr);
+        nowInBrazil.setDate(nowInBrazil.getDate() + 1); // Tomorrow in Brazil
+
+        const year = nowInBrazil.getFullYear();
+        const month = nowInBrazil.getMonth();
+        const date = nowInBrazil.getDate();
+
+        // 00:00:00 in GMT-3 is 03:00:00 UTC
+        const startOfTomorrow = new Date(Date.UTC(year, month, date, 3, 0, 0, 0));
+        // 23:59:59.999 in GMT-3 is 02:59:59.999 UTC the next day (so 23+3 = 26)
+        const endOfTomorrow = new Date(Date.UTC(year, month, date, 26, 59, 59, 999));
 
         // Find all masses for tomorrow
         const massesTomorrow = await prisma.mass.findMany({
@@ -102,6 +110,7 @@ export const notifyCron = async (req: Request, res: Response): Promise<void> => 
 
         for (const mass of massesTomorrow) {
             const massTime = new Date(mass.date).toLocaleTimeString("pt-BR", {
+                timeZone: "America/Sao_Paulo",
                 hour: "2-digit",
                 minute: "2-digit",
             });
@@ -139,7 +148,8 @@ export const notifyCron = async (req: Request, res: Response): Promise<void> => 
         }
 
         // === BIRTHDAY NOTIFICATIONS ===
-        const todayForBday = new Date();
+        const todayBrazilStr = new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" });
+        const todayForBday = new Date(todayBrazilStr);
         const currentMonth = todayForBday.getMonth() + 1;
         const currentDay = todayForBday.getDate();
 
