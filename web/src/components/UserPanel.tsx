@@ -580,7 +580,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                         }}
                       >
                         <div
-                          className={`responsive-card ${cardClass}`}
+                          className={`responsive-card ${cardClass} ${mass.isSolemnity ? 'solemnity-card' : ''}`}
                           style={{
                             width: "100%",
                             height: "100%",
@@ -599,7 +599,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
 
                           {/* CABEÇALHO */}
                           <div style={{ display: "flex", gap: "15px", alignItems: "flex-start", marginBottom: "20px" }}>
-                            <div className="pink-date-badge">
+                            <div className="pink-date-badge" style={mass.isSolemnity ? { background: "linear-gradient(180deg, #f59e0b 0%, #b45309 100%)", boxShadow: "0 4px 12px rgba(245, 158, 11, 0.4)" } : {}}>
                               <span className="day">{new Date(mass.date).getDate()}</span>
                               <span className="month">
                                 {new Date(mass.date).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}

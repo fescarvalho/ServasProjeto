@@ -8,6 +8,7 @@ interface MassData {
     name?: string;
     deadline?: string;
     open?: boolean;
+    isSolemnity?: boolean;
 }
 
 /**
@@ -35,6 +36,7 @@ export async function createMass(data: MassData) {
             deadline,
             published: false,
             open: Boolean(data.open),
+            isSolemnity: Boolean(data.isSolemnity),
         },
     });
 }
@@ -63,6 +65,10 @@ export async function updateMass(id: string, data: Partial<MassData>) {
 
     if (data.open !== undefined) {
         updateData.open = Boolean(data.open);
+    }
+
+    if (data.isSolemnity !== undefined) {
+        updateData.isSolemnity = Boolean(data.isSolemnity);
     }
 
     return await prisma.mass.update({
@@ -124,6 +130,10 @@ export async function patchMass(id: string, data: any) {
 
     if (updateData.open !== undefined) {
         updateData.open = Boolean(updateData.open);
+    }
+
+    if (updateData.isSolemnity !== undefined) {
+        updateData.isSolemnity = Boolean(updateData.isSolemnity);
     }
 
     return await prisma.mass.update({

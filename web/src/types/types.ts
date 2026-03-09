@@ -37,6 +37,7 @@ export interface Mass {
   maxServers: number;
   deadline?: string;
   published: boolean;
+  isSolemnity?: boolean;
   signups: Signup[];
 
   _count?: {
@@ -59,6 +60,7 @@ export interface Mass {
   maxServers: number;
   published: boolean;
   open: boolean;
+  isSolemnity?: boolean;
   signups: Signup[];
 }
 

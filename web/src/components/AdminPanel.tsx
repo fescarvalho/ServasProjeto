@@ -49,6 +49,7 @@ interface MassFormProps {
   newTime: string; setNewTime: (v: string) => void;
   newDeadline: string; setNewDeadline: (v: string) => void;
   newMax: number; setNewMax: (v: number) => void;
+  newIsSolemnity: boolean; setNewIsSolemnity: (v: boolean) => void;
   repeatWeekly: boolean; setRepeatWeekly: (v: boolean) => void;
   repeatUntil: string; setRepeatUntil: (v: string) => void;
   handleSubmit: (e: React.FormEvent) => void;
@@ -66,6 +67,7 @@ function MassForm({
   newTime, setNewTime,
   newDeadline, setNewDeadline,
   newMax, setNewMax,
+  newIsSolemnity, setNewIsSolemnity,
   repeatWeekly, setRepeatWeekly,
   repeatUntil, setRepeatUntil,
   handleSubmit,
@@ -92,6 +94,12 @@ function MassForm({
       <div className="form-group" style={{ gridColumn: isInline ? "1 / -1" : "auto" }}>
         <label>Vagas</label>
         <input className="form-input" type="number" value={newMax} onChange={(e) => setNewMax(Number(e.target.value))} min="1" />
+      </div>
+      <div className="form-group" style={{ gridColumn: isInline ? "1 / -1" : "auto", display: "flex", alignItems: "center" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontWeight: "bold", color: theme.colors.primary, marginTop: "22px" }}>
+          <input type="checkbox" checked={newIsSolemnity} onChange={(e) => setNewIsSolemnity(e.target.checked)} style={{ width: "18px", height: "18px", cursor: "pointer" }} />
+          👑 Solenidade (Destacar card)
+        </label>
       </div>
 
       {isInline && mass && allMasses && localSignups && setLocalSignups && (
@@ -235,6 +243,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [newTime, setNewTime] = useState("");
   const [newName, setNewName] = useState("");
   const [newMax, setNewMax] = useState<number>(APP_CONFIG.DEFAULT_MAX_SERVERS);
+  const [newIsSolemnity, setNewIsSolemnity] = useState(false);
   const [newDeadline, setNewDeadline] = useState("");
   const [repeatWeekly, setRepeatWeekly] = useState(false);
   const [repeatUntil, setRepeatUntil] = useState("");
@@ -308,6 +317,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     setNewTime(d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
     setNewName(mass.name || "");
     setNewMax(mass.maxServers);
+    setNewIsSolemnity(mass.isSolemnity || false);
 
     if (mass.deadline) {
       setNewDeadline(toLocalDateTime(new Date(mass.deadline)));
@@ -323,6 +333,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     setNewTime("");
     setNewName("");
     setNewMax(APP_CONFIG.DEFAULT_MAX_SERVERS);
+    setNewIsSolemnity(false);
     setNewDeadline("");
     setRepeatWeekly(false);
     setRepeatUntil("");
@@ -372,6 +383,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         maxServers: newMax,
         name: newName,
         deadline: newDeadline || null,
+        isSolemnity: newIsSolemnity,
       };
 
       if (editingId) {
@@ -535,6 +547,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     newTime, setNewTime,
     newDeadline, setNewDeadline,
     newMax, setNewMax,
+    newIsSolemnity, setNewIsSolemnity,
     repeatWeekly, setRepeatWeekly,
     repeatUntil, setRepeatUntil,
     handleSubmit,
