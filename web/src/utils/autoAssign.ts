@@ -109,15 +109,15 @@ export function autoAssign(targetMass: Mass, allMasses: Mass[]): Signup[] {
         let allowedRoles: string[] = [];
 
         if (roleDistribution["Cerimoniária"] < 1) {
-            // Se ainda não há cerimoniária, tem que ser cerimoniária.
-            allowedRoles = ["Cerimoniária"];
-        } else if (roleDistribution["Librífera"] < 1) {
-            // Se já tem Ceri., mas falta Libr., tem que ser Libr.
-            // Se quisermos que sejam até 2 Libríferas prioritárias, basta ajustar para < 2.
-            allowedRoles = ["Librífera", "Cerimoniária"]; // Traz as duas como opção, assim entra o desempate pelo histórico
-        } else {
-            // Já tem Cerimoniária e Librífera. Abre vaga para Auxiliar.
-            allowedRoles = ["Auxiliar", "Librífera", "Cerimoniária"];
+            allowedRoles.push("Cerimoniária");
+        }
+        if (roleDistribution["Librífera"] < 1) {
+            allowedRoles.push("Librífera");
+        }
+
+        // Se Cerimoniária e Librífera já estiverem preenchidas (>= 1), a única vaga disponível é Auxiliar.
+        if (allowedRoles.length === 0) {
+            allowedRoles = ["Auxiliar"];
         }
 
         // Dos cargos permitidos, ordenar pela menor distribuição atual na missa para tentar equilibrar (opcional)
