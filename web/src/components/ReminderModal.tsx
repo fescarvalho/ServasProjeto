@@ -13,6 +13,9 @@ export function ReminderModal({ masses, onClose }: ReminderModalProps) {
     const [template, setTemplate] = useState<TemplateType>("SUNDAY_SCALE");
     const [customText, setCustomText] = useState("");
     const [isCopied, setIsCopied] = useState(false);
+    const [isSending, setIsSending] = useState(false);
+    const [sendError, setSendError] = useState<string | null>(null);
+    const [sendSuccess, setSendSuccess] = useState(false);
 
     // Auto-generate text based on template
     useEffect(() => {
@@ -78,6 +81,42 @@ export function ReminderModal({ masses, onClose }: ReminderModalProps) {
     const handleOpenWhatsapp = () => {
         const encoded = encodeURIComponent(customText);
         window.open(`https://api.whatsapp.com/send?text=${encoded}`, "_blank");
+    };
+
+    const handleSendPush = async () => {
+        if (!customText.trim()) return;
+
+        setIsSending(true);
+        setSendError(null);
+        setSendSuccess(false);
+
+        try {
+            const token = localStorage.getItem("token");
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/push/send-custom`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    title: "Aviso do Grupo de Servas 🌸",
+                    body: customText
+                })
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || "Erro ao enviar notificações");
+            }
+
+            setSendSuccess(true);
+            setTimeout(() => setSendSuccess(false), 3000);
+        } catch (err: any) {
+            console.error("Push error:", err);
+            setSendError(err.message || "Erro de conexão ao servidor");
+        } finally {
+            setIsSending(false);
+        }
     };
 
     return (
@@ -263,7 +302,8 @@ export function ReminderModal({ masses, onClose }: ReminderModalProps) {
                             {isCopied ? "Copiado!" : "Copiar"}
                         </button>
                         <button
-                            onClick={handleOpenWhatsapp}
+                            onClick={template === "GENERAL_NOTICE" ? handleSendPush : handleOpenWhatsapp}
+                            disabled={isSending}
                             style={{
                                 display: "flex",
                                 alignItems: "center",
@@ -272,25 +312,53 @@ export function ReminderModal({ masses, onClose }: ReminderModalProps) {
                                 padding: "14px",
                                 borderRadius: "14px",
                                 border: "none",
-                                background: "#25D366",
+                                background: template === "GENERAL_NOTICE" ? "#7b1fa2" : "#25D366",
                                 color: "white",
                                 fontWeight: "bold",
                                 fontSize: "1rem",
-                                cursor: "pointer",
-                                boxShadow: "0 4px 6px -1px rgba(37, 211, 102, 0.2)",
-                                transition: "all 0.2s"
+                                cursor: isSending ? "not-allowed" : "pointer",
+                                boxShadow: template === "GENERAL_NOTICE"
+                                    ? "0 4px 6px -1px rgba(123, 31, 162, 0.2)"
+                                    : "0 4px 6px -1px rgba(37, 211, 102, 0.2)",
+                                transition: "all 0.2s",
+                                opacity: isSending ? 0.7 : 1
                             }}
-                            onMouseOver={(e) => e.currentTarget.style.transform = "translateY(-2px)"}
-                            onMouseOut={(e) => e.currentTarget.style.transform = "translateY(0)"}
+                            onMouseOver={(e) => !isSending && (e.currentTarget.style.transform = "translateY(-2px)")}
+                            onMouseOut={(e) => !isSending && (e.currentTarget.style.transform = "translateY(0)")}
                         >
-                            <ExternalLink size={20} />
-                            Copiado e Abrir WhatsApp
+                            {template === "GENERAL_NOTICE" ? (
+                                <>
+                                    <Megaphone size={20} />
+                                    {isSending ? "Enviando..." : "Disparar no Celular"}
+                                </>
+                            ) : (
+                                <>
+                                    <ExternalLink size={20} />
+                                    Copiado e Abrir WhatsApp
+                                </>
+                            )}
                         </button>
                     </div>
 
+                    {sendSuccess && (
+                        <div style={{ marginTop: "16px", display: "flex", alignItems: "center", gap: "8px", color: "#059669", fontSize: "0.85rem", padding: "10px", background: "#ecfdf5", borderRadius: "10px", border: "1px solid #10b981" }}>
+                            <CheckCircle size={14} />
+                            Notificações enviadas com sucesso para as servas!
+                        </div>
+                    )}
+
+                    {sendError && (
+                        <div style={{ marginTop: "16px", display: "flex", alignItems: "center", gap: "8px", color: "#dc2626", fontSize: "0.85rem", padding: "10px", background: "#fef2f2", borderRadius: "10px", border: "1px solid #ef4444" }}>
+                            <AlertCircle size={14} />
+                            {sendError}
+                        </div>
+                    )}
+
                     <div style={{ marginTop: "16px", display: "flex", alignItems: "center", gap: "8px", color: "#6B7280", fontSize: "0.8rem", padding: "10px", background: "#f3f4f6", borderRadius: "10px" }}>
                         <AlertCircle size={14} />
-                        Dica: Clique em "Copiado e Abrir" para levar o texto direto para o grupo.
+                        {template === "GENERAL_NOTICE"
+                            ? "Dica: Este aviso chegará como uma notificação no celular de todas as servas."
+                            : "Dica: Clique em \"Copiado e Abrir\" para levar o texto direto para o grupo."}
                     </div>
                 </div>
             </div>

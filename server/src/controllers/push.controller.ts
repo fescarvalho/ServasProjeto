@@ -202,3 +202,72 @@ export const notifyCron = async (req: Request, res: Response): Promise<void> => 
         res.status(500).json({ error: "Cron execution failed." });
     }
 };
+
+export const sendCustomPush = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const userId = (req as any).userId;
+        const { title, body } = req.body;
+
+        if (!userId) {
+            res.status(401).json({ error: "Unauthorized" });
+            return;
+        }
+
+        if (!title || !body) {
+            res.status(400).json({ error: "Title and body are required" });
+            return;
+        }
+
+        // Verify if user is ADMIN
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { role: true },
+        });
+
+        if (!user || user.role !== "ADMIN") {
+            res.status(403).json({ error: "Forbidden: Admin access required" });
+            return;
+        }
+
+        if (!publicVapidKey || !privateVapidKey) {
+            res.status(500).json({ error: "VAPID keys not configured" });
+            return;
+        }
+
+        // Get all subscriptions
+        const allSubscriptions = await prisma.pushSubscription.findMany();
+
+        const payload = JSON.stringify({ title, body });
+        let sentCount = 0;
+
+        const pushPromises = allSubscriptions.map(async (sub) => {
+            if (sub.keys_p256dh && sub.keys_auth) {
+                const pushSubscription = {
+                    endpoint: sub.endpoint,
+                    keys: {
+                        p256dh: sub.keys_p256dh,
+                        keys_auth: sub.keys_auth,
+                    },
+                };
+
+                try {
+                    // Manual cast to any or correct type if web-push types are strict
+                    await webpush.sendNotification(pushSubscription as any, payload);
+                    sentCount++;
+                } catch (err: any) {
+                    console.error("Error sending custom push to endpoint", sub.endpoint, err);
+                    if (err.statusCode === 410 || err.statusCode === 404) {
+                        await prisma.pushSubscription.delete({ where: { endpoint: sub.endpoint } });
+                    }
+                }
+            }
+        });
+
+        await Promise.all(pushPromises);
+
+        res.status(200).json({ message: `Notifications sent to ${sentCount} subscriptions.` });
+    } catch (error) {
+        console.error("Error sending custom push:", error);
+        res.status(500).json({ error: "Failed to send notifications" });
+    }
+};

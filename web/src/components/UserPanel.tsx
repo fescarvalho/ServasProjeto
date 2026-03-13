@@ -32,6 +32,7 @@ import { theme } from "../theme/theme";
 import { calculateRanking } from "../utils/ranking.utils";
 import { LiturgicalCalendar } from "./LiturgicalCalendar";
 import { Prayers } from "./Prayers";
+import { getLiturgicalData, isSunday } from "../utils/liturgical.utils";
 import "./css/UserPanel.css"; // CSS Importado aqui
 
 interface UserPanelProps {
@@ -523,6 +524,9 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                     const souReserva = (meuSignup as any)?.status === "RESERVA";
                     const minhaFuncao = meuSignup?.role || "Auxiliar";
 
+                    const liturgical = getLiturgicalData(new Date(mass.date));
+                    const isSundayDay = isSunday(new Date(mass.date));
+
                     const estaAberto = mass.open;
                     const prazoEncerrado = checkStatus(mass.date, mass.deadline);
                     const lotado = vagasRestantes <= 0;
@@ -538,6 +542,15 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                       cardClass = "card-inactive";
                     } else if (isAvailable) {
                       cardClass = "mass-highlight";
+                    }
+
+                    let highlightClass = "";
+                    if (mass.isSolemnity) {
+                      highlightClass = "solemnity-card";
+                    } else if (isSundayDay) {
+                      highlightClass = `sunday-card ${liturgical.color}-card`;
+                    } else {
+                      highlightClass = `${liturgical.color}-card`;
                     }
 
                     let btnClass = "btn-servir";
@@ -580,7 +593,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                         }}
                       >
                         <div
-                          className={`responsive-card ${cardClass} ${mass.isSolemnity ? 'solemnity-card' : ''}`}
+                          className={`responsive-card ${cardClass} ${highlightClass}`}
                           style={{
                             width: "100%",
                             height: "100%",

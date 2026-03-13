@@ -234,6 +234,93 @@ body {
   box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4) !important;
 }
 
+/* --- LITURGICAL COLORS --- */
+.verde-card {
+  border-left: 6px solid #15803d !important;
+  background-color: #f0fdf4 !important;
+}
+
+.roxo-card {
+  border-left: 6px solid #6d28d9 !important;
+  background-color: #f5f3ff !important;
+}
+
+.branco-card {
+  border-left: 6px solid #d97706 !important;
+  background-color: #fffbeb !important;
+}
+
+.vermelho-card {
+  border-left: 6px solid #b91c1c !important;
+  background-color: #fef2f2 !important;
+}
+
+.rosa-card {
+  border-left: 6px solid #be185d !important;
+  background-color: #fdf2f8 !important;
+}
+
+/* --- DATE BADGE COLOR OVERRIDES --- */
+.verde-card .pink-date-badge {
+  background: linear-gradient(180deg, #15803d 0%, #166534 100%) !important;
+}
+
+.roxo-card .pink-date-badge {
+  background: linear-gradient(180deg, #6d28d9 0%, #5b21b6 100%) !important;
+}
+
+.branco-card .pink-date-badge {
+  background: linear-gradient(180deg, #d97706 0%, #9a3412 100%) !important;
+}
+
+.vermelho-card .pink-date-badge {
+  background: linear-gradient(180deg, #b91c1c 0%, #991b1b 100%) !important;
+}
+
+.rosa-card .pink-date-badge {
+  background: linear-gradient(180deg, #be185d 0%, #9d174d 100%) !important;
+}
+
+/* --- SUNDAY HIGHLIGHT --- */
+.sunday-card {
+  /* Remove individual border rules to allow liturgical border-left to show */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12) !important;
+  outline: 1px solid rgba(0, 0, 0, 0.05) !important;
+  position: relative;
+}
+
+.sunday-card::before {
+  content: "DOMINGO";
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: rgba(0, 0, 0, 0.3);
+  letter-spacing: 1px;
+}
+
+/* --- BUTTON OVERRIDES FOR LITURGICAL COLORS --- */
+.verde-card .btn-servir {
+  background: linear-gradient(90deg, #15803d 0%, #16a34a 100%) !important;
+}
+
+.roxo-card .btn-servir {
+  background: linear-gradient(90deg, #6d28d9 0%, #7c3aed 100%) !important;
+}
+
+.branco-card .btn-servir {
+  background: linear-gradient(90deg, #d97706 0%, #f59e0b 100%) !important;
+}
+
+.vermelho-card .btn-servir {
+  background: linear-gradient(90deg, #b91c1c 0%, #dc2626 100%) !important;
+}
+
+.rosa-card .btn-servir {
+  background: linear-gradient(90deg, #be185d 0%, #db2777 100%) !important;
+}
+
 /* --- ELEMENTOS INTERNOS DO CARD --- */
 
 /* Badge de Data Rosa */
