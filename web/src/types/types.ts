@@ -37,9 +37,9 @@ export interface Mass {
   maxServers: number;
   deadline?: string;
   published: boolean;
+  open: boolean;
   isSolemnity?: boolean;
   signups: Signup[];
-
   _count?: {
     signups: number;
   };
@@ -50,18 +50,6 @@ export interface Notice {
   text: string;
   active: boolean;
   createdAt: string;
-}
-
-export interface Mass {
-  id: string;
-  date: string;
-  name?: string;
-  deadline?: string;
-  maxServers: number;
-  published: boolean;
-  open: boolean;
-  isSolemnity?: boolean;
-  signups: Signup[];
 }
 
 export interface SwapRequest {

@@ -18,7 +18,8 @@ import {
   User as UserIcon,
   Camera,
   Loader2,
-  Check
+  Check,
+  Megaphone
 } from "lucide-react";
 import { Mass, User, Signup } from "../types/types";
 import { useMasses } from "../hooks/useMasses";
@@ -34,6 +35,7 @@ import { StatisticsModal } from "./StatisticsModal";
 import { RankingModal } from "./RankingModal";
 import { NoticeBoard } from "./NoticeBoard";
 import { LoginLogs } from "./LoginLogs";
+import { ReminderModal } from "./ReminderModal";
 import { theme } from "../theme/theme";
 import "./css/AdminPanel.css";
 
@@ -255,6 +257,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [showTextModal, setShowTextModal] = useState(false);
   const [showRankingModal, setShowRankingModal] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
+  const [showReminderModal, setShowReminderModal] = useState(false);
 
   // Form visibility
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -560,6 +563,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
       {showTextModal && isAdmin && <ScaleModal masses={filteredMasses} onClose={() => setShowTextModal(false)} />}
       {showRankingModal && isAdmin && <RankingModal masses={masses} onClose={() => setShowRankingModal(false)} />}
       {showStatsModal && isAdmin && <StatisticsModal masses={masses} onClose={() => setShowStatsModal(false)} />}
+      {showReminderModal && isAdmin && <ReminderModal masses={masses} onClose={() => setShowReminderModal(false)} />}
 
       <div className="admin-header no-print">
         <div className="header-brand">
@@ -579,6 +583,12 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
               </button>
               <button className="btn-header" onClick={() => setShowRankingModal(true)} style={{ background: "#fff8e1", color: "#f57f17", border: "1px solid #ffca28" }}>
                 <Trophy size={16} /> RANKING
+              </button>
+              <button className="btn-header" onClick={() => setShowTextModal(true)} style={{ background: "#e8f5e9", color: "#2e7d32", border: "1px solid #a5d6a7" }}>
+                <Edit size={16} /> GERAR TEXTO
+              </button>
+              <button className="btn-header" onClick={() => setShowReminderModal(true)} style={{ background: "#f3e5f5", color: "#7b1fa2", border: "1px solid #ce93d8" }}>
+                <Megaphone size={16} /> LEMBRETES
               </button>
               <button className="btn-header btn-white" onClick={() => setViewMode("pdf")}>
                 <FileText size={16} /> PDF
