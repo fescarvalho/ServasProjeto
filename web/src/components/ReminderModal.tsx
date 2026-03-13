@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { X, Copy, ExternalLink, CheckCircle, AlertCircle, Calendar, MessageSquare, Megaphone } from "lucide-react";
 import { Mass, FUNCOES } from "../types/types";
+import api from "../services/api";
 
 interface ReminderModalProps {
     masses: Mass[];
@@ -91,29 +92,17 @@ export function ReminderModal({ masses, onClose }: ReminderModalProps) {
         setSendSuccess(false);
 
         try {
-            const token = localStorage.getItem("token");
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/push/send-custom`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    title: "Aviso do Grupo de Servas 🌸",
-                    body: customText
-                })
+            await api.post("/push/send-custom", {
+                title: "Aviso do Grupo de Servas 🌸",
+                body: customText
             });
-
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.error || "Erro ao enviar notificações");
-            }
 
             setSendSuccess(true);
             setTimeout(() => setSendSuccess(false), 3000);
         } catch (err: any) {
             console.error("Push error:", err);
-            setSendError(err.message || "Erro de conexão ao servidor");
+            const errorMsg = err.response?.data?.error || err.message || "Erro ao enviar notificações";
+            setSendError(errorMsg);
         } finally {
             setIsSending(false);
         }
