@@ -274,6 +274,9 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [swappingSignupId, setSwappingSignupId] = useState<string | null>(null);
   const [selectedReplacementId, setSelectedReplacementId] = useState("");
 
+  // ESTADO PARA ADICIONAR SERVA
+  const [selectedUserToAdd, setSelectedUserToAdd] = useState<Record<string, string>>({});
+
   // Carrega lista de usuários para o Admin
   useEffect(() => {
     if (isAdmin) {
@@ -495,6 +498,21 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     } catch (error) {
       console.error("Erro ao realizar troca.");
       alert("Erro ao realizar troca.");
+    }
+  }
+
+  async function handleAddUserToMass(massId: string) {
+    const userIdToAdd = selectedUserToAdd[massId];
+    if (!userIdToAdd) {
+      alert("Selecione uma serva para adicionar.");
+      return;
+    }
+    try {
+      await toggleSignup(userIdToAdd, massId);
+      setSelectedUserToAdd(prev => ({ ...prev, [massId]: "" }));
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao adicionar serva.");
     }
   }
 
@@ -945,6 +963,31 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                           })}
                       </tbody>
                     </table>
+
+                    {isAdmin && (
+                      <div className="no-print" style={{ marginTop: "15px", padding: "12px", background: "#f8f9fa", borderRadius: "8px", border: "1px dashed #ccc", display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                        <select
+                          value={selectedUserToAdd[mass.id] || ""}
+                          onChange={(e) => setSelectedUserToAdd(prev => ({ ...prev, [mass.id]: e.target.value }))}
+                          style={{ flex: 1, minWidth: "200px", padding: "8px", borderRadius: "6px", border: "1px solid #ccc" }}
+                        >
+                          <option value="">Selecione uma serva para adicionar...</option>
+                          {allUsers
+                            .filter(u => !mass.signups.some(s => s.userId === u.id))
+                            .map(u => (
+                              <option key={u.id} value={u.id}>{u.name}</option>
+                            ))
+                          }
+                        </select>
+                        <button
+                          onClick={() => handleAddUserToMass(mass.id)}
+                          disabled={!selectedUserToAdd[mass.id]}
+                          style={{ padding: "8px 12px", background: selectedUserToAdd[mass.id] ? theme.colors.primary : "#ccc", color: "white", border: "none", borderRadius: "6px", fontWeight: "bold", cursor: selectedUserToAdd[mass.id] ? "pointer" : "not-allowed", display: "flex", alignItems: "center", gap: "5px", transition: "all 0.2s" }}
+                        >
+                          <PlusCircle size={16} /> Adicionar
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
