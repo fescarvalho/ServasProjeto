@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import * as signupService from "../services/signup.service";
 import { success, error } from "../utils/response.utils";
+import { prisma } from "../config/database";
 
 /**
  * Toggle signup (join or leave)
@@ -8,11 +9,24 @@ import { success, error } from "../utils/response.utils";
 export async function toggleSignup(req: Request, res: Response) {
     try {
         const { userId, massId } = req.body;
-        const result = await signupService.toggleSignup(userId, massId);
+        
+        // Verifica papel do requerente
+        let isAdmin = false;
+        if (req.userId) {
+            const reqUser = await prisma.user.findUnique({ where: { id: req.userId } });
+            isAdmin = reqUser?.role === "ADMIN";
+        }
+
+        // Validação de segurança: apenas ADMIN pode inscrever/desinscrever terceiros
+        if (req.userId !== userId && !isAdmin) {
+            return res.status(403).json({ error: "Acesso negado." });
+        }
+
+        const result = await signupService.toggleSignup(userId, massId, isAdmin);
         return success(res, result);
-    } catch (err) {
+    } catch (err: any) {
         console.error("Toggle signup error:", err);
-        return error(res, "Error processing signup");
+        return error(res, err.message || "Error processing signup");
     }
 }
 

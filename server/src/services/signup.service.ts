@@ -26,7 +26,7 @@ export async function promoteNextInLine(massId: string): Promise<void> {
 /**
  * Toggle signup (join or leave a mass)
  */
-export async function toggleSignup(userId: string, massId: string) {
+export async function toggleSignup(userId: string, massId: string, isAdmin: boolean = false) {
     const mass = await prisma.mass.findUnique({
         where: { id: massId },
         include: {
@@ -40,13 +40,13 @@ export async function toggleSignup(userId: string, massId: string) {
         throw new Error("Missa não encontrada");
     }
 
-    // Check if mass is open for signups
-    if (!mass.open) {
+    // Check if mass is open for signups (bypass for ADMIN)
+    if (!mass.open && !isAdmin) {
         throw new Error("Inscrições fechadas para esta missa.");
     }
 
-    // Check deadline
-    if (mass.deadline && new Date() > mass.deadline) {
+    // Check deadline (bypass for ADMIN)
+    if (mass.deadline && new Date() > mass.deadline && !isAdmin) {
         throw new Error("Prazo de inscrição encerrado.");
     }
 

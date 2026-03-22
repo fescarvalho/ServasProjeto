@@ -1,7 +1,10 @@
 import { Router } from "express";
 import * as signupController from "../controllers/signup.controller";
+import { authMiddleware } from "../middleware/auth.middleware";
 
 const router = Router();
+
+router.use(authMiddleware);
 
 router.post("/toggle-signup", signupController.toggleSignup);
 router.patch("/:id/role", signupController.changeRole);
