@@ -11,6 +11,18 @@ export function getMassPoints(dateString: string) {
     const day = brazilDate.getDay();
     const hour = brazilDate.getHours();
 
+    // --- SEMANA SANTA 2026 (29/03 a 05/04) = 3 PONTOS ---
+    const year = brazilDate.getFullYear();
+    const month = brazilDate.getMonth() + 1; // 0-indexed
+    const monthDay = brazilDate.getDate();
+
+    if (year === 2026) {
+        // Março 29 a Abril 05
+        if ((month === 3 && monthDay >= 29) || (month === 4 && monthDay <= 5)) {
+            return 3;
+        }
+    }
+
     // 1. Semana (Segunda a Sexta) = 2 PONTOS
     if (day >= 1 && day <= 5) return 2;
 

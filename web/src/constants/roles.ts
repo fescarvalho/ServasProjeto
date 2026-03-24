@@ -2,6 +2,9 @@ export const ROLES = {
   CEREMONIAL: "Cerimoniária",
   BOOK_BEARER: "Librífera",
   AUXILIARY: "Auxiliar",
+  LAVA_PES: "Lava-pés",
+  LEITURAS: "Leituras",
+  MATRACA: "Matraca",
 } as const;
 
 export const USER_ROLES = {

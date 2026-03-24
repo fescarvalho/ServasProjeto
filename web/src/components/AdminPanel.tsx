@@ -152,6 +152,13 @@ function MassForm({
                           <option value="Auxiliar">Auxiliar</option>
                           <option value="Cerimoniária">Cerimoniária</option>
                           <option value="Librífera">Librífera</option>
+                          {newDate >= "2026-03-29" && newDate <= "2026-04-05" && (
+                            <>
+                              <option value="Lava-pés">Lava-pés</option>
+                              <option value="Leituras">Leituras</option>
+                              <option value="Matraca">Matraca</option>
+                            </>
+                          )}
                         </select>
                       </td>
                     </tr>
@@ -507,7 +514,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
       alert("Selecione pelo menos uma serva para adicionar.");
       return;
     }
-    
+
     // Process add requests concurrently
     try {
       await Promise.all(usersIdsToAdd.map(userId => toggleSignup(userId, massId)));

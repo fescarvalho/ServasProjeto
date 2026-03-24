@@ -7,6 +7,9 @@ import { Mass, Signup } from "../types/types";
 export function getRoleWeight(role?: string | null): number {
     if (role === ROLES.CEREMONIAL) return 1;
     if (role === ROLES.BOOK_BEARER) return 2;
+    if (role === ROLES.LAVA_PES) return 4;
+    if (role === ROLES.LEITURAS) return 5;
+    if (role === ROLES.MATRACA) return 6;
     return 3; // AUXILIARY
 }
 

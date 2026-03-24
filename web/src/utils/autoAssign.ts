@@ -7,6 +7,9 @@ function getUserMetrics(userId: string, allMasses: Mass[]) {
         "Cerimoniária": 0,
         "Librífera": 0,
         "Auxiliar": 0,
+        "Lava-pés": 0,
+        "Leituras": 0,
+        "Matraca": 0,
     };
 
     for (const mass of allMasses) {
@@ -90,6 +93,9 @@ export function autoAssign(targetMass: Mass, allMasses: Mass[]): Signup[] {
         "Cerimoniária": localSignups.filter((s) => s.status === "CONFIRMADO" && s.role === "Cerimoniária").length,
         "Librífera": localSignups.filter((s) => s.status === "CONFIRMADO" && s.role === "Librífera").length,
         "Auxiliar": localSignups.filter((s) => s.status === "CONFIRMADO" && s.role === "Auxiliar").length,
+        "Lava-pés": localSignups.filter((s) => s.status === "CONFIRMADO" && s.role === "Lava-pés").length,
+        "Leituras": localSignups.filter((s) => s.status === "CONFIRMADO" && s.role === "Leituras").length,
+        "Matraca": localSignups.filter((s) => s.status === "CONFIRMADO" && s.role === "Matraca").length,
     };
 
     selectedCandidates.forEach(({ signup, metrics }) => {
