@@ -965,6 +965,13 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                                       <option value="Auxiliar">Auxiliar</option>
                                       <option value="Cerimoniária">Cerimoniária</option>
                                       <option value="Librífera">Librífera</option>
+                                      {mass.date.split("T")[0] >= "2026-03-29" && mass.date.split("T")[0] <= "2026-04-05" && (
+                                        <>
+                                          <option value="Lava-pés">Lava-pés</option>
+                                          <option value="Leituras">Leituras</option>
+                                          <option value="Matraca">Matraca</option>
+                                        </>
+                                      )}
                                     </select>
                                   ) : <span>{signup.role || "Auxiliar"}</span>}
                                 </td>
