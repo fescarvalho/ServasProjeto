@@ -39,6 +39,7 @@ export interface Mass {
   published: boolean;
   open: boolean;
   isSolemnity?: boolean;
+  points?: number; // <-- Adicionado para override manual
   signups: Signup[];
   _count?: {
     signups: number;

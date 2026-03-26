@@ -25,6 +25,7 @@ import { Mass, User, Signup } from "../types/types";
 import { useMasses } from "../hooks/useMasses";
 import { useSignup } from "../hooks/useSignup";
 import { getRoleWeight } from "../utils/format.utils";
+import { getMassPoints } from "../utils/ranking.utils";
 import { toLocalDate, toLocalDateTime } from "../utils/date.utils";
 import { APP_CONFIG } from "../constants/config";
 import { getUsersList } from "../services/api/notice.service";
@@ -52,6 +53,7 @@ interface MassFormProps {
   newDeadline: string; setNewDeadline: (v: string) => void;
   newMax: number; setNewMax: (v: number) => void;
   newIsSolemnity: boolean; setNewIsSolemnity: (v: boolean) => void;
+  newPoints: number; setNewPoints: (v: number) => void;
   repeatWeekly: boolean; setRepeatWeekly: (v: boolean) => void;
   repeatUntil: string; setRepeatUntil: (v: string) => void;
   handleSubmit: (e: React.FormEvent) => void;
@@ -70,11 +72,14 @@ function MassForm({
   newDeadline, setNewDeadline,
   newMax, setNewMax,
   newIsSolemnity, setNewIsSolemnity,
+  newPoints, setNewPoints,
   repeatWeekly, setRepeatWeekly,
   repeatUntil, setRepeatUntil,
   handleSubmit,
   handleCancelEdit,
 }: MassFormProps) {
+  const pointsPreview = newDate ? getMassPoints(newDate + (newTime ? `T${newTime}` : "")) : 0;
+
   return (
     <form onSubmit={handleSubmit} className="form-grid" style={isInline ? { padding: "10px" } : {}}>
       <div className="form-group full-width">
@@ -102,6 +107,21 @@ function MassForm({
           <input type="checkbox" checked={newIsSolemnity} onChange={(e) => setNewIsSolemnity(e.target.checked)} style={{ width: "18px", height: "18px", cursor: "pointer" }} />
           👑 Solenidade (Destacar card)
         </label>
+      </div>
+
+      <div className="form-group" style={{ gridColumn: isInline ? "1 / -1" : "auto" }}>
+        <label>Pontos (Override)</label>
+        <input
+          className="form-input"
+          type="number"
+          value={newPoints}
+          onChange={(e) => setNewPoints(Number(e.target.value))}
+          min="0"
+          placeholder="Deixe 0 para regra automática"
+        />
+        <p style={{ fontSize: "0.65rem", color: "#888", marginTop: "4px" }}>
+          Regra padrão: {pointsPreview}
+        </p>
       </div>
 
       {isInline && mass && allMasses && localSignups && setLocalSignups && (
@@ -249,6 +269,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [newName, setNewName] = useState("");
   const [newMax, setNewMax] = useState<number>(APP_CONFIG.DEFAULT_MAX_SERVERS);
   const [newIsSolemnity, setNewIsSolemnity] = useState(false);
+  const [newPoints, setNewPoints] = useState<number>(0);
   const [newDeadline, setNewDeadline] = useState("");
   const [repeatWeekly, setRepeatWeekly] = useState(false);
   const [repeatUntil, setRepeatUntil] = useState("");
@@ -327,6 +348,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     setNewName(mass.name || "");
     setNewMax(mass.maxServers);
     setNewIsSolemnity(mass.isSolemnity || false);
+    setNewPoints(mass.points || 0);
 
     if (mass.deadline) {
       setNewDeadline(toLocalDateTime(new Date(mass.deadline)));
@@ -343,6 +365,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     setNewName("");
     setNewMax(APP_CONFIG.DEFAULT_MAX_SERVERS);
     setNewIsSolemnity(false);
+    setNewPoints(0);
     setNewDeadline("");
     setRepeatWeekly(false);
     setRepeatUntil("");
@@ -393,6 +416,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         name: newName,
         deadline: newDeadline || null,
         isSolemnity: newIsSolemnity,
+        points: newPoints > 0 ? newPoints : undefined,
       };
 
       if (editingId) {
@@ -575,6 +599,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     newDeadline, setNewDeadline,
     newMax, setNewMax,
     newIsSolemnity, setNewIsSolemnity,
+    newPoints, setNewPoints,
     repeatWeekly, setRepeatWeekly,
     repeatUntil, setRepeatUntil,
     handleSubmit,

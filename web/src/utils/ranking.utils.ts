@@ -37,7 +37,7 @@ export interface ServaRanking {
     id: string;
     name: string;
     score: number;
-    countSpecial: number; // Semana ou Dom 10h (2pts)
+    countSpecial: number; // Semana, Dom 10h (2pts) ou Semana Santa (3pts)
     countNormal: number; // Outras (1pt)
 }
 
@@ -53,7 +53,8 @@ export function calculateRanking(masses: Mass[], month: number, year: number): S
     });
 
     filteredMasses.forEach((mass) => {
-        const points = getMassPoints(mass.date);
+        // Usa a pontuação manual se existir, senão usa a lógica automática
+        const points = mass.points !== undefined ? mass.points : getMassPoints(mass.date);
 
         mass.signups.forEach((signup) => {
             if (signup.present) {
@@ -71,7 +72,8 @@ export function calculateRanking(masses: Mass[], month: number, year: number): S
                 stats[signup.userId].score += points;
 
                 // Separa a contagem para exibir detalhes
-                if (points === 2) {
+                // Agora "Special" inclui missas de 2 ou 3 pontos (Semana Santa)
+                if (points >= 2) {
                     stats[signup.userId].countSpecial += 1;
                 } else {
                     stats[signup.userId].countNormal += 1;
@@ -80,5 +82,19 @@ export function calculateRanking(masses: Mass[], month: number, year: number): S
         });
     });
 
-    return Object.values(stats).sort((a, b) => b.score - a.score);
+    return Object.values(stats).sort((a, b) => {
+        // 1º Critério: Pontuação Total
+        if (b.score !== a.score) return b.score - a.score;
+
+        // 2º Critério: Total de Presenças (Dedicada quem vai mais vezes)
+        const totalA = a.countSpecial + a.countNormal;
+        const totalB = b.countSpecial + b.countNormal;
+        if (totalB !== totalA) return totalB - totalA;
+
+        // 3º Critério: Número de Missas Especiais (2 ou 3 pontos)
+        if (b.countSpecial !== a.countSpecial) return b.countSpecial - a.countSpecial;
+
+        // 4º Critério: Ordem Alfabética (Garante ordem consistente)
+        return a.name.localeCompare(b.name);
+    });
 }
