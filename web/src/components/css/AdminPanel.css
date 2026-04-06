@@ -237,6 +237,94 @@
     border-top: 1px solid #f5f5f5;
     padding-top: 10px;
   }
+
+  /* Tabs mobile */
+  .admin-tabs {
+    gap: 4px !important;
+  }
+
+  .admin-tab {
+    font-size: 0.8rem !important;
+    padding: 10px 8px !important;
+    gap: 4px !important;
+  }
+
+  /* Modal mobile */
+  .serva-modal {
+    margin: 15px !important;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+}
+
+/* --- 4. Sistema de Abas (Tabs) --- */
+.admin-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.admin-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: #888;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.admin-tab:hover {
+  background: #f5f5f5;
+  color: #555;
+}
+
+.admin-tab.active {
+  background: var(--color-primary, #ff2e63);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(255, 46, 99, 0.3);
+}
+
+/* --- 5. Modal de Serva --- */
+.serva-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.serva-modal {
+  background: #fff;
+  border-radius: 20px;
+  padding: 30px;
+  width: 100%;
+  max-width: 480px;
+  margin: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* --- Animação de Slide Down --- */
