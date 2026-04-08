@@ -547,12 +547,10 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                     let highlightClass = "";
                     if (mass.isSolemnity) {
                       highlightClass = "solemnity-card";
+                    } else if (isSundayDay) {
+                      highlightClass = `sunday-card ${liturgical.color}-card`;
                     } else {
-                      if (isSundayDay) {
-                        highlightClass = `sunday-card ${liturgical.color}-card`;
-                      } else {
-                        highlightClass = `${liturgical.color}-card`;
-                      }
+                      highlightClass = `${liturgical.color}-card`;
                     }
 
                     let btnClass = "btn-servir";
