@@ -976,7 +976,10 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                   <div style={{ flex: 1 }}>
                     <div style={{ marginBottom: 15 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                        <div>{mass.name && <div className="mass-label">{mass.name}</div>}</div>
+                        <div>
+                          {mass.name && <div className="mass-label">{mass.name}</div>}
+                          {mass.isSolemnity && <span style={{ fontSize: "0.75rem", background: "#fef3c7", color: "#b45309", padding: "2px 8px", borderRadius: "10px", fontWeight: "bold", display: "inline-block", marginTop: "4px" }}>👑 SOLENIDADE</span>}
+                        </div>
                         {isAdmin && (
                           <div style={{ display: "flex", gap: "5px", marginLeft: "10px" }}>
                             <button onClick={() => handleTogglePublish(mass.id, mass.published)} className="no-print" style={{ background: mass.published ? "#e8f5e9" : "#fff3e0", color: mass.published ? "#2e7d32" : "#ef6c00", padding: "4px 8px", borderRadius: "20px", fontSize: "0.75rem", fontWeight: "bold" }}>{mass.published ? "● Pública" : "○ Rascunho"}</button>

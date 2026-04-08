@@ -309,26 +309,35 @@ export const LITURGICAL_DATA_2026: Record<string, DayData> = {
         history: "O último Papa mártir. Defendeu a fé ortodoxa sobre as duas naturezas e vontades de Cristo (humana e divina), sendo por isso exilado e sofrendo privações até a morte."
     },
     "04-14": { season: "Tempo Pascal", color: "branco" },
+    "04-15": { season: "Tempo Pascal", color: "branco" },
+    "04-16": { season: "Tempo Pascal", color: "branco" },
+    "04-17": { season: "Tempo Pascal", color: "branco" },
+    "04-18": { season: "Tempo Pascal", color: "branco" },
+    "04-19": { season: "Tempo Pascal (3º Dom. Páscoa)", color: "branco" },
+    "04-20": { season: "Tempo Pascal", color: "branco" },
     "04-21": {
         season: "Tempo Pascal",
         color: "branco",
         celebration: "S. Anselmo",
         history: "Arcebispo de Cantuária e Doutor da Igreja. Conhecido como o 'Pai da Escolástica', buscou unir fé e razão, ensinando que a fé busca o entendimento (fides quaerens intellectum)."
     },
+    "04-22": { season: "Tempo Pascal", color: "branco" },
     "04-23": {
         season: "Tempo Pascal",
-        color: "vermelho",
+        color: "branco",
         celebration: "S. Jorge",
         history: "Mártir da Capadócia e soldado romano. Sua figura lendária vencendo o dragão simboliza a vitória da fé sobre o mal. É um dos santos mais populares da cristandade."
     },
     "04-24": { season: "Tempo Pascal", color: "branco", celebration: "S. Fidélis de Sigmaringa" },
     "04-25": {
         season: "Tempo Pascal",
-        color: "vermelho",
+        color: "branco",
         celebration: "S. Marcos Evangelista",
         history: "Discípulo de São Pedro e autor do segundo Evangelho. Sua narrativa destaca a força e o poder de Jesus, o Filho de Deus, que veio para servir e dar a vida."
     },
     "04-26": { season: "4.º Dom. da Páscoa (Bom Pastor)", color: "branco", celebration: "Domingo do Bom Pastor" },
+    "04-27": { season: "Tempo Pascal", color: "branco" },
+    "04-28": { season: "Tempo Pascal", color: "branco" },
     "04-29": {
         season: "Tempo Pascal",
         color: "branco",
@@ -352,13 +361,21 @@ export const LITURGICAL_DATA_2026: Record<string, DayData> = {
     },
     "05-03": {
         season: "Tempo Pascal",
-        color: "vermelho",
+        color: "branco",
         celebration: "Ss. Filipe e Tiago Apóstolos",
         history: "Apóstolos do Senhor. Filipe, que apresentou Natanael a Jesus, e Tiago, o 'Menor', que foi bispo de Jerusalém e autor de uma epístola que nos exorta à prática da fé."
     },
+    "05-04": { season: "Tempo Pascal", color: "branco" },
+    "05-05": { season: "Tempo Pascal", color: "branco" },
+    "05-06": { season: "Tempo Pascal", color: "branco" },
+    "05-07": { season: "Tempo Pascal", color: "branco" },
+    "05-08": { season: "Tempo Pascal", color: "branco" },
+    "05-09": { season: "Tempo Pascal", color: "branco" },
+    "05-10": { season: "5.º Dom. Páscoa", color: "branco" },
+    "05-11": { season: "Tempo Pascal", color: "branco" },
     "05-12": {
         season: "Tempo Pascal",
-        color: "vermelho",
+        color: "branco",
         celebration: "Ss. Nereu e Aquileu",
         history: "Mártires romanos que abandonaram a carreira militar para seguir a Cristo. Deram testemunho de fé durante as perseguições, preferindo a coroa do martírio às honras imperiais."
     },
@@ -368,6 +385,14 @@ export const LITURGICAL_DATA_2026: Record<string, DayData> = {
         celebration: "N. Sra. de Fátima",
         history: "Recorda as aparições da Virgem aos três pastorinhos em 1917, em Portugal. Apelo à oração do terço, penitência e conversão pela paz no mundo e salvação das almas."
     },
+    "05-14": { season: "Tempo Pascal", color: "branco" },
+    "05-15": { season: "Tempo Pascal", color: "branco" },
+    "05-16": { season: "Tempo Pascal", color: "branco" },
+    "05-17": { season: "6.º Dom. Páscoa", color: "branco" },
+    "05-18": { season: "Tempo Pascal", color: "branco" },
+    "05-19": { season: "Tempo Pascal", color: "branco" },
+    "05-20": { season: "Tempo Pascal", color: "branco" },
+    "05-21": { season: "Tempo Pascal", color: "branco" },
     "05-22": {
         season: "Tempo Pascal",
         color: "branco",

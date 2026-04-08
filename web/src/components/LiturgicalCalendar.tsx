@@ -17,7 +17,7 @@ interface LiturgyData {
 const COLOR_META: Record<LiturgicalColor, { hex: string; bg: string; label: string }> = {
     roxo: { hex: "#6d28d9", bg: "#f5f3ff", label: "Roxo" },
     verde: { hex: "#15803d", bg: "#f0fdf4", label: "Verde" },
-    branco: { hex: "#d97706", bg: "#fffbeb", label: "Branco" },
+    branco: { hex: "#d97706", bg: "#ffffff", label: "Branco" },
     vermelho: { hex: "#b91c1c", bg: "#fef2f2", label: "Vermelho" },
     rosa: { hex: "#be185d", bg: "#fdf2f8", label: "Rosa" },
 };
