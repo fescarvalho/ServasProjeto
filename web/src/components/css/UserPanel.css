@@ -24,14 +24,14 @@ body {
 .header-hero {
   background:
     linear-gradient(180deg,
-      rgba(255,255,255,0.04) 0%,
-      rgba(0,0,0,0.10) 100%),
+      rgba(0,0,0,0.25) 0%,
+      rgba(0,0,0,0.45) 100%),
     linear-gradient(135deg,
-      #2C1A10 0%,
-      #4A3018 30%,
-      #5C4033 60%,
-      #7A5446 80%,
-      #9C7A6A 100%);
+      #1A0F09 0%,
+      #2C1A10 25%,
+      #3E2723 50%,
+      #4E342E 75%,
+      #5D4037 100%);
   color: var(--color-white);
   padding: 36px 20px 64px;
   text-align: center;
@@ -62,6 +62,7 @@ body {
   font-size: 1.5rem;
   color: white;
   font-family: 'Playfair Display', serif;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
 .header-hero p {

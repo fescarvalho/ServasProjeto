@@ -319,7 +319,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           <Flower size={32} strokeWidth={2} color="white" />
         </div>
 
-        <h1>GRUPO DE SERVAS SANTA TEREZINHA</h1>
+        <h1>GRUPO DE SERVAS <br /> SANTA TEREZINHA</h1>
 
         <div style={{
           marginTop: "10px",
