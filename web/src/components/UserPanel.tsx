@@ -725,7 +725,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           Desenvolvido por <a href="https://fescarvpage.vercel.app/" target="_blank" rel="noopener noreferrer" style={{ color: theme.colors.danger, textDecoration: "none", fontWeight: "bold" }}>Fernando Carvalho</a>
         </p>
         <p style={{ marginTop: "5px", opacity: 0.7 }}>
-          &copy; {new Date().getFullYear()} Santuário Diocesano Nossa Senhora da Natividade - v4.1 (02/03/2026)
+          &copy; {new Date().getFullYear()} Santuário Diocesano Nossa Senhora da Natividade - v5 (29/04/2026)
         </p>
       </footer>
       <ToastContainer toasts={toasts} onRemove={remove} />
