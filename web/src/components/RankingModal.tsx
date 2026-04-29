@@ -12,6 +12,7 @@ interface RankingModalProps {
 
 export function RankingModal({ masses, onClose }: RankingModalProps) {
   const rankingRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -39,6 +40,16 @@ export function RankingModal({ masses, onClose }: RankingModalProps) {
     if (!rankingRef.current) return;
     setIsSharing(true);
 
+    // Remove scroll limit so html2canvas captures the full list
+    const listEl = listRef.current;
+    const prevMaxHeight = listEl?.style.maxHeight ?? "";
+    const prevOverflow = listEl?.style.overflowY ?? "";
+    if (listEl) {
+      listEl.style.maxHeight = "none";
+      listEl.style.overflowY = "visible";
+    }
+
+    // Small delay to let the DOM reflow before capture
     setTimeout(async () => {
       try {
         const canvas = await html2canvas(rankingRef.current!, {
@@ -46,7 +57,15 @@ export function RankingModal({ masses, onClose }: RankingModalProps) {
           scale: 2,
           logging: false,
           useCORS: true,
+          windowHeight: rankingRef.current!.scrollHeight + 200,
+          height: rankingRef.current!.scrollHeight,
         });
+
+        // Restore scroll limit
+        if (listEl) {
+          listEl.style.maxHeight = prevMaxHeight;
+          listEl.style.overflowY = prevOverflow;
+        }
 
         canvas.toBlob(async (blob) => {
           if (!blob) {
@@ -61,7 +80,7 @@ export function RankingModal({ masses, onClose }: RankingModalProps) {
               await navigator.share({
                 files: [file],
                 title: `Ranking de Pontos - ${months[selectedMonth]}/${selectedYear}`,
-                text: `Confira o nosso ranking de presenças de ${months[selectedMonth]}! 🌹✨`
+                text: `Confira o nosso ranking de presenças de ${months[selectedMonth]}! 🕊️✨`
               });
             } catch (shareError) {
               console.log("Share cancelled or failed", shareError);
@@ -73,11 +92,16 @@ export function RankingModal({ masses, onClose }: RankingModalProps) {
           setIsSharing(false);
         }, "image/png");
       } catch (error) {
+        // Restore on error too
+        if (listEl) {
+          listEl.style.maxHeight = prevMaxHeight;
+          listEl.style.overflowY = prevOverflow;
+        }
         console.error("Error sharing ranking:", error);
         alert("Erro ao gerar imagem do ranking.");
         setIsSharing(false);
       }
-    }, 100);
+    }, 150);
   };
 
   const downloadFallback = (canvas: HTMLCanvasElement) => {
@@ -191,7 +215,7 @@ export function RankingModal({ masses, onClose }: RankingModalProps) {
                 color: "#fff",
               }}
             >
-              Ranking das Servas
+              Ranking Mensal
             </h2>
             <p style={{ margin: "5px 0 0 0", fontSize: "0.9rem", opacity: 0.9 }}>
               {months[selectedMonth]} {selectedYear}
@@ -258,7 +282,7 @@ export function RankingModal({ masses, onClose }: RankingModalProps) {
           </div>
 
           {/* CONTEÚDO LISTA */}
-          <div style={{ padding: "0 20px 20px 20px", overflowY: "auto", maxHeight: "50vh" }}>
+          <div ref={listRef} style={{ padding: "0 20px 20px 20px", overflowY: "auto", maxHeight: "50vh" }}>
             {ranking.length === 0 ? (
               <div style={{ textAlign: "center", padding: "40px 20px", color: "#aaa" }}>
                 <Calendar

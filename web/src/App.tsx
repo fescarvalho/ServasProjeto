@@ -132,22 +132,21 @@ function App() {
     }
   }
 
-  // Login screen
   if (!user) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: theme.colors.background }}>
-        <div className="card" style={{ width: "100%", maxWidth: "350px", textAlign: "center", background: "white", padding: "40px", borderRadius: "12px", boxShadow: theme.colors.shadowBase }}>
+        <div className="card" style={{ width: "100%", maxWidth: "350px", textAlign: "center", background: "white", padding: "40px", borderRadius: "16px", boxShadow: `0 8px 32px ${theme.colors.shadowBase}` }}>
           <div style={{ color: theme.colors.primary, marginBottom: 20, display: "flex", justifyContent: "center" }}>
             <Flower size={48} strokeWidth={1.5} />
           </div>
-          <h2 style={{ marginBottom: 10, color: theme.colors.textMain }}>Bem-vinda, Serva</h2>
+          <h2 style={{ marginBottom: 10, color: theme.colors.primary, fontFamily: "'Playfair Display', serif" }}>Bem-vindo(a), Servo(a)</h2>
           <p style={{ color: theme.colors.textSecondary, fontSize: "0.9rem", marginBottom: 30 }}>Faça login para ver a escala</p>
 
           <form onSubmit={handleLogin}>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Seu E-mail" style={{ marginBottom: 15, width: "100%", padding: "12px", borderRadius: "8px", border: `1px solid ${theme.colors.border}`, boxSizing: "border-box" }} />
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Sua Senha" style={{ marginBottom: 25, width: "100%", padding: "12px", borderRadius: "8px", border: `1px solid ${theme.colors.border}`, boxSizing: "border-box" }} />
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Seu E-mail" style={{ marginBottom: 15, width: "100%", padding: "12px", borderRadius: "10px", border: `1px solid ${theme.colors.border}`, boxSizing: "border-box", color: theme.colors.textMain }} />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Sua Senha" style={{ marginBottom: 25, width: "100%", padding: "12px", borderRadius: "10px", border: `1px solid ${theme.colors.border}`, boxSizing: "border-box", color: theme.colors.textMain }} />
             {authError && <p style={{ color: theme.colors.dangerDark, fontSize: "0.9rem", marginBottom: 15 }}>{authError}</p>}
-            <button type="submit" style={{ width: "100%", padding: "14px", border: "none", cursor: "pointer", borderRadius: "8px", fontWeight: "bold", fontSize: "1rem", background: theme.colors.primary, color: "white" }}>
+            <button type="submit" style={{ width: "100%", padding: "14px", border: "none", cursor: "pointer", borderRadius: "10px", fontWeight: "bold", fontSize: "1rem", background: theme.colors.primaryGradient, color: "#FDFBF7", letterSpacing: "1px" }}>
               ENTRAR
             </button>
           </form>

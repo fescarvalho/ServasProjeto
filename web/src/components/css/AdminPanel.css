@@ -82,17 +82,17 @@
 
 /* --- 2. Formulário de Criação (Caixa Rosa) --- */
 .new-mass-card {
-  background-color: var(--color-danger-light);
-  /* Rosa bem clarinho */
-  border: 1px solid var(--color-danger);
+  background-color: #FAF7F2;
+  /* Marfim claro */
+  border: 1px solid var(--color-border);
   border-radius: 20px;
   padding: 25px;
   margin-bottom: 30px;
 }
 
 .section-title {
-  color: var(--color-danger-dark);
-  /* Vermelho vinho */
+  color: var(--color-primary);
+  /* Marrom elegante */
   display: flex;
   align-items: center;
   gap: 8px;
@@ -138,8 +138,8 @@
 }
 
 .form-input:focus {
-  border-color: #c62828;
-  box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(92, 64, 51, 0.15);
 }
 
 .btn-create {
@@ -291,9 +291,9 @@
 }
 
 .admin-tab.active {
-  background: var(--color-primary, #ff2e63);
+  background: var(--color-primary, #5C4033);
   color: #fff;
-  box-shadow: 0 4px 12px rgba(255, 46, 99, 0.3);
+  box-shadow: 0 4px 12px rgba(92, 64, 51, 0.30);
 }
 
 /* --- 5. Modal de Serva --- */

@@ -17,7 +17,7 @@ const PRAYERS: Prayer[] = [
         title: "Oração de Santa Terezinha",
         subtitle: "Padroeira do nosso grupo de servas",
         icon: "🌸",
-        color: "#be185d",
+        color: "#6B4F3A",
         text: `Santa Terezinha do Menino Jesus,
 pequena flor do jardim do Senhor,
 ensinai-nos a amar a Deus
@@ -65,7 +65,7 @@ Amém.`,
         title: "Oração antes de Servir ao Altar",
         subtitle: "Para recitar antes de iniciar o serviço",
         icon: "🌹",
-        color: "#e91e63",
+        color: "#8D6E63",
         text: `Senhor Jesus Cristo,
 venho diante do Vosso Altar com humildade e reverência.
 
@@ -174,16 +174,16 @@ export function Prayers() {
         <div style={{ padding: "20px 15px", display: "flex", flexDirection: "column", gap: "10px" }}>
             {/* Cabeçalho */}
             <div style={{
-                background: "linear-gradient(135deg, #be185d, #9d174d)",
+                background: "linear-gradient(135deg, #3E2723 0%, #5C4033 60%, #8D6E63 100%)",
                 color: "white",
                 borderRadius: "16px",
                 padding: "20px",
                 textAlign: "center",
                 marginBottom: "4px",
-                boxShadow: "0 4px 20px #be185d44",
+                boxShadow: "0 4px 20px rgba(92,64,51,0.35)",
             }}>
                 <div style={{ fontSize: "2rem", marginBottom: "6px" }}>🙏</div>
-                <h2 style={{ margin: "0 0 4px", fontSize: "1.2rem", fontWeight: 800 }}>Orações do Altar</h2>
+                <h2 style={{ margin: "0 0 4px", fontSize: "1.2rem", fontWeight: 800, color: "white" }}>Orações do Altar</h2>
                 <p style={{ margin: 0, fontSize: "0.85rem", opacity: 0.85 }}>Reze antes e depois de servir</p>
             </div>
 

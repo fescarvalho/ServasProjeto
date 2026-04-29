@@ -373,7 +373,7 @@ function LiturgySectionComponent({ title, content }: { title: string; content: s
                 fontFamily: "Inter, sans-serif",
                 fontSize: "0.9rem",
                 fontWeight: "800",
-                color: "#a32553",
+                color: "#5C4033",
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
                 margin: "0 0 12px 0",
@@ -397,7 +397,7 @@ function LiturgySectionComponent({ title, content }: { title: string; content: s
                     style={{
                         background: "none",
                         border: "none",
-                        color: "#a32553",
+                        color: "#5C4033",
                         fontSize: "0.85rem",
                         fontWeight: "700",
                         padding: "8px 0",

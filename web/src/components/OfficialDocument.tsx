@@ -119,7 +119,7 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
             justifyContent: "center",
             width: "60px",
             height: "60px",
-            backgroundColor: "#fce4ec",
+            backgroundColor: "rgba(92,64,51,0.10)",
             borderRadius: "50%",
             marginBottom: "10px",
             color: theme.colors.primary,
@@ -138,7 +138,7 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
             fontWeight: "normal",
           }}
         >
-          Escala das Servas
+          Escala de Servas
         </h1>
         <div
           style={{
@@ -192,7 +192,7 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
           }}
         >
           <thead>
-            <tr style={{ backgroundColor: "#e91e63", color: "white" }}>
+            <tr style={{ backgroundColor: "#5C4033", color: "#FDFBF7" }}>
               <th
                 style={{
                   padding: "12px 10px",
@@ -247,7 +247,7 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
                 return getRolePriority(a) - getRolePriority(b);
               });
 
-              const rowBg = index % 2 === 0 ? "#ffffff" : "#fff9fc";
+              const rowBg = index % 2 === 0 ? "#ffffff" : "#FAF7F2";
               const massName = (mass as Mass & { name?: string }).name;
 
               return (
@@ -317,10 +317,10 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
                         color: theme.colors.primary,
                         fontWeight: "900",
                         fontSize: "14px",
-                        backgroundColor: "#fce4ec",
+                        backgroundColor: "rgba(92,64,51,0.08)",
                         padding: "6px 12px",
                         borderRadius: "6px",
-                        border: "1px solid #f8bbd0",
+                        border: "1px solid rgba(92,64,51,0.20)",
                       }}
                     >
                       <Clock size={14} strokeWidth={2.5} />
@@ -386,7 +386,7 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
           style={{
             fontSize: "14px",
             fontStyle: "italic",
-            color: "#e91e63",
+            color: theme.colors.primary,
             fontWeight: "bold",
             fontFamily: "cursive",
           }}
@@ -413,8 +413,8 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
           .no-print { display: none !important; }
           table { page-break-inside: auto; }
           tr { page-break-inside: avoid; page-break-after: auto; }
-          th { background-color: #e91e63 !important; color: white !important; }
-          tr:nth-child(even) { background-color: #fff9fc !important; }
+          th { background-color: #5C4033 !important; color: #FDFBF7 !important; }
+          tr:nth-child(even) { background-color: #FAF7F2 !important; }
         }
         @media screen and (max-width: 480px) {
           .document-container { padding: 10px !important; }

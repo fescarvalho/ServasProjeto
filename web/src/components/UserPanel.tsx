@@ -331,7 +331,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           backdropFilter: "blur(5px)"
         }}>
           <p style={{ margin: 0, fontSize: "1.1rem", fontWeight: "400" }}>
-            Bem-vinda, <strong style={{ fontWeight: "800" }}>{user.name.split(" ")[0]}</strong> 🌹
+            Bem-vindo(a), <strong style={{ fontWeight: "800" }}>{user.name.split(" ")[0]}</strong> 🕊️
           </p>
         </div>
 
@@ -624,7 +624,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                                 {mass.name || new Date(mass.date).toLocaleDateString("pt-BR", { weekday: "long" })}
                               </h3>
                               <div className="card-time">
-                                <Clock size={16} color="#ff2e63" />
+                                <Clock size={16} color={theme.colors.primary} />
                                 <span>
                                   {new Date(mass.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                                 </span>
