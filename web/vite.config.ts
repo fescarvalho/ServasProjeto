@@ -25,10 +25,10 @@ export default defineConfig({
       },
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "masked-icon.svg"],
       manifest: {
-        name: "Escala das Servas",
-        short_name: "Servas do Altar",
-        description: "Gerenciamento da escala das servas do altar.",
-        theme_color: "#e91e63",
+        name: "Servas Santa Terezinha",
+        short_name: "Servas",
+        description: "Gerenciamento da escala do Grupo de Servas Santa Terezinha.",
+        theme_color: "#2C1A10",
         background_color: "#ffffff",
         display: "standalone",
         icons: [

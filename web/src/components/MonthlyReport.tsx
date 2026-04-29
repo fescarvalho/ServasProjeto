@@ -61,7 +61,7 @@ export function MonthlyReport({ masses }: MonthlyReportProps) {
 
     // 6. Gerar o PDF
     doc.setFontSize(18);
-    doc.setTextColor(233, 30, 99);
+    doc.setTextColor(92, 64, 51);
     doc.text("Relatório Mensal de Atividades", 14, 20);
 
     doc.setFontSize(10);
@@ -71,7 +71,7 @@ export function MonthlyReport({ masses }: MonthlyReportProps) {
 
     // Tabela de presenças
     doc.setFontSize(13);
-    doc.setTextColor(233, 30, 99);
+    doc.setTextColor(92, 64, 51);
     doc.text("Presenças", 14, 44);
 
     autoTable(doc, {
@@ -81,7 +81,7 @@ export function MonthlyReport({ masses }: MonthlyReportProps) {
         presenceRows.length > 0
           ? presenceRows
           : [["Nenhuma presença registrada", "", ""]],
-      headStyles: { fillColor: [233, 30, 99] },
+      headStyles: { fillColor: [92, 64, 51] },
       styles: { fontSize: 10, cellPadding: 4 },
       columnStyles: {
         1: { halign: "center", cellWidth: 30 },
@@ -117,8 +117,8 @@ export function MonthlyReport({ masses }: MonthlyReportProps) {
       onClick={generateMonthlyPDF}
       style={{
         background: "white",
-        color: "#e91e63",
-        border: "1px solid #e91e63",
+        color: "#5C4033",
+        border: "1px solid #5C4033",
         padding: "10px 20px",
         borderRadius: "30px",
         cursor: "pointer",
@@ -130,7 +130,7 @@ export function MonthlyReport({ masses }: MonthlyReportProps) {
         marginTop: "10px",
         transition: "all 0.2s",
       }}
-      onMouseOver={(e) => (e.currentTarget.style.background = "#fff5f8")}
+      onMouseOver={(e) => (e.currentTarget.style.background = "#FDFBF7")}
       onMouseOut={(e) => (e.currentTarget.style.background = "white")}
     >
       <ClipboardList size={18} />

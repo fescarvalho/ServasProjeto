@@ -29,8 +29,8 @@ export function GeneralRankingModal({ masses, onClose }: GeneralRankingModalProp
     .sort((a, b) => b.count - a.count);
 
   const getBadge = (count: number) => {
-    if (count >= 15) return { icon: <Flower size={20} fill="#e91e63" stroke="#880e4f" />, name: "Rosa de Amor", color: "#fce4ec", border: "#c2185b" };
-    if (count >= 5) return { icon: <Flower size={20} fill="#f48fb1" />, name: "Botão de Rosa", color: "#fff0f5", border: "#ec407a" };
+    if (count >= 15) return { icon: <Flower size={20} fill="#B71C1C" stroke="#7F0000" />, name: "Rosa de Amor", color: "#FFEBEE", border: "#B71C1C" };
+    if (count >= 5) return { icon: <Flower size={20} fill="#D32F2F" />, name: "Botão de Rosa", color: "#FFF5F5", border: "#D32F2F" };
     return { icon: <Flower size={20} />, name: "Semente da Fé", color: "#e8f5e9", border: "#81c784" };
   };
 
