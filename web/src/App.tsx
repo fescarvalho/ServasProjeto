@@ -95,9 +95,6 @@ function App() {
     if (user) {
       fetchMasses();
 
-      // Busca atualização do PWA ao fazer login
-      updateServiceWorker(false);
-
       // Request push subscription upon successful login, passing the token explicitly
       setTimeout(() => {
         if (user.token) {
@@ -105,7 +102,23 @@ function App() {
         }
       }, 1000);
     }
-  }, [user, fetchMasses, updateServiceWorker]);
+  }, [user, fetchMasses]);
+
+  // --- LÓGICA DE ATUALIZAÇÃO DO PWA ---
+  useEffect(() => {
+    // Busca atualização ao montar o componente
+    updateServiceWorker(false);
+
+    // Busca atualização ao voltar do segundo plano
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        updateServiceWorker(false);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [updateServiceWorker]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();

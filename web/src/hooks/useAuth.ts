@@ -29,9 +29,22 @@ export function useAuth(): UseAuthReturn {
 
             // Registra o momento do login como "online"
             setLastOnline();
-        } catch (err) {
+        } catch (err: any) {
             console.error("Erro no login:", err);
-            setError("E-mail ou senha incorretos.");
+            
+            if (err.response) {
+                // O servidor respondeu com um erro (ex: 401, 400, 500)
+                if (err.response.status === 401) {
+                    setError("E-mail ou senha incorretos.");
+                } else {
+                    setError(err.response.data?.error || "Erro no servidor. Tente novamente.");
+                }
+            } else if (err.request) {
+                // A requisição foi feita mas não houve resposta (erro de rede)
+                setError("Erro de conexão. Verifique sua internet.");
+            } else {
+                setError("Ocorreu um erro inesperado.");
+            }
             throw err;
         } finally {
             setIsLoading(false);
