@@ -1242,7 +1242,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                         <td style={{ padding: "12px 14px", fontWeight: "600", color: "#333" }}>{serva.name}</td>
                         <td style={{ padding: "12px 14px", color: "#666", fontSize: "0.9rem" }}>{serva.email}</td>
                         <td style={{ padding: "12px 14px", textAlign: "center", color: "#666", fontSize: "0.9rem" }}>
-                          {serva.birthDate ? new Date(serva.birthDate).toLocaleDateString("pt-BR") : "—"}
+                          {serva.birthDate ? new Date(serva.birthDate.split("T")[0] + "T12:00:00").toLocaleDateString("pt-BR") : "—"}
                         </td>
                         <td style={{ padding: "12px 14px", textAlign: "center" }}>
                           <div style={{ display: "flex", gap: "8px", justifyContent: "center" }}>

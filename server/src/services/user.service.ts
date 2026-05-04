@@ -49,7 +49,7 @@ export async function createUser(data: {
             name: data.name,
             email: data.email,
             password: data.password,
-            birthDate: data.birthDate ? new Date(data.birthDate) : null,
+            birthDate: data.birthDate ? new Date(data.birthDate + "T12:00:00") : null,
             role: "USER",
         },
         select: {
@@ -87,7 +87,7 @@ export async function updateUser(
     if (data.name !== undefined) updateData.name = data.name;
     if (data.email !== undefined) updateData.email = data.email;
     if (data.birthDate !== undefined) {
-        updateData.birthDate = data.birthDate ? new Date(data.birthDate) : null;
+        updateData.birthDate = data.birthDate ? new Date(data.birthDate + "T12:00:00") : null;
     }
 
     return await prisma.user.update({

@@ -26,21 +26,29 @@ export async function parseScheduleImage(imageBuffer: Buffer, mimeType: string):
 
             const prompt = `
                 Você é um assistente especializado em extrair horários de missas de imagens de agendas paroquiais.
-                Analise a imagem fornecida e extraia APENAS as missas da MATRIZ.
+                Analise a imagem fornecida e extraia as missas dos seguintes locais:
+                - MATRIZ
+                - Santa Terezinha (Popular Nova)
+                - São Francisco (Balneário)
                 
-                IMPORTANTE: Ignore qualquer outra comunidade, capela ou local que não seja a "MATRIZ".
+                IMPORTANTE: Ignore qualquer outra comunidade, capela ou local que não seja um dos três listados acima.
                 
                 Regras de extração:
                 1. A data deve estar no formato YYYY-MM-DD. O ano é 2026.
                 2. O horário deve estar no formato HH:mm (24h).
-                3. O nome deve ser obrigatoriamente "MATRIZ".
+                3. O campo "name" deve ser exatamente um dos seguintes valores:
+                   - "MATRIZ" para missas na Matriz/Igreja Matriz
+                   - "Santa Terezinha (Popular Nova)" para missas em Santa Terezinha ou Popular Nova
+                   - "São Francisco (Balneário)" para missas em São Francisco ou Balneário
                 
                 Retorne APENAS um array JSON válido no seguinte formato:
                 [
                     { "date": "2026-03-01", "time": "07:00", "name": "MATRIZ" },
+                    { "date": "2026-03-01", "time": "09:00", "name": "Santa Terezinha (Popular Nova)" },
+                    { "date": "2026-03-01", "time": "19:00", "name": "São Francisco (Balneário)" },
                     ...
                 ]
-                Não inclua nenhuma explicação ou formatação markdown. Apenas o array puro ou um array vazio [] se não houver missas na Matriz.
+                Não inclua nenhuma explicação ou formatação markdown. Apenas o array puro ou um array vazio [] se não houver missas nos locais listados.
             `;
 
             const imageParts = [{
@@ -54,8 +62,9 @@ export async function parseScheduleImage(imageBuffer: Buffer, mimeType: string):
             const cleanJson = text.replace(/```json/g, "").replace(/```/g, "").trim();
             const extracted: ExtractedMass[] = JSON.parse(cleanJson);
 
-            // Filtro de segurança adicional no código para garantir apenas MATRIZ
-            return extracted.filter(m => m.name.toUpperCase().includes("MATRIZ"));
+            // Filtro de segurança: apenas locais permitidos
+            const allowedNames = ["MATRIZ", "Santa Terezinha (Popular Nova)", "São Francisco (Balneário)"];
+            return extracted.filter(m => allowedNames.some(name => m.name.toUpperCase().includes(name.toUpperCase())));
 
         } catch (error: any) {
             console.error(`Erro no modelo ${modelName}:`, error.message);
