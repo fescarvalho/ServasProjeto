@@ -405,27 +405,27 @@ export const LITURGICAL_DATA_2026: Record<string, DayData> = {
         celebration: "S. Filipe Néri",
         history: "O 'Apóstolo de Roma' e 'Santo da Alegria'. Fundou o Oratório e dedicou-se à formação espiritual dos jovens e à caridade, sempre com um sorriso e profunda humildade."
     },
-    "05-23": { season: "Tempo Pascal", color: "branco" },
-    "05-24": { season: "Pentecostes (Vigília)", color: "vermelho" },
-    "05-25": { season: "Pentecostes", color: "vermelho", celebration: "Solenidade de Pentecostes" },
+    "05-23": { season: "Pentecostes (Vigília)", color: "vermelho" },
+    "05-24": { season: "Pentecostes", color: "vermelho", celebration: "Solenidade de Pentecostes" },
+    "05-25": { season: "Tempo Comum", color: "verde" },
     "05-27": { season: "Tempo Comum", color: "verde" },
     "05-28": { season: "Tempo Comum", color: "verde" },
     "05-29": { season: "Tempo Comum", color: "verde" },
-    "05-30": { season: "Tempo Comum", color: "verde" },
-    "05-31": {
+    "05-30": {
         season: "Visitação de N. Sra.",
         color: "branco",
         celebration: "Visitação de Nossa Senhora",
         history: "Celebra o encontro de Maria, grávida de Jesus, com sua prima Isabel, grávida de João Batista. É o encontro de duas mães e dois filhos, onde o Batista estremece de alegria no ventre e Maria entoa o Magnificat."
     },
-
-    // Junho
-    "06-01": {
+    "05-31": {
         season: "Santíssima Trindade",
         color: "branco",
         celebration: "Solenidade da Santíssima Trindade",
         history: "Mistério central da nossa fé: um só Deus em três Pessoas - Pai, Filho e Espírito Santo. Celebramos a fonte de todo amor e a comunhão perfeita que DEUS é em Si mesmo."
     },
+
+    // Junho
+    "06-01": { season: "Tempo Comum", color: "verde" },
     "06-03": {
         season: "Tempo Comum",
         color: "vermelho",
@@ -438,7 +438,7 @@ export const LITURGICAL_DATA_2026: Record<string, DayData> = {
         celebration: "S. Bonifácio",
         history: "O 'Apóstolo da Alemanha'. Monge inglês que evangelizou os povos germânicos. É conhecido por ter derrubado o carvalho sagrado de Thor para mostrar a superioridade de Cristo."
     },
-    "06-06": {
+    "06-04": {
         season: "Corpus Christi",
         color: "branco",
         celebration: "Solenidade do Corpo e Sangue de Cristo",
