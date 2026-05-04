@@ -5,6 +5,7 @@ export interface CreateMassData {
     date: string;
     time?: string;
     name?: string;
+    local?: string;
     maxServers: number;
     deadline?: string | null;
     points?: number; // <-- Adicionado

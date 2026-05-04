@@ -52,6 +52,7 @@ interface MassFormProps {
   localSignups?: Signup[];
   setLocalSignups?: React.Dispatch<React.SetStateAction<Signup[]>>;
   newName: string; setNewName: (v: string) => void;
+  newLocal: string; setNewLocal: (v: string) => void;
   newDate: string; setNewDate: (v: string) => void;
   newTime: string; setNewTime: (v: string) => void;
   newDeadline: string; setNewDeadline: (v: string) => void;
@@ -71,6 +72,7 @@ function MassForm({
   localSignups,
   setLocalSignups,
   newName, setNewName,
+  newLocal, setNewLocal,
   newDate, setNewDate,
   newTime, setNewTime,
   newDeadline, setNewDeadline,
@@ -89,6 +91,15 @@ function MassForm({
       <div className="form-group full-width">
         <label>Nome (Opcional)</label>
         <input className="form-input" type="text" value={newName} onChange={(e) => setNewName(e.target.value)} />
+      </div>
+      <div className="form-group full-width">
+        <label>Local</label>
+        <select className="form-input" value={newLocal} onChange={(e) => setNewLocal(e.target.value)}>
+          <option value="">Selecione o local</option>
+          <option value="SANTUARIO (MATRIZ)">SANTUARIO (MATRIZ)</option>
+          <option value="SANTA TEREZINHA">SANTA TEREZINHA</option>
+          <option value="SAO FRANCISCO">SAO FRANCISCO</option>
+        </select>
       </div>
       <div className="form-group">
         <label>Data</label>
@@ -271,6 +282,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [newDate, setNewDate] = useState("");
   const [newTime, setNewTime] = useState("");
   const [newName, setNewName] = useState("");
+  const [newLocal, setNewLocal] = useState("");
   const [newMax, setNewMax] = useState<number>(APP_CONFIG.DEFAULT_MAX_SERVERS);
   const [newIsSolemnity, setNewIsSolemnity] = useState(false);
   const [newPoints, setNewPoints] = useState<number>(0);
@@ -446,6 +458,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     setNewDate(toLocalDate(d));
     setNewTime(d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
     setNewName(mass.name || "");
+    setNewLocal(mass.local || "");
     setNewMax(mass.maxServers);
     setNewIsSolemnity(mass.isSolemnity || false);
     setNewPoints(mass.points || 0);
@@ -463,6 +476,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     setNewDate("");
     setNewTime("");
     setNewName("");
+    setNewLocal("");
     setNewMax(APP_CONFIG.DEFAULT_MAX_SERVERS);
     setNewIsSolemnity(false);
     setNewPoints(0);
@@ -514,6 +528,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         time: newTime,
         maxServers: newMax,
         name: newName,
+        local: newLocal,
         deadline: newDeadline || null,
         isSolemnity: newIsSolemnity,
         points: newPoints > 0 ? newPoints : undefined,
@@ -674,6 +689,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
           date: m.date,
           time: m.time,
           name: m.name,
+          local: m.local,
           maxServers: 4 // Padrão
         });
       }
@@ -694,6 +710,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     allMasses: masses,
     localSignups, setLocalSignups,
     newName, setNewName,
+    newLocal, setNewLocal,
     newDate, setNewDate,
     newTime, setNewTime,
     newDeadline, setNewDeadline,

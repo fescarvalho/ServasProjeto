@@ -249,6 +249,7 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
 
               const rowBg = index % 2 === 0 ? "#ffffff" : "#FAF7F2";
               const massName = (mass as Mass & { name?: string }).name;
+              const massLocal = (mass as Mass & { local?: string }).local;
 
               return (
                 <tr key={mass.id} style={{ backgroundColor: rowBg }}>
@@ -274,6 +275,22 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
                         }}
                       >
                         {massName}
+                      </div>
+                    )}
+                    {massLocal && (
+                      <div
+                        style={{
+                          marginBottom: "10px",
+                          paddingBottom: "8px",
+                          borderBottom: `1px dashed ${theme.colors.borderDark}`,
+                          color: theme.colors.secondary,
+                          fontWeight: "bold",
+                          fontSize: "10px",
+                          lineHeight: "1.2",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        📍 {massLocal}
                       </div>
                     )}
 

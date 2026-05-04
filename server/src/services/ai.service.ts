@@ -8,7 +8,7 @@ const genAI = new GoogleGenerativeAI(process.env.API_GEMINI || "");
 export interface ExtractedMass {
     date: string; // YYYY-MM-DD
     time: string; // HH:mm
-    name: string; // Local da missa (ex: MATRIZ, SÃO FRANCISCO, etc)
+    local: string; // Local da missa (ex: SANTA TEREZINHA, SAO FRANCISCO, SANTUARIO (MATRIZ))
 }
 
 /**
@@ -27,25 +27,25 @@ export async function parseScheduleImage(imageBuffer: Buffer, mimeType: string):
             const prompt = `
                 Você é um assistente especializado em extrair horários de missas de imagens de agendas paroquiais.
                 Analise a imagem fornecida e extraia as missas dos seguintes locais:
-                - MATRIZ (Salvar como "Santuário")
-                - Santa Terezinha (Popular Nova)
-                - São Francisco (Balneário)
+                - SANTUARIO (MATRIZ)
+                - SANTA TEREZINHA
+                - SAO FRANCISCO
                 
                 IMPORTANTE: Ignore qualquer outra comunidade, capela ou local que não seja um dos três listados acima.
                 
                 Regras de extração:
                 1. A data deve estar no formato YYYY-MM-DD. O ano é 2026.
                 2. O horário deve estar no formato HH:mm (24h).
-                3. O campo "name" deve ser exatamente um dos seguintes valores:
-                   - "Santuário" para missas na Matriz/Igreja Matriz/Santuário
-                   - "Santa Terezinha (Popular Nova)" para missas em Santa Terezinha ou Popular Nova
-                   - "São Francisco (Balneário)" para missas em São Francisco ou Balneário
+                3. O campo "local" deve ser exatamente um dos seguintes valores:
+                   - "SANTUARIO (MATRIZ)" para missas na Matriz/Igreja Matriz/Santuário
+                   - "SANTA TEREZINHA" para missas em Santa Terezinha ou Popular Nova
+                   - "SAO FRANCISCO" para missas em São Francisco ou Balneário
                 
                 Retorne APENAS um array JSON válido no seguinte formato:
                 [
-                    { "date": "2026-03-01", "time": "07:00", "name": "Santuário" },
-                    { "date": "2026-03-01", "time": "09:00", "name": "Santa Terezinha (Popular Nova)" },
-                    { "date": "2026-03-01", "time": "19:00", "name": "São Francisco (Balneário)" },
+                    { "date": "2026-03-01", "time": "07:00", "local": "SANTUARIO (MATRIZ)" },
+                    { "date": "2026-03-01", "time": "09:00", "local": "SANTA TEREZINHA" },
+                    { "date": "2026-03-01", "time": "19:00", "local": "SAO FRANCISCO" },
                     ...
                 ]
                 Não inclua nenhuma explicação ou formatação markdown. Apenas o array puro ou um array vazio [] se não houver missas nos locais listados.
@@ -63,8 +63,8 @@ export async function parseScheduleImage(imageBuffer: Buffer, mimeType: string):
             const extracted: ExtractedMass[] = JSON.parse(cleanJson);
 
             // Filtro de segurança: apenas locais permitidos
-            const allowedNames = ["Santuário", "Santa Terezinha (Popular Nova)", "São Francisco (Balneário)"];
-            return extracted.filter(m => allowedNames.some(name => m.name.toUpperCase().includes(name.toUpperCase())));
+            const allowedLocals = ["SANTUARIO (MATRIZ)", "SANTA TEREZINHA", "SAO FRANCISCO"];
+            return extracted.filter(m => allowedLocals.some(loc => m.local.toUpperCase().includes(loc.toUpperCase())));
 
         } catch (error: any) {
             console.error(`Erro no modelo ${modelName}:`, error.message);

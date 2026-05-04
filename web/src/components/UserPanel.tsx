@@ -623,6 +623,11 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                               <h3 className="card-title">
                                 {mass.name || new Date(mass.date).toLocaleDateString("pt-BR", { weekday: "long" })}
                               </h3>
+                              {mass.local && (
+                                <div style={{ fontSize: "0.85rem", color: theme.colors.textSecondary, fontWeight: "bold", marginBottom: "4px" }}>
+                                  📍 {mass.local}
+                                </div>
+                              )}
                               <div className="card-time">
                                 <Clock size={16} color={theme.colors.primary} />
                                 <span>

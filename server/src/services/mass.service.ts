@@ -6,6 +6,7 @@ interface MassData {
     time: string;
     maxServers: number;
     name?: string;
+    local?: string;
     deadline?: string;
     open?: boolean;
     isSolemnity?: boolean;
@@ -33,6 +34,7 @@ export async function createMass(data: MassData) {
             date: dateTime,
             maxServers: Number(data.maxServers),
             name: data.name || null,
+            local: data.local || null,
             deadline,
             published: false,
             open: Boolean(data.open),
@@ -57,6 +59,10 @@ export async function updateMass(id: string, data: Partial<MassData>) {
 
     if (data.name !== undefined) {
         updateData.name = data.name || null;
+    }
+
+    if (data.local !== undefined) {
+        updateData.local = data.local || null;
     }
 
     if (data.deadline !== undefined) {
@@ -122,6 +128,10 @@ export async function patchMass(id: string, data: any) {
 
     if (updateData.maxServers !== undefined) {
         updateData.maxServers = Number(updateData.maxServers);
+    }
+
+    if (updateData.local !== undefined) {
+        updateData.local = updateData.local || null;
     }
 
     if (updateData.deadline !== undefined) {

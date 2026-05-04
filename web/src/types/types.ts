@@ -34,6 +34,7 @@ export interface Mass {
   date: string;
   time?: string;
   name?: string;
+  local?: string;
   maxServers: number;
   deadline?: string;
   published: boolean;
