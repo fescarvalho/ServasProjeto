@@ -96,7 +96,7 @@ function MassForm({
         <label>Local</label>
         <select className="form-input" value={newLocal} onChange={(e) => setNewLocal(e.target.value)}>
           <option value="">Selecione o local</option>
-          <option value="SANTUARIO (MATRIZ)">SANTUARIO (MATRIZ)</option>
+          <option value="SANTUARIO">SANTUARIO</option>
           <option value="SANTA TEREZINHA">SANTA TEREZINHA</option>
           <option value="SAO FRANCISCO">SAO FRANCISCO</option>
         </select>
@@ -859,6 +859,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                       <th style={{ padding: "10px", textAlign: "left" }}>Data</th>
                       <th style={{ padding: "10px", textAlign: "left" }}>Hora</th>
                       <th style={{ padding: "10px", textAlign: "left" }}>Local</th>
+                      <th style={{ padding: "10px", textAlign: "center", width: "50px" }}>Ação</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -866,7 +867,16 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                       <tr key={idx}>
                         <td style={{ padding: "10px" }}>{new Date(m.date + "T12:00:00").toLocaleDateString("pt-BR")}</td>
                         <td style={{ padding: "10px" }}>{m.time}</td>
-                        <td style={{ padding: "10px", fontWeight: "bold" }}>{m.name}</td>
+                        <td style={{ padding: "10px", fontWeight: "bold" }}>{m.name || m.local}</td>
+                        <td style={{ padding: "10px", textAlign: "center" }}>
+                          <button
+                            onClick={() => setAiExtractedMasses(prev => prev.filter((_, i) => i !== idx))}
+                            style={{ background: "none", border: "none", color: "#d32f2f", cursor: "pointer" }}
+                            title="Remover"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

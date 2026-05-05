@@ -8,7 +8,7 @@ const genAI = new GoogleGenerativeAI(process.env.API_GEMINI || "");
 export interface ExtractedMass {
     date: string; // YYYY-MM-DD
     time: string; // HH:mm
-    local: string; // Local da missa (ex: SANTA TEREZINHA, SAO FRANCISCO, SANTUARIO (MATRIZ))
+    local: string; // Local da missa (ex: SANTA TEREZINHA, SAO FRANCISCO, SANTUARIO)
 }
 
 /**
@@ -27,7 +27,7 @@ export async function parseScheduleImage(imageBuffer: Buffer, mimeType: string):
             const prompt = `
                 Você é um assistente especializado em extrair horários de missas de imagens de agendas paroquiais.
                 Analise a imagem fornecida e extraia as missas dos seguintes locais:
-                - SANTUARIO (MATRIZ)
+                - SANTUARIO
                 - SANTA TEREZINHA
                 - SAO FRANCISCO
                 
@@ -37,13 +37,13 @@ export async function parseScheduleImage(imageBuffer: Buffer, mimeType: string):
                 1. A data deve estar no formato YYYY-MM-DD. O ano é 2026.
                 2. O horário deve estar no formato HH:mm (24h).
                 3. O campo "local" deve ser exatamente um dos seguintes valores:
-                   - "SANTUARIO (MATRIZ)" para missas na Matriz/Igreja Matriz/Santuário
+                   - "SANTUARIO" para missas na Matriz/Igreja Matriz/Santuário ou quando estiver escrito apenas MATRIZ
                    - "SANTA TEREZINHA" para missas em Santa Terezinha ou Popular Nova
                    - "SAO FRANCISCO" para missas em São Francisco ou Balneário
                 
                 Retorne APENAS um array JSON válido no seguinte formato:
                 [
-                    { "date": "2026-03-01", "time": "07:00", "local": "SANTUARIO (MATRIZ)" },
+                    { "date": "2026-03-01", "time": "07:00", "local": "SANTUARIO" },
                     { "date": "2026-03-01", "time": "09:00", "local": "SANTA TEREZINHA" },
                     { "date": "2026-03-01", "time": "19:00", "local": "SAO FRANCISCO" },
                     ...
@@ -63,7 +63,7 @@ export async function parseScheduleImage(imageBuffer: Buffer, mimeType: string):
             const extracted: ExtractedMass[] = JSON.parse(cleanJson);
 
             // Filtro de segurança: apenas locais permitidos
-            const allowedLocals = ["SANTUARIO (MATRIZ)", "SANTA TEREZINHA", "SAO FRANCISCO"];
+            const allowedLocals = ["SANTUARIO", "SANTA TEREZINHA", "SAO FRANCISCO"];
             return extracted.filter(m => allowedLocals.some(loc => m.local.toUpperCase().includes(loc.toUpperCase())));
 
         } catch (error: any) {
