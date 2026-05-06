@@ -34,13 +34,13 @@ export async function getUsersListFull(req: Request, res: Response) {
  */
 export async function createUser(req: Request, res: Response) {
     try {
-        const { name, email, password, birthDate } = req.body;
+        const { name, email, password, birthDate, role } = req.body;
 
         if (!name || !email || !password) {
             return badRequest(res, "Nome, email e senha são obrigatórios");
         }
 
-        const user = await userService.createUser({ name, email, password, birthDate });
+        const user = await userService.createUser({ name, email, password, birthDate, role });
         return success(res, user, HTTP_STATUS.CREATED);
     } catch (err: any) {
         if (err.message === "EMAIL_EXISTS") {
@@ -57,9 +57,9 @@ export async function createUser(req: Request, res: Response) {
 export async function updateUser(req: Request, res: Response) {
     try {
         const id = req.params.id as string;
-        const { name, email, birthDate } = req.body;
+        const { name, email, birthDate, role } = req.body;
 
-        const user = await userService.updateUser(id, { name, email, birthDate });
+        const user = await userService.updateUser(id, { name, email, birthDate, role });
         return success(res, user);
     } catch (err: any) {
         if (err.message === "EMAIL_EXISTS") {

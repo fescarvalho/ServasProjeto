@@ -34,6 +34,7 @@ export async function createUser(data: {
     email: string;
     password: string;
     birthDate?: string;
+    role?: string;
 }) {
     // Verificar se email já existe
     const existing = await prisma.user.findUnique({
@@ -50,7 +51,7 @@ export async function createUser(data: {
             email: data.email,
             password: data.password,
             birthDate: data.birthDate ? new Date(data.birthDate + "T12:00:00") : null,
-            role: "USER",
+            role: data.role || "USER",
         },
         select: {
             id: true,
@@ -67,7 +68,7 @@ export async function createUser(data: {
  */
 export async function updateUser(
     id: string,
-    data: { name?: string; email?: string; birthDate?: string }
+    data: { name?: string; email?: string; birthDate?: string; role?: string }
 ) {
     // Se estiver mudando email, verificar duplicidade
     if (data.email) {
@@ -86,6 +87,7 @@ export async function updateUser(
     const updateData: any = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.email !== undefined) updateData.email = data.email;
+    if (data.role !== undefined) updateData.role = data.role;
     if (data.birthDate !== undefined) {
         updateData.birthDate = data.birthDate ? new Date(data.birthDate + "T12:00:00") : null;
     }
