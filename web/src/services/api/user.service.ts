@@ -24,6 +24,7 @@ export async function createServa(data: {
     email: string;
     password: string;
     birthDate?: string;
+    role?: string;
 }): Promise<ServaData> {
     const response = await apiClient.post<ServaData>("/users", data);
     return response.data;
@@ -34,7 +35,7 @@ export async function createServa(data: {
  */
 export async function updateServa(
     id: string,
-    data: { name?: string; email?: string; birthDate?: string }
+    data: { name?: string; email?: string; birthDate?: string; role?: string }
 ): Promise<ServaData> {
     const response = await apiClient.put<ServaData>(`/users/${id}`, data);
     return response.data;

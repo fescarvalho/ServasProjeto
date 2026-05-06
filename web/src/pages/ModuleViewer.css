@@ -1,0 +1,309 @@
+/* ─── Container Principal ──────────────────────────────────────────────────── */
+.mv-container {
+  min-height: 100vh;
+  background: #f5f0eb;
+  padding-bottom: 40px;
+}
+
+/* ─── Header com cor do módulo ─────────────────────────────────────────────── */
+.mv-header {
+  position: relative;
+  padding: 0 20px 32px;
+  border-radius: 0 0 28px 28px;
+}
+
+.mv-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: white;
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 10px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  margin-top: 16px;
+  backdrop-filter: blur(4px);
+  transition: background 0.2s;
+}
+
+.mv-back-btn:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+.mv-hero {
+  margin-top: 20px;
+  text-align: left;
+}
+
+.mv-emoji {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.mv-title {
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: white;
+  margin: 0 0 10px;
+  line-height: 1.2;
+  font-family: 'Playfair Display', serif;
+}
+
+.mv-intro {
+  font-size: 0.95rem;
+  color: rgba(255,255,255,0.88);
+  margin: 0;
+  line-height: 1.6;
+  font-style: italic;
+}
+
+/* ─── Área de conteúdo ─────────────────────────────────────────────────────── */
+.mv-content {
+  padding: 28px 20px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ─── Parágrafo ───────────────────────────────────────────────────────────── */
+.mv-paragraph {
+  font-size: 0.97rem;
+  color: #3a2e28;
+  line-height: 1.75;
+  margin: 0;
+}
+
+/* ─── Subtítulo ───────────────────────────────────────────────────────────── */
+.mv-subtitle {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #4a3426;
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e0d3c6;
+}
+
+/* ─── Divisor ─────────────────────────────────────────────────────────────── */
+.mv-divider {
+  border: none;
+  border-top: 1px dashed #c8b8a8;
+  margin: 4px 0;
+}
+
+/* ─── Lista com bullets ───────────────────────────────────────────────────── */
+.mv-bullets {
+  padding-left: 0;
+  margin: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mv-bullets li {
+  font-size: 0.93rem;
+  color: #3a2e28;
+  line-height: 1.6;
+  padding-left: 20px;
+  position: relative;
+}
+
+.mv-bullets li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: #8b5e3c;
+  font-weight: bold;
+  font-size: 1.1em;
+}
+
+/* ─── Callout (destaque) ──────────────────────────────────────────────────── */
+.mv-callout {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: #fff8f0;
+  border: 1px solid #f0d9c0;
+  border-left: 4px solid #c8813a;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.mv-callout-emoji {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.mv-callout strong {
+  display: block;
+  font-size: 0.9rem;
+  color: #7c4a1e;
+  margin-bottom: 4px;
+}
+
+.mv-callout p {
+  font-size: 0.88rem;
+  color: #5a3e2b;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ─── Steps (passos numerados) ────────────────────────────────────────────── */
+.mv-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.mv-step {
+  display: flex;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid #ecddd0;
+}
+
+.mv-step:last-child {
+  border-bottom: none;
+}
+
+.mv-step-number {
+  width: 30px;
+  height: 30px;
+  background: #7c3f20;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.mv-step-body {
+  flex: 1;
+}
+
+.mv-step-body strong {
+  display: block;
+  font-size: 0.95rem;
+  color: #3a2010;
+  margin-bottom: 4px;
+}
+
+.mv-step-body p {
+  font-size: 0.88rem;
+  color: #5a4535;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ─── Tabela ──────────────────────────────────────────────────────────────── */
+.mv-table-wrapper {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #e0cfc0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.mv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.mv-table thead tr {
+  background: #7c3f20;
+}
+
+.mv-table th {
+  padding: 12px 14px;
+  color: white;
+  font-weight: 700;
+  text-align: left;
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+}
+
+.mv-table tbody tr {
+  border-bottom: 1px solid #ede3d8;
+  transition: background 0.15s;
+}
+
+.mv-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.mv-table tbody tr:nth-child(even) {
+  background: #fdf7f2;
+}
+
+.mv-table td {
+  padding: 12px 14px;
+  color: #3a2e28;
+  line-height: 1.5;
+  vertical-align: top;
+}
+
+.mv-table td:first-child {
+  font-weight: 700;
+  color: #5c3018;
+  white-space: nowrap;
+}
+
+/* ─── Rodapé ──────────────────────────────────────────────────────────────── */
+.mv-footer {
+  padding: 24px 20px 0;
+}
+
+.mv-footer-btn {
+  width: 100%;
+  padding: 16px;
+  background: white;
+  border: 2px solid #e0cfc0;
+  border-radius: 14px;
+  color: #7c3f20;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mv-footer-btn:hover {
+  background: #f5ede5;
+  border-color: #c8a080;
+}
+
+/* ─── Not found ───────────────────────────────────────────────────────────── */
+.mv-not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  gap: 16px;
+  color: #888;
+}
+
+/* ─── Tabela responsiva no mobile ────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .mv-title {
+    font-size: 1.4rem;
+  }
+
+  .mv-table th,
+  .mv-table td {
+    padding: 10px 10px;
+    font-size: 0.8rem;
+  }
+
+  .mv-table td:first-child {
+    white-space: normal;
+  }
+}

@@ -309,7 +309,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [servasList, setServasList] = useState<ServaData[]>([]);
   const [showServaModal, setShowServaModal] = useState(false);
   const [editingServa, setEditingServa] = useState<ServaData | null>(null);
-  const [servaForm, setServaForm] = useState({ name: "", email: "", password: "", birthDate: "" });
+  const [servaForm, setServaForm] = useState({ name: "", email: "", password: "", birthDate: "", role: "USER" });
   const [servaLoading, setServaLoading] = useState(false);
   const [servaError, setServaError] = useState("");
 
@@ -361,10 +361,11 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         email: serva.email,
         password: "",
         birthDate: serva.birthDate ? serva.birthDate.split("T")[0] : "",
+        role: serva.role || "USER",
       });
     } else {
       setEditingServa(null);
-      setServaForm({ name: "", email: "", password: "", birthDate: "" });
+      setServaForm({ name: "", email: "", password: "", birthDate: "", role: "USER" });
     }
     setServaError("");
     setShowServaModal(true);
@@ -380,6 +381,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
           name: servaForm.name,
           email: servaForm.email,
           birthDate: servaForm.birthDate || undefined,
+          role: servaForm.role,
         });
       } else {
         if (!servaForm.password) {
@@ -392,6 +394,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
           email: servaForm.email,
           password: servaForm.password,
           birthDate: servaForm.birthDate || undefined,
+          role: servaForm.role,
         });
       }
       setShowServaModal(false);
@@ -1200,6 +1203,13 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                     <label>Data de Nascimento</label>
                     <input className="form-input" type="date" value={servaForm.birthDate} onChange={(e) => setServaForm(p => ({ ...p, birthDate: e.target.value }))} />
                   </div>
+                  <div className="form-group">
+                    <label>Status</label>
+                    <select className="form-input" value={servaForm.role} onChange={(e) => setServaForm(p => ({ ...p, role: e.target.value }))}>
+                      <option value="USER">Serva Ativa</option>
+                      <option value="em_formacao">Em Formação</option>
+                    </select>
+                  </div>
                   <div style={{ display: "flex", gap: "10px", marginTop: "5px" }}>
                     <button type="submit" disabled={servaLoading} className="btn-create" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
                       {servaLoading ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}
@@ -1259,6 +1269,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                     <tr style={{ background: "#fce4ec", borderBottom: "2px solid #f8bbd0" }}>
                       <th style={{ padding: "12px 14px", textAlign: "left", fontSize: "0.8rem", color: theme.colors.secondary, fontWeight: "700" }}>Nome</th>
                       <th style={{ padding: "12px 14px", textAlign: "left", fontSize: "0.8rem", color: theme.colors.secondary, fontWeight: "700" }}>Email</th>
+                      <th style={{ padding: "12px 14px", textAlign: "center", fontSize: "0.8rem", color: theme.colors.secondary, fontWeight: "700" }}>Status</th>
                       <th style={{ padding: "12px 14px", textAlign: "center", fontSize: "0.8rem", color: theme.colors.secondary, fontWeight: "700" }}>Nascimento</th>
                       <th style={{ padding: "12px 14px", textAlign: "center", fontSize: "0.8rem", color: theme.colors.secondary, fontWeight: "700", width: "90px" }}>Ações</th>
                     </tr>
@@ -1268,6 +1279,13 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                       <tr key={serva.id} style={{ borderBottom: "1px solid #f0f0f0", transition: "background 0.15s" }} onMouseEnter={(e) => (e.currentTarget.style.background = "#fafafa")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
                         <td style={{ padding: "12px 14px", fontWeight: "600", color: "#333" }}>{serva.name}</td>
                         <td style={{ padding: "12px 14px", color: "#666", fontSize: "0.9rem" }}>{serva.email}</td>
+                        <td style={{ padding: "12px 14px", textAlign: "center", color: "#666", fontSize: "0.9rem" }}>
+                          {serva.role === 'em_formacao' ? (
+                            <span style={{ background: "#e1f5fe", color: "#0277bd", padding: "4px 8px", borderRadius: "10px", fontSize: "0.75rem", fontWeight: "bold" }}>Formação</span>
+                          ) : (
+                            <span style={{ background: "#e8f5e9", color: "#2e7d32", padding: "4px 8px", borderRadius: "10px", fontSize: "0.75rem", fontWeight: "bold" }}>Ativa</span>
+                          )}
+                        </td>
                         <td style={{ padding: "12px 14px", textAlign: "center", color: "#666", fontSize: "0.9rem" }}>
                           {serva.birthDate ? new Date(serva.birthDate.split("T")[0] + "T12:00:00").toLocaleDateString("pt-BR") : "—"}
                         </td>
