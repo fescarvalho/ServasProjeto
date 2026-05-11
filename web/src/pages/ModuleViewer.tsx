@@ -273,22 +273,27 @@ const MODULES: Record<string, ModuleData> = {
           {
             title: 'Amito',
             text: 'Pano sobre os ombros que lembra a disciplina dos sentidos.',
+            image: '/formacao/Amito.png',
           },
           {
             title: 'Estola',
             text: 'Simboliza a autoridade do sacerdote e o jugo de Jesus.',
+            image: '/formacao/Estola.png',
           },
           {
             title: 'Casula',
             text: 'Roupa colorida usada apenas na missa, sobre todos os outros paramentos.',
+            image: '/formacao/Casula.png',
           },
           {
             title: 'Véu Umeral',
             text: 'Usado sobre os ombros para segurar o Santíssimo com respeito.',
+            image: '/formacao/Veu_umeral.png',
           },
           {
             title: 'Batina',
             text: 'Roupa preta do dia a dia, lembrando a entrega total a Deus.',
+            image: '/formacao/Batina.png',
           },
         ],
       },
