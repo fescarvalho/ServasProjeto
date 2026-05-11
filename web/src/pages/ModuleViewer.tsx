@@ -8,7 +8,7 @@ type Block =
   | { type: 'bullets'; items: string[] }
   | { type: 'callout'; emoji: string; title: string; text: string }
   | { type: 'table'; headers: string[]; rows: string[][] }
-  | { type: 'steps'; items: { title: string; text: string }[] }
+  | { type: 'steps'; items: { title: string; text: string; image?: string }[] }
   | { type: 'subtitle'; text: string }
   | { type: 'image'; src: string; alt: string; caption?: string }
   | { type: 'divider' };
@@ -35,49 +35,19 @@ const MODULES: Record<string, ModuleData> = {
         alt: 'Interior de uma Igreja Católica',
         caption: 'Vista interna de uma Igreja Católica com Nave, Presbitério e Altar',
       },
-      {
-        type: 'subtitle',
-        text: 'Espaços Principais',
-      },
+      { type: 'subtitle', text: 'Espaços Principais' },
       {
         type: 'steps',
         items: [
-          {
-            title: 'Nave',
-            text: 'Espaço onde se reúne a assembleia para escutar a Palavra, orar e cantar. Contém os bancos e o corredor central.',
-          },
-          {
-            title: 'Presbitério',
-            text: 'Área elevada na frente da igreja, reservada aos ministros ordenados e auxiliares. É um lugar de postura, atenção e recolhimento.',
-          },
-          {
-            title: 'Altar',
-            text: 'Centro do presbitério e ponto mais sagrado. É onde se realiza o Sacrifício de Cristo. Deve ser tratado com profundo respeito: nunca encostar sem função ou apoiá-lo.',
-          },
-          {
-            title: 'Ambão',
-            text: 'Lugar próprio da Proclamação da Palavra de Deus (Leituras, Salmo, Evangelho e Oração Universal). É a "Mesa da Palavra".',
-          },
-          {
-            title: 'Capela do Santíssimo',
-            text: 'Destinada à adoração silenciosa e oração pessoal.',
-          },
-          {
-            title: 'Sacristia',
-            text: 'Onde se guardam paramentos e objetos e os ministros se preparam. O servo deve manter organização, silêncio, pontualidade e zelo. Não é lugar de conversa ou brincadeiras.',
-          },
-          {
-            title: 'Átrio (Nártex)',
-            text: 'Espaço de transição entre o mundo exterior e o interior sagrado.',
-          },
-          {
-            title: 'Sacrário (Tabernáculo)',
-            text: 'Local onde se reserva o Santíssimo Sacramento em parte nobre e visível. A lâmpada vermelha sinaliza a presença real de Cristo. Exige genuflexão.',
-          },
-          {
-            title: 'Batistério',
-            text: 'Local da pia batismal para o primeiro sacramento. Geralmente próximo à entrada, simbolizando o início da vida cristã.',
-          },
+          { title: 'Nave', text: 'Espaço onde se reúne a assembleia para escutar a Palavra, orar e cantar. Contém os bancos e o corredor central.' },
+          { title: 'Presbitério', text: 'Área elevada na frente da igreja, reservada aos ministros ordenados e auxiliares. É um lugar de postura, atenção e recolhimento.' },
+          { title: 'Altar', text: 'Centro do presbitério e ponto mais sagrado. É onde se realiza o Sacrifício de Cristo. Deve ser tratado com profundo respeito: nunca encostar sem função ou apoiá-lo.' },
+          { title: 'Ambão', text: 'Lugar próprio da Proclamação da Palavra de Deus (Leituras, Salmo, Evangelho e Oração Universal). É a "Mesa da Palavra".' },
+          { title: 'Capela do Santíssimo', text: 'Destinada à adoração silenciosa e oração pessoal.' },
+          { title: 'Sacristia', text: 'Onde se guardam paramentos e objetos e os ministros se preparam. O servo deve manter organização, silêncio, pontualidade e zelo. Não é lugar de conversa ou brincadeiras.' },
+          { title: 'Átrio (Nártex)', text: 'Espaço de transição entre o mundo exterior e o interior sagrado.' },
+          { title: 'Sacrário (Tabernáculo)', text: 'Local onde se reserva o Santíssimo Sacramento em parte nobre e visível. A lâmpada vermelha sinaliza a presença real de Cristo. Exige genuflexão.' },
+          { title: 'Batistério', text: 'Local da pia batismal para o primeiro sacramento. Geralmente próximo à entrada, simbolizando o início da vida cristã.' },
         ],
       },
       {
@@ -101,124 +71,49 @@ const MODULES: Record<string, ModuleData> = {
         alt: 'Cálice e Hóstia — Eucaristia',
         caption: 'O Cálice e a Hóstia: sinais da presença real de Cristo na Eucaristia',
       },
-      {
-        type: 'subtitle',
-        text: '1. Ritos Iniciais',
-      },
+      { type: 'subtitle', text: '1. Ritos Iniciais' },
       {
         type: 'steps',
         items: [
-          {
-            title: 'Procissão de Entrada',
-            text: 'Representa o Salvador vindo ao mundo.',
-          },
-          {
-            title: 'Saudação do Altar',
-            text: 'O presidente beija o altar em sinal de carinho e reverência.',
-          },
-          {
-            title: 'Ato Penitencial',
-            text: 'Momento de silêncio para reconhecer-se pecador.',
-          },
-          {
-            title: 'Hino de Louvor (Glória)',
-            text: 'Hino venerável que glorifica a Deus e ao Cordeiro. OBS: Não se canta no Advento e Quaresma.',
-          },
-          {
-            title: 'Oração da Coleta',
-            text: 'Encerra o rito de entrada. Inclui invocação, pedido e finalidade.',
-          },
+          { title: 'Procissão de Entrada', text: 'Representa o Salvador vindo ao mundo.' },
+          { title: 'Saudação do Altar', text: 'O presidente beija o altar em sinal de carinho e reverência.' },
+          { title: 'Ato Penitencial', text: 'Momento de silêncio para reconhecer-se pecador.' },
+          { title: 'Hino de Louvor (Glória)', text: 'Hino venerável que glorifica a Deus e ao Cordeiro. OBS: Não se canta no Advento e Quaresma.' },
+          { title: 'Oração da Coleta', text: 'Encerra o rito de entrada. Inclui invocação, pedido e finalidade.' },
         ],
       },
       { type: 'divider' },
-      {
-        type: 'subtitle',
-        text: '2. Liturgia da Palavra',
-      },
+      { type: 'subtitle', text: '2. Liturgia da Palavra' },
       {
         type: 'steps',
         items: [
-          {
-            title: 'Leituras Bíblicas',
-            text: 'Devem ser proclamadas do Ambão. Domingos divididos em anos A (Mateus), B (Marcos) e C (Lucas). OBS: Só há 2ª leitura aos domingos e solenidades.',
-          },
-          {
-            title: 'Salmo Responsorial',
-            text: 'Parte integrante da liturgia que favorece a meditação.',
-          },
-          {
-            title: 'Aclamação ao Evangelho',
-            text: 'Canto do Aleluia (ou outro conforme o tempo). OBS: Não se canta Aleluia na Quaresma.',
-          },
-          {
-            title: 'Evangelho',
-            text: 'Ponto alto da liturgia da Palavra. Faz-se o sinal da cruz na testa, boca e coração.',
-          },
-          {
-            title: 'Homilia',
-            text: 'Feita exclusivamente por ministro ordenado para confrontar o mistério com a vida.',
-          },
-          {
-            title: 'Profissão de Fé',
-            text: 'Resposta à Palavra ouvida. Usa-se o Símbolo Apostólico ou o Niceno-Constantinopolitano.',
-          },
-          {
-            title: 'Oração Universal (Preces)',
-            text: 'Assembleia pede pelas necessidades da Igreja e do mundo.',
-          },
+          { title: 'Leituras Bíblicas', text: 'Devem ser proclamadas do Ambão. Domingos divididos em anos A (Mateus), B (Marcos) e C (Lucas). OBS: Só há 2ª leitura aos domingos e solenidades.' },
+          { title: 'Salmo Responsorial', text: 'Parte integrante da liturgia que favorece a meditação.' },
+          { title: 'Aclamação ao Evangelho', text: 'Canto do Aleluia (ou outro conforme o tempo). OBS: Não se canta Aleluia na Quaresma.' },
+          { title: 'Evangelho', text: 'Ponto alto da liturgia da Palavra. Faz-se o sinal da cruz na testa, boca e coração.' },
+          { title: 'Homilia', text: 'Feita exclusivamente por ministro ordenado para confrontar o mistério com a vida.' },
+          { title: 'Profissão de Fé', text: 'Resposta à Palavra ouvida. Usa-se o Símbolo Apostólico ou o Niceno-Constantinopolitano.' },
+          { title: 'Oração Universal (Preces)', text: 'Assembleia pede pelas necessidades da Igreja e do mundo.' },
         ],
       },
       { type: 'divider' },
-      {
-        type: 'subtitle',
-        text: '3. Liturgia Eucarística',
-      },
+      { type: 'subtitle', text: '3. Liturgia Eucarística' },
       {
         type: 'steps',
         items: [
-          {
-            title: 'Preparação das Ofertas',
-            text: 'Procissão dos dons e lavagem das mãos pelo sacerdote (purificação interior).',
-          },
-          {
-            title: 'Oração Eucarística',
-            text: 'Oração de ação de graças e santificação.',
-          },
-          {
-            title: 'Prefácio e Santo',
-            text: 'Louvor a Deus pelas suas maravilhas.',
-          },
-          {
-            title: 'Epíclese',
-            text: 'Invocação do Espírito Santo sobre o pão e vinho.',
-          },
-          {
-            title: 'Consagração',
-            text: 'Realiza-se o sacrifício instituído por Cristo.',
-          },
-          {
-            title: 'Anamnese',
-            text: 'Memória da paixão, ressurreição e ascensão.',
-          },
-          {
-            title: 'Doxologia Final',
-            text: 'Glorificação de Deus confirmada pelo "Amém" empolgante do povo.',
-          },
-          {
-            title: 'Rito da Comunhão',
-            text: 'Pai-Nosso, Rito da Paz (dada com sobriedade), Fração do Pão (Cordeiro de Deus) e Comunhão.',
-          },
+          { title: 'Preparação das Ofertas', text: 'Procissão dos dons e lavagem das mãos pelo sacerdote (purificação interior).' },
+          { title: 'Oração Eucarística', text: 'Oração de ação de graças e santificação.' },
+          { title: 'Prefácio e Santo', text: 'Louvor a Deus pelas suas maravilhas.' },
+          { title: 'Epíclese', text: 'Invocação do Espírito Santo sobre o pão e vinho.' },
+          { title: 'Consagração', text: 'Realiza-se o sacrifício instituído por Cristo.' },
+          { title: 'Anamnese', text: 'Memória da paixão, ressurreição e ascensão.' },
+          { title: 'Doxologia Final', text: 'Glorificação de Deus confirmada pelo "Amém" empolgante do povo.' },
+          { title: 'Rito da Comunhão', text: 'Pai-Nosso, Rito da Paz (dada com sobriedade), Fração do Pão (Cordeiro de Deus) e Comunhão.' },
         ],
       },
       { type: 'divider' },
-      {
-        type: 'subtitle',
-        text: '4. Ritos Finais',
-      },
-      {
-        type: 'paragraph',
-        text: 'Saudação, bênção, avisos, despedida, beijo no altar e procissão para a sacristia.',
-      },
+      { type: 'subtitle', text: '4. Ritos Finais' },
+      { type: 'paragraph', text: 'Saudação, bênção, avisos, despedida, beijo no altar e procissão para a sacristia.' },
       {
         type: 'callout',
         emoji: '🙏',
@@ -236,14 +131,11 @@ const MODULES: Record<string, ModuleData> = {
     blocks: [
       {
         type: 'image',
-        src: '/formacao/liturgia_cores.png',
-        alt: 'Cores Litúrgicas do Ano Litúrgico',
-        caption: 'As cores do Ano Litúrgico e seus significados',
+        src: '/formacao/liturgia_calendario_pt.png',
+        alt: 'Roda do Ano Litúrgico em Português',
+        caption: 'O Ano Litúrgico Católico e seus tempos',
       },
-      {
-        type: 'subtitle',
-        text: 'Cores Litúrgicas',
-      },
+      { type: 'subtitle', text: 'Cores Litúrgicas' },
       {
         type: 'table',
         headers: ['Cor', 'Uso e Significado'],
@@ -258,37 +150,16 @@ const MODULES: Record<string, ModuleData> = {
         ],
       },
       { type: 'divider' },
-      {
-        type: 'subtitle',
-        text: 'Tempos Litúrgicos',
-      },
+      { type: 'subtitle', text: 'Tempos Litúrgicos' },
       {
         type: 'steps',
         items: [
-          {
-            title: 'Advento',
-            text: 'Preparação para o Natal (1ª vinda) e expectativa da 2ª vinda.',
-          },
-          {
-            title: 'Natal',
-            text: 'Das vésperas de Natal até o Batismo do Senhor.',
-          },
-          {
-            title: 'Quaresma',
-            text: 'Da 4ª feira de Cinzas até a Missa da Ceia do Senhor. Não se canta Glória nem Aleluia.',
-          },
-          {
-            title: 'Tríduo Pascal',
-            text: 'Quinta-feira Santa, Sexta-feira Santa (não há Eucaristia) e Vigília Pascal.',
-          },
-          {
-            title: 'Tempo Pascal',
-            text: '50 dias entre a Ressurreição e Pentecostes.',
-          },
-          {
-            title: 'Tempo Comum',
-            text: '33 ou 34 semanas celebrando o mistério de Cristo em sua plenitude.',
-          },
+          { title: 'Advento', text: 'Preparação para o Natal (1ª vinda) e expectativa da 2ª vinda.' },
+          { title: 'Natal', text: 'Das vésperas de Natal até o Batismo do Senhor.' },
+          { title: 'Quaresma', text: 'Da 4ª feira de Cinzas até a Missa da Ceia do Senhor. Não se canta Glória nem Aleluia.' },
+          { title: 'Tríduo Pascal', text: 'Quinta-feira Santa, Sexta-feira Santa (não há Eucaristia) e Vigília Pascal.' },
+          { title: 'Tempo Pascal', text: '50 dias entre a Ressurreição e Pentecostes.' },
+          { title: 'Tempo Comum', text: '33 ou 34 semanas celebrando o mistério de Cristo em sua plenitude.' },
         ],
       },
       {
@@ -306,78 +177,102 @@ const MODULES: Record<string, ModuleData> = {
     color: '#8a6900',
     emoji: '📖',
     blocks: [
-      {
-        type: 'image',
-        src: '/formacao/objetos_sagrados.png',
-        alt: 'Objetos Sagrados — Cálice, Patena, Missal e Turíbulo',
-        caption: 'Os objetos sagrados utilizados na celebração eucarística',
-      },
-      {
-        type: 'subtitle',
-        text: 'Livros Litúrgicos',
-      },
+      // ── LIVROS ────────────────────────────────────────────────────────────
+      { type: 'subtitle', text: 'Livros Litúrgicos' },
       {
         type: 'steps',
         items: [
           {
             title: 'Missal Romano',
             text: 'Orações usadas pelo sacerdote na missa.',
+            image: '/formacao/missal_romano.png',
           },
           {
             title: 'Lecionários',
             text: 'Dominical (A, B, C), Semanal (anos par/ímpar) e Santoral.',
+            image: '/formacao/lecionario.png',
           },
           {
             title: 'Evangeliário',
             text: 'Textos dos Evangelhos para domingos e solenidades.',
+            image: '/formacao/evangeliario.png',
           },
           {
             title: 'IGMR',
-            text: 'Documento com as normas litúrgicas oficiais.',
+            text: 'Instrução Geral do Missal Romano — documento com as normas litúrgicas oficiais.',
           },
         ],
       },
+
       { type: 'divider' },
-      {
-        type: 'subtitle',
-        text: 'Objetos (Alfaias) Sagrados',
-      },
-      {
-        type: 'table',
-        headers: ['Objeto', 'Descrição'],
-        rows: [
-          ['Cálice e Patena', 'Recipiente para o vinho e prato para a hóstia magna.'],
-          ['Corporal', 'Pano quadrado onde se colocam os vasos sagrados.'],
-          ['Sanguíneo', 'Pano para purificar o cálice.'],
-          ['Pala', 'Cartão que cobre o cálice.'],
-          ['Âmbula / Cibório', 'Para guardar as hóstias.'],
-          ['Galhetas', 'Para água e vinho.'],
-          ['Ostensório e Luneta', 'Para exposição e adoração do Santíssimo.'],
-          ['Turíbulo e Naveta', 'Para o incenso.'],
-          ['Caldeirinha e Aspersório', 'Para água benta.'],
-          ['Círio Pascal', 'Vela principal usada até Pentecostes.'],
-          ['Matraca', 'Substitui os sinos na Semana Santa.'],
-        ],
-      },
-      { type: 'divider' },
-      {
-        type: 'subtitle',
-        text: 'Paramentos',
-      },
+
+      // ── OBJETOS ───────────────────────────────────────────────────────────
+      { type: 'subtitle', text: 'Objetos (Alfaias) Sagrados' },
       {
         type: 'steps',
         items: [
           {
+            title: 'Cálice e Patena',
+            text: 'Recipiente para o vinho e prato para a hóstia magna.',
+            image: '/formacao/calice_patena.png',
+          },
+          {
+            title: 'Corporal e Sanguíneo',
+            text: 'Corporal: pano quadrado onde se colocam os vasos sagrados. Sanguíneo: pano para purificar o cálice.',
+            image: '/formacao/corporal_sanguineo.png',
+          },
+          {
+            title: 'Âmbula / Cibório',
+            text: 'Para guardar as hóstias consagradas para a comunhão dos fiéis.',
+            image: '/formacao/ciborio.png',
+          },
+          {
+            title: 'Galhetas',
+            text: 'Para água e vinho — dois pequenos jarros usados no ofertório.',
+            image: '/formacao/galhetas.png',
+          },
+          {
+            title: 'Ostensório e Luneta',
+            text: 'Para exposição e adoração do Santíssimo Sacramento.',
+            image: '/formacao/ostensorio.png',
+          },
+          {
+            title: 'Turíbulo e Naveta',
+            text: 'Para o incenso — o turíbulo queima e a naveta guarda os grãos.',
+            image: '/formacao/turibulo_naveta.png',
+          },
+          {
+            title: 'Caldeirinha e Aspersório',
+            text: 'Para água benta — usados nas bênçãos e procissões.',
+            image: '/formacao/caldeirinha_aspersorio.png',
+          },
+          {
+            title: 'Círio Pascal',
+            text: 'Vela principal usada até Pentecostes, símbolo de Cristo Ressuscitado.',
+            image: '/formacao/cirio_pascal.png',
+          },
+          {
+            title: 'Matraca',
+            text: 'Substitui os sinos na Semana Santa.',
+          },
+        ],
+      },
+
+      { type: 'divider' },
+
+      // ── PARAMENTOS ────────────────────────────────────────────────────────
+      { type: 'subtitle', text: 'Paramentos' },
+      {
+        type: 'steps',
+        items: [
+          {
+            title: 'Alva e Cíngulo',
+            text: 'Alva: roupa branca que lembra a pureza e o Batismo. Cíngulo: cordão na cintura que lembra a castidade.',
+            image: '/formacao/alva_cingulo.png',
+          },
+          {
             title: 'Amito',
-            text: 'Lembra a disciplina dos sentidos.',
-          },
-          {
-            title: 'Alva',
-            text: 'Roupa branca que lembra a pureza e o Batismo.',
-          },
-          {
-            title: 'Cíngulo',
-            text: 'Cordão na cintura que lembra a castidade.',
+            text: 'Pano sobre os ombros que lembra a disciplina dos sentidos.',
           },
           {
             title: 'Estola',
@@ -385,18 +280,19 @@ const MODULES: Record<string, ModuleData> = {
           },
           {
             title: 'Casula',
-            text: 'Roupa colorida usada apenas na missa.',
+            text: 'Roupa colorida usada apenas na missa, sobre todos os outros paramentos.',
           },
           {
             title: 'Véu Umeral',
-            text: 'Para segurar o Santíssimo com respeito.',
+            text: 'Usado sobre os ombros para segurar o Santíssimo com respeito.',
           },
           {
             title: 'Batina',
-            text: 'Roupa preta do dia a dia, lembrando a entrega a Deus.',
+            text: 'Roupa preta do dia a dia, lembrando a entrega total a Deus.',
           },
         ],
       },
+
       {
         type: 'callout',
         emoji: '✨',
@@ -467,6 +363,13 @@ export function ModuleViewer() {
                 <div className="mv-step-number">{i + 1}</div>
                 <div className="mv-step-body">
                   <strong>{item.title}</strong>
+                  {item.image && (
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      className="mv-step-image"
+                    />
+                  )}
                   <p>{item.text}</p>
                 </div>
               </div>
