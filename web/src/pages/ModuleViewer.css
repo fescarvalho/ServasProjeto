@@ -94,6 +94,32 @@
   margin: 4px 0;
 }
 
+/* ─── Imagem ilustrativa ──────────────────────────────────────────────────── */
+.mv-image-block {
+  margin: 4px 0;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+}
+
+.mv-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+  max-height: 260px;
+}
+
+.mv-image-caption {
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  font-size: 0.78rem;
+  text-align: center;
+  padding: 8px 14px;
+  font-style: italic;
+  line-height: 1.4;
+}
+
 /* ─── Lista com bullets ───────────────────────────────────────────────────── */
 .mv-bullets {
   padding-left: 0;
@@ -188,6 +214,7 @@
 
 .mv-step-body {
   flex: 1;
+  min-width: 0;
 }
 
 .mv-step-body strong {
@@ -202,6 +229,7 @@
   color: #5a4535;
   line-height: 1.6;
   margin: 0;
+  word-break: break-word;
 }
 
 /* ─── Tabela ──────────────────────────────────────────────────────────────── */
@@ -210,10 +238,14 @@
   overflow: hidden;
   border: 1px solid #e0cfc0;
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  /* Scroll horizontal no mobile */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .mv-table {
   width: 100%;
+  min-width: 320px;
   border-collapse: collapse;
   font-size: 0.85rem;
 }
@@ -229,6 +261,7 @@
   text-align: left;
   font-size: 0.8rem;
   letter-spacing: 0.03em;
+  white-space: nowrap;
 }
 
 .mv-table tbody tr {
@@ -291,10 +324,44 @@
   color: #888;
 }
 
-/* ─── Tabela responsiva no mobile ────────────────────────────────────────── */
+/* ─── Mobile ──────────────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
+  .mv-header {
+    padding: 0 14px 28px;
+    border-radius: 0 0 20px 20px;
+  }
+
   .mv-title {
-    font-size: 1.4rem;
+    font-size: 1.35rem;
+  }
+
+  .mv-intro {
+    font-size: 0.88rem;
+  }
+
+  .mv-emoji {
+    font-size: 2rem;
+  }
+
+  .mv-content {
+    padding: 22px 14px 10px;
+    gap: 18px;
+  }
+
+  .mv-subtitle {
+    font-size: 1rem;
+  }
+
+  .mv-paragraph {
+    font-size: 0.92rem;
+  }
+
+  .mv-step-body strong {
+    font-size: 0.9rem;
+  }
+
+  .mv-step-body p {
+    font-size: 0.84rem;
   }
 
   .mv-table th,
@@ -305,5 +372,27 @@
 
   .mv-table td:first-child {
     white-space: normal;
+  }
+
+  .mv-callout {
+    padding: 14px 12px;
+    gap: 10px;
+  }
+
+  .mv-callout-emoji {
+    font-size: 1.25rem;
+  }
+
+  .mv-footer {
+    padding: 20px 14px 0;
+  }
+
+  .mv-footer-btn {
+    font-size: 0.9rem;
+    padding: 14px;
+  }
+
+  .mv-image {
+    max-height: 200px;
   }
 }

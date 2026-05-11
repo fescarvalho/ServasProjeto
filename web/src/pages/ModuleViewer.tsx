@@ -10,6 +10,7 @@ type Block =
   | { type: 'table'; headers: string[]; rows: string[][] }
   | { type: 'steps'; items: { title: string; text: string }[] }
   | { type: 'subtitle'; text: string }
+  | { type: 'image'; src: string; alt: string; caption?: string }
   | { type: 'divider' };
 
 interface ModuleData {
@@ -22,56 +23,272 @@ interface ModuleData {
 
 // ─── Conteúdo de cada módulo ──────────────────────────────────────────────────
 const MODULES: Record<string, ModuleData> = {
-  '1': {
-    title: 'Preparação e Postura',
-    intro: 'O serviço do altar começa muito antes da Missa. A sacristia não é lugar de brincadeira, mas de preparação espiritual para o mistério que será celebrado.',
-    color: '#7c3f20',
-    emoji: '🙏',
+  '2': {
+    title: 'Estrutura da Igreja',
+    intro: 'A igreja é um espaço sagrado para acolher o povo de Deus e conduzir à celebração dos mistérios da fé. Cada parte tem uma função própria e profunda.',
+    color: '#4a2c6e',
+    emoji: '⛪',
     blocks: [
+      {
+        type: 'image',
+        src: '/formacao/igreja_estrutura.png',
+        alt: 'Interior de uma Igreja Católica',
+        caption: 'Vista interna de uma Igreja Católica com Nave, Presbitério e Altar',
+      },
+      {
+        type: 'subtitle',
+        text: 'Espaços Principais',
+      },
       {
         type: 'steps',
         items: [
           {
-            title: 'Silêncio',
-            text: 'É o momento do padre e dos servos se concentrarem. O silêncio ajuda a acalmar o coração e a focar na missa.',
+            title: 'Nave',
+            text: 'Espaço onde se reúne a assembleia para escutar a Palavra, orar e cantar. Contém os bancos e o corredor central.',
           },
           {
-            title: 'Oração',
-            text: 'Sempre rezar a oração preparatória do coroinha/acólito antes de se paramentar.',
+            title: 'Presbitério',
+            text: 'Área elevada na frente da igreja, reservada aos ministros ordenados e auxiliares. É um lugar de postura, atenção e recolhimento.',
           },
           {
-            title: 'Apresentação',
-            text: 'Mãos e unhas limpas, sapatos discretos e vestes litúrgicas perfeitamente limpas e bem alinhadas.',
+            title: 'Altar',
+            text: 'Centro do presbitério e ponto mais sagrado. É onde se realiza o Sacrifício de Cristo. Deve ser tratado com profundo respeito: nunca encostar sem função ou apoiá-lo.',
+          },
+          {
+            title: 'Ambão',
+            text: 'Lugar próprio da Proclamação da Palavra de Deus (Leituras, Salmo, Evangelho e Oração Universal). É a "Mesa da Palavra".',
+          },
+          {
+            title: 'Capela do Santíssimo',
+            text: 'Destinada à adoração silenciosa e oração pessoal.',
+          },
+          {
+            title: 'Sacristia',
+            text: 'Onde se guardam paramentos e objetos e os ministros se preparam. O servo deve manter organização, silêncio, pontualidade e zelo. Não é lugar de conversa ou brincadeiras.',
+          },
+          {
+            title: 'Átrio (Nártex)',
+            text: 'Espaço de transição entre o mundo exterior e o interior sagrado.',
+          },
+          {
+            title: 'Sacrário (Tabernáculo)',
+            text: 'Local onde se reserva o Santíssimo Sacramento em parte nobre e visível. A lâmpada vermelha sinaliza a presença real de Cristo. Exige genuflexão.',
+          },
+          {
+            title: 'Batistério',
+            text: 'Local da pia batismal para o primeiro sacramento. Geralmente próximo à entrada, simbolizando o início da vida cristã.',
           },
         ],
       },
       {
         type: 'callout',
-        emoji: '✨',
-        title: 'Lembre-se sempre',
-        text: 'O que você faz na sacristia reflete diretamente na sua postura durante a celebração. Prepare o coração, não apenas o corpo.',
+        emoji: '🕯️',
+        title: 'Atenção especial ao Sacrário',
+        text: 'Sempre que passar diante do Sacrário com a lâmpada vermelha acesa, faça genuflexão com o joelho direito, pois Cristo está ali presente.',
       },
     ],
   },
 
-  '2': {
-    title: 'O Ano Litúrgico e Cores',
-    intro: 'A Igreja conta o tempo de uma maneira diferente. As cores das vestes do padre (paramentos) nos ajudam a entender o que estamos celebrando.',
-    color: '#5b3d8e',
+  '3': {
+    title: 'A Santa Missa Parte por Parte',
+    intro: 'A Eucaristia é o memorial da morte e ressurreição do Senhor sob o sinal do pão e do vinho.',
+    color: '#7c3f20',
+    emoji: '✝️',
+    blocks: [
+      {
+        type: 'image',
+        src: '/formacao/santa_missa.png',
+        alt: 'Cálice e Hóstia — Eucaristia',
+        caption: 'O Cálice e a Hóstia: sinais da presença real de Cristo na Eucaristia',
+      },
+      {
+        type: 'subtitle',
+        text: '1. Ritos Iniciais',
+      },
+      {
+        type: 'steps',
+        items: [
+          {
+            title: 'Procissão de Entrada',
+            text: 'Representa o Salvador vindo ao mundo.',
+          },
+          {
+            title: 'Saudação do Altar',
+            text: 'O presidente beija o altar em sinal de carinho e reverência.',
+          },
+          {
+            title: 'Ato Penitencial',
+            text: 'Momento de silêncio para reconhecer-se pecador.',
+          },
+          {
+            title: 'Hino de Louvor (Glória)',
+            text: 'Hino venerável que glorifica a Deus e ao Cordeiro. OBS: Não se canta no Advento e Quaresma.',
+          },
+          {
+            title: 'Oração da Coleta',
+            text: 'Encerra o rito de entrada. Inclui invocação, pedido e finalidade.',
+          },
+        ],
+      },
+      { type: 'divider' },
+      {
+        type: 'subtitle',
+        text: '2. Liturgia da Palavra',
+      },
+      {
+        type: 'steps',
+        items: [
+          {
+            title: 'Leituras Bíblicas',
+            text: 'Devem ser proclamadas do Ambão. Domingos divididos em anos A (Mateus), B (Marcos) e C (Lucas). OBS: Só há 2ª leitura aos domingos e solenidades.',
+          },
+          {
+            title: 'Salmo Responsorial',
+            text: 'Parte integrante da liturgia que favorece a meditação.',
+          },
+          {
+            title: 'Aclamação ao Evangelho',
+            text: 'Canto do Aleluia (ou outro conforme o tempo). OBS: Não se canta Aleluia na Quaresma.',
+          },
+          {
+            title: 'Evangelho',
+            text: 'Ponto alto da liturgia da Palavra. Faz-se o sinal da cruz na testa, boca e coração.',
+          },
+          {
+            title: 'Homilia',
+            text: 'Feita exclusivamente por ministro ordenado para confrontar o mistério com a vida.',
+          },
+          {
+            title: 'Profissão de Fé',
+            text: 'Resposta à Palavra ouvida. Usa-se o Símbolo Apostólico ou o Niceno-Constantinopolitano.',
+          },
+          {
+            title: 'Oração Universal (Preces)',
+            text: 'Assembleia pede pelas necessidades da Igreja e do mundo.',
+          },
+        ],
+      },
+      { type: 'divider' },
+      {
+        type: 'subtitle',
+        text: '3. Liturgia Eucarística',
+      },
+      {
+        type: 'steps',
+        items: [
+          {
+            title: 'Preparação das Ofertas',
+            text: 'Procissão dos dons e lavagem das mãos pelo sacerdote (purificação interior).',
+          },
+          {
+            title: 'Oração Eucarística',
+            text: 'Oração de ação de graças e santificação.',
+          },
+          {
+            title: 'Prefácio e Santo',
+            text: 'Louvor a Deus pelas suas maravilhas.',
+          },
+          {
+            title: 'Epíclese',
+            text: 'Invocação do Espírito Santo sobre o pão e vinho.',
+          },
+          {
+            title: 'Consagração',
+            text: 'Realiza-se o sacrifício instituído por Cristo.',
+          },
+          {
+            title: 'Anamnese',
+            text: 'Memória da paixão, ressurreição e ascensão.',
+          },
+          {
+            title: 'Doxologia Final',
+            text: 'Glorificação de Deus confirmada pelo "Amém" empolgante do povo.',
+          },
+          {
+            title: 'Rito da Comunhão',
+            text: 'Pai-Nosso, Rito da Paz (dada com sobriedade), Fração do Pão (Cordeiro de Deus) e Comunhão.',
+          },
+        ],
+      },
+      { type: 'divider' },
+      {
+        type: 'subtitle',
+        text: '4. Ritos Finais',
+      },
+      {
+        type: 'paragraph',
+        text: 'Saudação, bênção, avisos, despedida, beijo no altar e procissão para a sacristia.',
+      },
+      {
+        type: 'callout',
+        emoji: '🙏',
+        title: 'O coração da celebração',
+        text: 'A Consagração é o momento mais solene da Missa. O servo deve estar de joelhos, em silêncio e com postura de adoração.',
+      },
+    ],
+  },
+
+  '4': {
+    title: 'Liturgia – Tempos e Cores',
+    intro: 'O Ano Litúrgico celebra os feitos salvíficos de Deus. Inicia no 1º Domingo do Advento e termina na Solenidade de Cristo Rei.',
+    color: '#1a5c3a',
     emoji: '🗓️',
     blocks: [
       {
+        type: 'image',
+        src: '/formacao/liturgia_cores.png',
+        alt: 'Cores Litúrgicas do Ano Litúrgico',
+        caption: 'As cores do Ano Litúrgico e seus significados',
+      },
+      {
+        type: 'subtitle',
+        text: 'Cores Litúrgicas',
+      },
+      {
         type: 'table',
-        headers: ['Tempo Litúrgico', 'Cor', 'Significado'],
+        headers: ['Cor', 'Uso e Significado'],
         rows: [
-          ['Advento', '🟣 Roxo', 'Espera e preparação para o Natal. Tempo de penitência suave.'],
-          ['Natal', '⚪ Branco / Dourado', 'Alegria pelo nascimento de Cristo, pureza, luz.'],
-          ['Quaresma', '🟣 Roxo', 'Tempo forte de penitência, conversão e jejum.'],
-          ['Páscoa', '⚪ Branco / Dourado', 'A maior festa da fé. Celebra a Ressurreição, vida nova.'],
-          ['Tempo Comum', '🟢 Verde', 'O dia a dia da Igreja, crescimento espiritual, esperança.'],
-          ['Mártires / Pentecostes', '🔴 Vermelho', 'Fogo do Espírito Santo e o sangue dos santos mártires.'],
-          ['Nossa Senhora', '⚪ Branco ou 🔵 Azul', 'Festas marianas simbolizam pureza e graça.'],
-          ['Domingo Gaudete / Laetare', '🌸 Róseo (Rosa)', '3º Domingo do Advento e 4º da Quaresma. Alegria no meio da penitência.'],
+          ['🟣 Roxo', 'Penitência — Advento e Quaresma.'],
+          ['⚪ Branco', 'Paz, alegria, Ressurreição e santos não mártires.'],
+          ['🔴 Vermelho', 'Espírito Santo e martírio — Pentecostes, Ramos, Apóstolos.'],
+          ['🟢 Verde', 'Esperança e vida — Tempo Comum.'],
+          ['🌸 Rosa', 'Alegria — 3º Domingo do Advento e 4º da Quaresma.'],
+          ['⚫ Preto', 'Luto — finados.'],
+          ['🟡 Dourado', 'Celebrações solenes.'],
+        ],
+      },
+      { type: 'divider' },
+      {
+        type: 'subtitle',
+        text: 'Tempos Litúrgicos',
+      },
+      {
+        type: 'steps',
+        items: [
+          {
+            title: 'Advento',
+            text: 'Preparação para o Natal (1ª vinda) e expectativa da 2ª vinda.',
+          },
+          {
+            title: 'Natal',
+            text: 'Das vésperas de Natal até o Batismo do Senhor.',
+          },
+          {
+            title: 'Quaresma',
+            text: 'Da 4ª feira de Cinzas até a Missa da Ceia do Senhor. Não se canta Glória nem Aleluia.',
+          },
+          {
+            title: 'Tríduo Pascal',
+            text: 'Quinta-feira Santa, Sexta-feira Santa (não há Eucaristia) e Vigília Pascal.',
+          },
+          {
+            title: 'Tempo Pascal',
+            text: '50 dias entre a Ressurreição e Pentecostes.',
+          },
+          {
+            title: 'Tempo Comum',
+            text: '33 ou 34 semanas celebrando o mistério de Cristo em sua plenitude.',
+          },
         ],
       },
       {
@@ -83,213 +300,108 @@ const MODULES: Record<string, ModuleData> = {
     ],
   },
 
-  '3': {
-    title: 'Livros Sagrados e Marcações',
-    intro: 'Os livros contêm a Palavra de Deus e as orações oficiais da Igreja. Devem ser manuseados com extremo respeito e nunca lidos como um livro comum.',
-    color: '#1a5c3a',
+  '5': {
+    title: 'Livros, Objetos e Paramentos',
+    intro: 'Conhecer os instrumentos sagrados da liturgia é parte essencial da formação do servo do altar.',
+    color: '#8a6900',
     emoji: '📖',
     blocks: [
-      { type: 'subtitle', text: 'Como Marcar o Missal Romano (Passo a Passo)' },
       {
-        type: 'paragraph',
-        text: 'O Missal é o livro das orações do padre e fica no altar. Ele possui fitilhos (fitas de marcação) coloridos e abas laterais. O "coroinha do livro" deve prepará-lo antes da missa.',
+        type: 'image',
+        src: '/formacao/objetos_sagrados.png',
+        alt: 'Objetos Sagrados — Cálice, Patena, Missal e Turíbulo',
+        caption: 'Os objetos sagrados utilizados na celebração eucarística',
+      },
+      {
+        type: 'subtitle',
+        text: 'Livros Litúrgicos',
       },
       {
         type: 'steps',
         items: [
           {
-            title: 'Fita 1 — Próprio do Tempo',
-            text: 'Marca as orações específicas daquele domingo ou santo do dia (Coleta, Sobre as Oferendas e Pós-Comunhão).',
+            title: 'Missal Romano',
+            text: 'Orações usadas pelo sacerdote na missa.',
           },
           {
-            title: 'Fita 2 — Ordinário da Missa',
-            text: 'Marca o início dos ritos que nunca mudam, como o Ato Penitencial, Glória e o Creio.',
+            title: 'Lecionários',
+            text: 'Dominical (A, B, C), Semanal (anos par/ímpar) e Santoral.',
           },
           {
-            title: 'Fita 3 — Prefácio',
-            text: 'Marca o diálogo antes do "Santo" e o prefácio correspondente ao tempo litúrgico.',
+            title: 'Evangeliário',
+            text: 'Textos dos Evangelhos para domingos e solenidades.',
           },
           {
-            title: 'Fita 4 — Oração Eucarística',
-            text: 'Marca a grande oração da consagração escolhida pelo padre (I, II, III ou IV).',
-          },
-          {
-            title: 'Fita 5 — Ritos da Comunhão',
-            text: 'Marca a introdução ao Pai-Nosso e a oração da paz.',
+            title: 'IGMR',
+            text: 'Documento com as normas litúrgicas oficiais.',
           },
         ],
-      },
-      {
-        type: 'callout',
-        emoji: '⚠️',
-        title: 'Regra de Ouro',
-        text: 'Nunca marque o missal "esmagando" as fitas no meio das páginas. Deixe-as esticadas para baixo para não amassar, rasgar ou manchar as folhas do livro.',
       },
       { type: 'divider' },
-      { type: 'subtitle', text: 'Como Marcar o Lecionário e o Evangeliário' },
       {
-        type: 'paragraph',
-        text: 'O Lecionário fica no Ambão (estante de leituras) e contém as leituras bíblicas. A marcação depende do dia e do ano litúrgico (Anos A, B, C para domingos).',
+        type: 'subtitle',
+        text: 'Objetos (Alfaias) Sagrados',
       },
       {
-        type: 'bullets',
-        items: [
-          'Verifique no Diretório Litúrgico qual a leitura exata do dia.',
-          'Coloque o fitilho de marcação no início da Primeira Leitura.',
-          'Certifique-se de que o livro já está aberto na página correta antes do início da missa.',
-          'Se usar o Evangeliário, ele deve estar marcado no Evangelho do dia e colocado sobre o altar antes da celebração.',
+        type: 'table',
+        headers: ['Objeto', 'Descrição'],
+        rows: [
+          ['Cálice e Patena', 'Recipiente para o vinho e prato para a hóstia magna.'],
+          ['Corporal', 'Pano quadrado onde se colocam os vasos sagrados.'],
+          ['Sanguíneo', 'Pano para purificar o cálice.'],
+          ['Pala', 'Cartão que cobre o cálice.'],
+          ['Âmbula / Cibório', 'Para guardar as hóstias.'],
+          ['Galhetas', 'Para água e vinho.'],
+          ['Ostensório e Luneta', 'Para exposição e adoração do Santíssimo.'],
+          ['Turíbulo e Naveta', 'Para o incenso.'],
+          ['Caldeirinha e Aspersório', 'Para água benta.'],
+          ['Círio Pascal', 'Vela principal usada até Pentecostes.'],
+          ['Matraca', 'Substitui os sinos na Semana Santa.'],
         ],
       },
-    ],
-  },
-
-  '4': {
-    title: 'Gestos e Posturas Litúrgicas',
-    intro: 'O corpo também reza. Cada movimento de um servo no altar tem um significado profundo. O movimento deve ser calmo e solene.',
-    color: '#0d4f6e',
-    emoji: '🤲',
-    blocks: [
+      { type: 'divider' },
+      {
+        type: 'subtitle',
+        text: 'Paramentos',
+      },
       {
         type: 'steps',
         items: [
           {
-            title: 'Vênia (Inclinação Profunda)',
-            text: 'Feita com o tronco (dobrando a cintura). É feita ao altar no início e no fim da missa, caso não haja o Santíssimo Sacramento no centro, ou diante do Bispo.',
+            title: 'Amito',
+            text: 'Lembra a disciplina dos sentidos.',
           },
           {
-            title: 'Inclinação de Cabeça',
-            text: 'Feita ao ouvir o nome de Jesus, da Virgem Maria ou do Santo do dia, e também ao receber a bênção.',
-          },
-          {
-            title: 'Genuflexão',
-            text: 'Tocar apenas o joelho direito no chão. É o gesto máximo de adoração. Feita exclusivamente para o Santíssimo Sacramento. A coluna deve estar reta.',
-          },
-          {
-            title: 'Mãos Postas',
-            text: 'Palma com palma, dedos juntos apontando levemente para cima, polegares cruzados (o direito sobre o esquerdo, formando uma cruz). Postura padrão quando parado e com as mãos livres.',
-          },
-        ],
-      },
-    ],
-  },
-
-  '5': {
-    title: 'Vestes Litúrgicas do Padre',
-    intro: 'O padre não veste "roupas", ele se paramenta. Ao colocar as vestes litúrgicas, ele passa a agir In Persona Christi — Na pessoa de Cristo.',
-    color: '#7a2d5e',
-    emoji: '👘',
-    blocks: [
-      {
-        type: 'steps',
-        items: [
-          {
-            title: 'Amicto',
-            text: 'Pano retangular branco que cobre o pescoço e os ombros. Simboliza o "capacete da salvação" que protege a mente do padre das tentações.',
-          },
-          {
-            title: 'Alva ou Túnica',
-            text: 'Veste branca longa que cobre todo o corpo do padre. Representa a pureza de coração. Os servos também costumam usar uma veste baseada na alva.',
+            title: 'Alva',
+            text: 'Roupa branca que lembra a pureza e o Batismo.',
           },
           {
             title: 'Cíngulo',
-            text: 'Cordão amarrado na cintura para prender a alva e a estola. Representa a castidade e o estar pronto para o serviço.',
+            text: 'Cordão na cintura que lembra a castidade.',
           },
           {
             title: 'Estola',
-            text: 'A faixa longa e vertical pendurada no pescoço. É o símbolo primordial do poder sacerdotal. Carrega a cor do tempo litúrgico. Sem a estola, o padre não administra sacramentos.',
+            text: 'Simboliza a autoridade do sacerdote e o jugo de Jesus.',
           },
           {
             title: 'Casula',
-            text: 'A veste superior, em formato de manto amplo, usada sobre tudo. Representa o jugo suave de Cristo e a proteção da caridade divina. Também leva a cor do tempo litúrgico.',
+            text: 'Roupa colorida usada apenas na missa.',
+          },
+          {
+            title: 'Véu Umeral',
+            text: 'Para segurar o Santíssimo com respeito.',
+          },
+          {
+            title: 'Batina',
+            text: 'Roupa preta do dia a dia, lembrando a entrega a Deus.',
           },
         ],
       },
       {
         type: 'callout',
         emoji: '✨',
-        title: 'Significado profundo',
-        text: 'Cada peça das vestes tem um nome, uma oração e um significado. Conhecer isso ajuda o servo a entender que tudo na liturgia é símbolo da presença de Deus.',
-      },
-    ],
-  },
-
-  '6': {
-
-    title: 'Uso do Turíbulo e da Naveta',
-    intro: 'O incenso na Igreja não é um perfume, é oração. O salmo diz: "Suba minha oração como incenso à tua presença". Ele honra o que é sagrado e purifica o ambiente.',
-    color: '#6b4226',
-    emoji: '🔥',
-    blocks: [
-      {
-        type: 'steps',
-        items: [
-          {
-            title: 'Naveteiro',
-            text: 'Segura a naveta (o pequeno "barquinho" metálico com incenso em grãos). Anda sempre ao lado esquerdo do turiferário. Apresenta a naveta aberta ao padre, segurando-a com as duas mãos.',
-          },
-          {
-            title: 'Turiferário',
-            text: 'Segura e cuida do turíbulo. Sua função mais importante é manter o carvão sempre em brasa, soprando discretamente antes de entrar.',
-          },
-        ],
-      },
-      { type: 'subtitle', text: 'Como Apresentar para o Padre (Imposição)' },
-      {
-        type: 'paragraph',
-        text: 'O turiferário levanta a argola central com a mão direita até a altura do peito e puxa a corrente menor com a mão esquerda, levantando a tampa do turíbulo.',
-      },
-      { type: 'subtitle', text: 'Os Ductos (Movimentos de Incensação)' },
-      {
-        type: 'table',
-        headers: ['Ductos', 'Usado para'],
-        rows: [
-          ['3 ductos duplos', 'Deus: Santíssimo Sacramento, Relíquia da Santa Cruz, Evangeliário e Cruz do Altar.'],
-          ['2 ductos duplos', 'Imagens dos santos, Nossa Senhora e relíquias.'],
-          ['Ductos simples (3×)', 'O sacerdote e a assembleia de fiéis — somos o povo de Deus.'],
-        ],
-      },
-      {
-        type: 'callout',
-        emoji: '🙏',
-        title: 'Significado espiritual',
-        text: 'Cada balanço do turíbulo é uma oração ascendendo ao céu. Execute o gesto com devoção e calma, não com pressa.',
-      },
-    ],
-  },
-
-  '7': {
-    title: 'Objetos e Alfaias',
-    intro: 'Os vasos sagrados onde ficam o Corpo e Sangue de Cristo costumam ser dourados por dentro, indicando a realeza e o valor infinito do que carregam.',
-    color: '#8a6900',
-    emoji: '✝️',
-    blocks: [
-      {
-        type: 'steps',
-        items: [
-          { title: 'Cálice', text: 'A taça central onde ocorre a consagração do vinho em Sangue de Cristo.' },
-          { title: 'Pátena', text: 'O pratinho metálico dourado que acompanha o cálice, onde fica apoiada a Hóstia Grande.' },
-          { title: 'Cibório (ou Âmbula)', text: 'Recipiente parecido com um cálice, mas com tampa. É onde são consagradas as hóstias menores para a comunhão dos fiéis.' },
-          { title: 'Corporal', text: 'Tecido quadrado de linho, dobrado em nove partes. É estendido no centro do altar. O cálice e a pátena ficam OBRIGATORIAMENTE em cima do corporal.' },
-          { title: 'Sanguíneo (ou Purificatório)', text: 'Tecido retangular usado para limpar (purificar) o cálice, a pátena e as âmbulas após a comunhão.' },
-          { title: 'Pala', text: 'Um quadrado firme de linho que serve como tampa para cobrir o cálice e evitar que caiam insetos ou poeira no vinho.' },
-          { title: 'Galhetas', text: 'Os dois jarros pequenos de vidro ou cristal que contêm a água e o vinho para o ofertório.' },
-          { title: 'Manustérgio', text: 'A pequena toalha que o padre usa para enxugar as pontas dos dedos no momento do lavabo.' },
-          { title: 'Credência', text: 'A pequena mesa lateral onde ficam todos esses objetos guardados antes de serem levados ao altar.' },
-        ],
-      },
-      { type: 'divider' },
-      { type: 'subtitle', text: 'Funções Específicas dos Servos' },
-      {
-        type: 'table',
-        headers: ['Função', 'Responsabilidade'],
-        rows: [
-          ['Cruciferário', 'Carrega a Cruz Processional. Dita o ritmo da procissão. A imagem de Cristo deve estar voltada para a frente. Nunca faz genuflexão enquanto segura a cruz.'],
-          ['Ceriferário', 'Leva as velas (círios). Acompanha o diácono ou padre ao Ambão durante a leitura do Evangelho para iluminar a Palavra de Deus.'],
-          ['Libretista', 'Apresenta o Missal Romano ao padre na Sede. O livro deve estar firme, na altura do peito, bem estável.'],
-          ['Acólito do Altar', 'Prepara o altar para o sacrifício. Leva o Cálice, Pátena e Cibórios da credência. Oferece as galhetas de água e vinho.'],
-          ['Coroinha do Lavabo', 'Leva a jarra com água, a bacia e o manustérgio para o padre purificar os dedos. Entrega a toalha aberta.'],
-          ['Sineiro', 'Toca a sineta na Epiclese e três vezes solenes na elevação do Corpo e Sangue de Cristo.'],
-        ],
+        title: 'Tudo tem um significado',
+        text: 'Cada objeto e paramento tem um nome, uma oração e um significado. Conhecer isso ajuda o servo a entender que tudo na liturgia é símbolo da presença de Deus.',
       },
     ],
   },
@@ -320,6 +432,14 @@ export function ModuleViewer() {
 
       case 'divider':
         return <hr key={index} className="mv-divider" />;
+
+      case 'image':
+        return (
+          <figure key={index} className="mv-image-block">
+            <img src={block.src} alt={block.alt} className="mv-image" />
+            {block.caption && <figcaption className="mv-image-caption">{block.caption}</figcaption>}
+          </figure>
+        );
 
       case 'bullets':
         return (

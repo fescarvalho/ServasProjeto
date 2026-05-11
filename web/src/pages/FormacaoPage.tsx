@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Book, CalendarDays, BookOpenText, Users, Flame, Scissors, LogOut, Flower } from 'lucide-react';
+import { Building2, Cross, CalendarDays, BookOpenText, Flower, LogOut } from 'lucide-react';
 import { UserData } from '../types/types';
 import './FormacaoPage.css';
 
@@ -13,13 +13,38 @@ interface Module {
 }
 
 const MODULES: Module[] = [
-  { id: '1', title: 'Preparação e Postura',         description: 'Como se preparar espiritualmente e fisicamente para servir.',       icon: Book,         color: '#7c3f20', emoji: '🙏' },
-  { id: '2', title: 'O Ano Litúrgico e Cores',      description: 'Compreensão das estações litúrgicas e o significado das cores.',    icon: CalendarDays, color: '#5b3d8e', emoji: '🗓️' },
-  { id: '3', title: 'Livros Sagrados e Marcações',  description: 'Manuseio do Missal Romano, Lecionários e Evangeliário.',           icon: BookOpenText, color: '#1a5c3a', emoji: '📖' },
-  { id: '4', title: 'Gestos e Posturas Litúrgicas', description: 'Saber quando ajoelhar, sentar, inclinar e a reverência correta.',   icon: Users,        color: '#0d4f6e', emoji: '🤲' },
-  { id: '5', title: 'Vestes Litúrgicas do Padre',   description: 'Os nomes e significados de cada peça que o padre veste na Missa.', icon: Scissors,     color: '#7a2d5e', emoji: '👘' },
-  { id: '6', title: 'Uso do Turíbulo e da Naveta',  description: 'Técnicas e momentos corretos para a incensação.',                  icon: Flame,        color: '#6b4226', emoji: '🔥' },
-  { id: '7', title: 'Objetos e Alfaias',             description: 'Identificação e cuidado com os vasos sagrados e linhos.',          icon: Book,         color: '#8a6900', emoji: '✝️' },
+  {
+    id: '2',
+    title: 'Estrutura da Igreja',
+    description: 'Nave, Presbitério, Altar, Ambão, Sacrário e os demais espaços sagrados.',
+    icon: Building2,
+    color: '#4a2c6e',
+    emoji: '⛪',
+  },
+  {
+    id: '3',
+    title: 'A Santa Missa Parte por Parte',
+    description: 'Ritos Iniciais, Liturgia da Palavra, Liturgia Eucarística e Ritos Finais.',
+    icon: Cross,
+    color: '#7c3f20',
+    emoji: '✝️',
+  },
+  {
+    id: '4',
+    title: 'Liturgia – Tempos e Cores',
+    description: 'O Ano Litúrgico, as cores dos paramentos e os tempos da Igreja.',
+    icon: CalendarDays,
+    color: '#1a5c3a',
+    emoji: '🗓️',
+  },
+  {
+    id: '5',
+    title: 'Livros, Objetos e Paramentos',
+    description: 'Missal Romano, Lecionários, alfaias e os paramentos do sacerdote.',
+    icon: BookOpenText,
+    color: '#8a6900',
+    emoji: '📖',
+  },
 ];
 
 interface FormacaoPageProps {
@@ -74,7 +99,7 @@ export function FormacaoPage({ user, onLogout }: FormacaoPageProps) {
           Desenvolvido por <a href="https://fescarvpage.vercel.app/" target="_blank" rel="noopener noreferrer" style={{ color: "var(--color-danger)", textDecoration: "none", fontWeight: "bold" }}>Fernando Carvalho</a>
         </p>
         <p style={{ marginTop: "5px", opacity: 0.7 }}>
-          &copy; {new Date().getFullYear()} Santuário Diocesano Nossa Senhora da Natividade - v5 (29/04/2026)
+          &copy; {new Date().getFullYear()} Santuário Diocesano Nossa Senhora da Natividade
         </p>
       </footer>
     </div>
