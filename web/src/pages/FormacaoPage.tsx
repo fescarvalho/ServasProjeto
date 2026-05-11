@@ -48,7 +48,7 @@ const MODULES: Module[] = [
 ];
 
 interface FormacaoPageProps {
-  user: UserData;
+  user: UserData | null;
   onLogout: () => void;
 }
 
@@ -62,14 +62,16 @@ export function FormacaoPage({ user, onLogout }: FormacaoPageProps) {
           <Flower size={24} color="var(--color-primary)" />
           <span>Servos do Altar</span>
         </div>
-        <button className="btn-logout-formacao" onClick={onLogout}>
-          <LogOut size={18} />
-          <span>Sair</span>
-        </button>
+        {user && (
+          <button className="btn-logout-formacao" onClick={onLogout}>
+            <LogOut size={18} />
+            <span>Sair</span>
+          </button>
+        )}
       </div>
 
       <div className="formacao-header">
-        <h1 className="formacao-title">Olá, {user?.name?.split(' ')[0]}</h1>
+        <h1 className="formacao-title">{user ? `Olá, ${user.name?.split(' ')[0]}` : 'Formação'}</h1>
         <p className="formacao-subtitle">Sua jornada de preparação para servir ao Altar do Senhor.</p>
       </div>
 

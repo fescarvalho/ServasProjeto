@@ -179,12 +179,10 @@ function App() {
         } />
 
 
-          {/* Rotas de Formação - Acessível APENAS para em_formacao */}
-          <Route element={<ProtectedRoute user={user} allowedRoles={['em_formacao']} redirectPath="/escalas" />}>
-            <Route path="/formacao" element={<FormacaoPage user={user!} onLogout={handleLogout} />} />
-            <Route path="/formacao/modulo/:id" element={<ModuleViewer />} />
-            <Route path="/formacao/manual" element={<ManualViewer />} />
-          </Route>
+          {/* Rotas de Formação - Públicas, sem necessidade de login */}
+          <Route path="/formacao" element={<FormacaoPage user={user ?? null} onLogout={handleLogout} />} />
+          <Route path="/formacao/modulo/:id" element={<ModuleViewer />} />
+          <Route path="/formacao/manual" element={<ManualViewer />} />
 
           {/* Rotas de Sistema - Acessível para as demais Servas, mas NÃO para em_formacao */}
           <Route element={<ProtectedRoute user={user} disallowedRoles={['em_formacao']} redirectPath="/formacao" />}>
