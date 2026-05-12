@@ -23,6 +23,106 @@ interface ModuleData {
 
 // ─── Conteúdo de cada módulo ──────────────────────────────────────────────────
 const MODULES: Record<string, ModuleData> = {
+  '1': {
+    title: 'Identidade e Missão do Servidor',
+    intro: 'Ser um servo ou serva vai além de ajudar o padre — é um ministério de serviço ao próprio Cristo. Conheça a identidade, a origem histórica e a missão de quem serve ao Altar do Senhor.',
+    color: '#5b2d8e',
+    emoji: '🕊️',
+    blocks: [
+      // ── 1. O que significa ser um Servo do Altar ──────────────────────────
+      { type: 'subtitle', text: '1. O que significa ser um Servo do Altar?' },
+      {
+        type: 'paragraph',
+        text: 'Ser um servo ou serva vai além de ajudar o padre; é um ministério de serviço ao próprio Cristo.',
+      },
+      {
+        type: 'steps',
+        items: [
+          {
+            title: 'Ministério de Serviço',
+            text: 'O termo vem do latim ministrare, que significa servir com humildade e prontidão.',
+          },
+          {
+            title: 'Sentinela do Sagrado',
+            text: 'O servo atua no Presbitério, cuidando para que cada gesto e objeto conduza a assembleia ao encontro com Deus.',
+          },
+          {
+            title: 'Testemunho',
+            text: 'Pelo seu zelo com o Altar e o silêncio na Sacristia, o servo torna-se um exemplo de piedade para toda a comunidade.',
+          },
+        ],
+      },
+
+      { type: 'divider' },
+
+      // ── 2. Origem Histórica ────────────────────────────────────────────────
+      { type: 'subtitle', text: '2. Origem Histórica' },
+      {
+        type: 'paragraph',
+        text: 'A missão de auxiliar no altar evoluiu junto com a liturgia da Igreja ao longo dos séculos.',
+      },
+      {
+        type: 'steps',
+        items: [
+          {
+            title: 'Bases Bíblicas',
+            text: 'Remonta aos Levitas no Antigo Testamento e aos jovens que auxiliavam os Apóstolos no Novo Testamento.',
+          },
+          {
+            title: 'Ordens Menores (séc. III–IV)',
+            text: 'A Igreja criou a ordem dos Acólitos para cuidar das velas e preparar o pão e o vinho.',
+          },
+          {
+            title: 'Meninos do Coro (Coroinhas)',
+            text: 'Na Idade Média, jovens leigos começaram a assumir essas funções nas paróquias, ficando no "coro" da igreja — o que deu origem ao nome popular.',
+          },
+          {
+            title: 'Concílio Vaticano II',
+            text: 'Reafirmou o serviço do altar como um ministério de participação ativa de todos os fiéis, incluindo oficialmente as Servas do Altar.',
+          },
+        ],
+      },
+
+      { type: 'divider' },
+
+      // ── 3. Diferenças e Funções ───────────────────────────────────────────
+      { type: 'subtitle', text: '3. Diferenças e Funções' },
+      {
+        type: 'table',
+        headers: ['Categoria', 'Descrição e Funções'],
+        rows: [
+          [
+            '👦 Coroinha',
+            'Termo carinhoso para crianças e adolescentes que iniciam seu serviço auxiliando em funções como carregar as Tochas ou o Turíbulo.',
+          ],
+          [
+            '🕊️ Servo / Serva',
+            'Nome adotado em nossa comunidade para destacar a espiritualidade de quem serve ao Rei. Foca no zelo, na pontualidade e no amor à Eucaristia.',
+          ],
+          [
+            '✝️ Acólito',
+            'Pode ser um leigo em liderança ou um Acólito Instituído (geralmente seminaristas ou leigos adultos), com a função oficial de purificar os vasos sagrados após a comunhão.',
+          ],
+        ],
+      },
+
+      { type: 'divider' },
+
+      // ── 4. A Missão no Altar ──────────────────────────────────────────────
+      { type: 'subtitle', text: '4. A Missão no Altar' },
+      {
+        type: 'paragraph',
+        text: 'Independentemente do nome, a função central é a mesma: zelar pelo Mistério Pascal. O servo deve conhecer cada objeto — como o Cálice, a Patena e as Galhetas — para que a celebração ocorra com a dignidade que o Sacrifício de Cristo exige.',
+      },
+      {
+        type: 'callout',
+        emoji: '🙏',
+        title: 'Chamado ao serviço',
+        text: 'Lembre-se: cada vez que você serve ao Altar, você serve ao próprio Cristo. Esse é o fundamento de toda a nossa espiritualidade.',
+      },
+    ],
+  },
+
   '2': {
     title: 'Estrutura da Igreja',
     intro: 'A igreja é um espaço sagrado para acolher o povo de Deus e conduzir à celebração dos mistérios da fé. Cada parte tem uma função própria e profunda.',

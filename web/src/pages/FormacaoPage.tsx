@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Building2, Cross, CalendarDays, BookOpenText, Flower, LogOut } from 'lucide-react';
+import { Building2, Cross, CalendarDays, BookOpenText, Flower, LogOut, Shield } from 'lucide-react';
 import { UserData } from '../types/types';
 import './FormacaoPage.css';
 
@@ -13,6 +13,14 @@ interface Module {
 }
 
 const MODULES: Module[] = [
+  {
+    id: '1',
+    title: 'Identidade e Missão do Servidor',
+    description: 'O que significa servir, a origem histórica do ministério e as diferenças entre Coroinha, Servo e Acólito.',
+    icon: Shield,
+    color: '#5b2d8e',
+    emoji: '🕊️',
+  },
   {
     id: '2',
     title: 'Estrutura da Igreja',
