@@ -440,6 +440,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
       if (massDateStr < todayStr) return false;
     }
 
+    if (mass.name?.includes("Ajuste de Pontos")) return false;
     return true;
   });
 

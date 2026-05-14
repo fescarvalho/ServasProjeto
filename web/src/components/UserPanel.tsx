@@ -239,7 +239,9 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
       );
     });
 
-    return filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    return filtered
+      .filter(m => !m.name?.includes("Ajuste de Pontos"))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [masses, selectedDate]);
 
   // --- VIRTUALIZADOR ---
