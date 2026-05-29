@@ -35,7 +35,24 @@ export function QuizTakingPage() {
         const found = quizzes.find((q) => q.id === id);
         if (found) {
           setQuiz(found);
-          setTimeLeft(found.timeLimitMinutes * 60);
+          const saved = localStorage.getItem(`quiz_progress_${id}`);
+          if (saved) {
+            try {
+              const parsed = JSON.parse(saved);
+              setAnswers(parsed.answers || {});
+              setResponderName(parsed.responderName || "");
+              setNameConfirmed(parsed.nameConfirmed || false);
+              if (parsed.timeLeft !== undefined && parsed.timeLeft > 0) {
+                setTimeLeft(parsed.timeLeft);
+              } else {
+                setTimeLeft(found.timeLimitMinutes * 60);
+              }
+            } catch (e) {
+              setTimeLeft(found.timeLimitMinutes * 60);
+            }
+          } else {
+            setTimeLeft(found.timeLimitMinutes * 60);
+          }
         } else {
           alert("Quiz não encontrado.");
           navigate("/formacao/quizzes", { replace: true });
@@ -49,6 +66,17 @@ export function QuizTakingPage() {
     }
     loadQuiz();
   }, [id, navigate]);
+
+  useEffect(() => {
+    if (loading || finished || !id) return;
+    
+    localStorage.setItem(`quiz_progress_${id}`, JSON.stringify({
+      timeLeft,
+      answers,
+      responderName,
+      nameConfirmed
+    }));
+  }, [id, timeLeft, answers, responderName, nameConfirmed, loading, finished]);
 
   const isTimeUp = timeLeft <= 0;
 
@@ -94,6 +122,7 @@ export function QuizTakingPage() {
       
       const result = await quizService.submitQuiz(id, finalTimeSpent, stateRef.current.answers, stateRef.current.responderName);
       setScore(result.totalScore);
+      localStorage.removeItem(`quiz_progress_${id}`);
     } catch (error) {
       console.error("Erro ao enviar quiz:", error);
       alert("Houve um erro ao salvar suas respostas. Comunique o administrador.");
