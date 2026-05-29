@@ -114,5 +114,6 @@ model QuizResult {
   responderName       String
   totalScore          Int
   timeSpentSeconds    Int
+  answers             Json?
   createdAt           DateTime @default(now())
 }

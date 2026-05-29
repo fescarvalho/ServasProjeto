@@ -90,6 +90,7 @@ export async function submitQuizResult(req: Request, res: Response): Promise<voi
         responderName,
         totalScore,
         timeSpentSeconds,
+        answers: answers || {},
       },
     });
 
