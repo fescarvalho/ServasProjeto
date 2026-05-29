@@ -77,5 +77,6 @@ router.get("/logs", authMiddleware, async (req, res) => {
 router.get("/quizzes", authMiddleware, adminMiddleware, adminQuizController.getAllQuizzesAdmin);
 router.post("/quizzes", authMiddleware, adminMiddleware, adminQuizController.createQuizAdmin);
 router.delete("/quizzes/:id", authMiddleware, adminMiddleware, adminQuizController.deleteQuizAdmin);
+router.delete("/quiz-results/:id", authMiddleware, adminMiddleware, adminQuizController.deleteQuizResultAdmin);
 
 export default router;

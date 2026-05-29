@@ -48,6 +48,17 @@ export function AdminQuizManager() {
     }
   };
 
+  const handleDeleteResult = async (resultId: string, responderName: string) => {
+    if (!confirm(`Deseja realmente apagar o resultado de "${responderName}"?`)) return;
+    try {
+      await adminQuizService.deleteQuizResult(resultId);
+      loadQuizzes();
+    } catch (error) {
+      console.error("Erro ao apagar resultado", error);
+      alert("Erro ao apagar o resultado.");
+    }
+  };
+
   const addQuestion = () => {
     setFormData(prev => ({
       ...prev,
@@ -362,8 +373,15 @@ export function AdminQuizManager() {
                                   <td style={{ padding: "12px", textAlign: "center", color: theme.colors.textSecondary, fontSize: "0.9rem" }}>
                                     {formatTime(r.timeSpentSeconds)}
                                   </td>
-                                  <td style={{ padding: "12px", textAlign: "right", color: theme.colors.textSecondary, fontSize: "0.85rem" }}>
+                                  <td style={{ padding: "12px", textAlign: "right", color: theme.colors.textSecondary, fontSize: "0.85rem", whiteSpace: "nowrap" }}>
                                     {new Date(r.createdAt || "").toLocaleDateString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                                    <button 
+                                      onClick={() => handleDeleteResult(r.id, r.responderName)}
+                                      style={{ background: "none", border: "none", color: theme.colors.danger, cursor: "pointer", marginLeft: "15px", padding: "2px", verticalAlign: "middle" }}
+                                      title="Apagar Resultado"
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
                                   </td>
                                 </tr>
                               );

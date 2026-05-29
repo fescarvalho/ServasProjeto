@@ -15,4 +15,8 @@ export const adminQuizService = {
   deleteQuiz: async (id: string): Promise<void> => {
     await api.delete(`/admin/quizzes/${id}`);
   },
+
+  deleteQuizResult: async (id: string): Promise<void> => {
+    await api.delete(`/admin/quiz-results/${id}`);
+  },
 };

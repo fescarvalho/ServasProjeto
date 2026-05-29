@@ -59,3 +59,18 @@ export async function deleteQuizAdmin(req: Request, res: Response) {
     return error(res, "Erro ao excluir quiz.");
   }
 }
+
+export async function deleteQuizResultAdmin(req: Request, res: Response) {
+  try {
+    const id = req.params.id as string;
+
+    await prisma.quizResult.delete({
+      where: { id }
+    });
+
+    return success(res, { message: "Resultado removido com sucesso." });
+  } catch (err) {
+    console.error("Error deleting quiz result:", err);
+    return error(res, "Erro ao excluir resultado.");
+  }
+}
