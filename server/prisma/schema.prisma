@@ -26,6 +26,7 @@ model User {
   swapRequests      SwapRequest[]       @relation("requester")
   pushSubscriptions PushSubscription[]
   loginLogs         LoginLog[]
+  quizResults       QuizResult[]
 }
 
 model Mass {
@@ -91,4 +92,27 @@ model LoginLog {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
   timestamp DateTime @default(now())
+}
+
+model Quiz {
+  id                  String       @id @default(uuid())
+  title               String
+  description         String
+  createdAt           DateTime     @default(now())
+  timeLimitMinutes    Int          @default(10)
+  isActive            Boolean      @default(true)
+  questions           Json         // Array de perguntas
+  results             QuizResult[]
+}
+
+model QuizResult {
+  id                  String   @id @default(uuid())
+  quiz                Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quizId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId              String
+  responderName       String
+  totalScore          Int
+  timeSpentSeconds    Int
+  createdAt           DateTime @default(now())
 }

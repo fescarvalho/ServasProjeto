@@ -9,6 +9,8 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { FormacaoPage } from "./pages/FormacaoPage";
 import { ManualViewer } from "./components/ManualViewer";
 import { ModuleViewer } from "./pages/ModuleViewer";
+import { QuizListPage } from "./pages/QuizListPage";
+import { QuizTakingPage } from "./pages/QuizTakingPage";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { theme } from "./theme/theme";
@@ -183,6 +185,11 @@ function App() {
           <Route path="/formacao" element={<FormacaoPage user={user ?? null} onLogout={handleLogout} />} />
           <Route path="/formacao/modulo/:id" element={<ModuleViewer />} />
           <Route path="/formacao/manual" element={<ManualViewer />} />
+          
+          <Route element={<ProtectedRoute user={user} allowedRoles={['em_formacao']} redirectPath="/escalas" />}>
+            <Route path="/formacao/quizzes" element={<QuizListPage />} />
+            <Route path="/formacao/quizzes/:id" element={<QuizTakingPage />} />
+          </Route>
 
           {/* Rotas de Sistema - Acessível para as demais Servas, mas NÃO para em_formacao */}
           <Route element={<ProtectedRoute user={user} disallowedRoles={['em_formacao']} redirectPath="/formacao" />}>

@@ -2,8 +2,10 @@ import { Router } from "express";
 import multer from "multer";
 import { prisma } from "../config/database";
 import { authMiddleware } from "../middleware/auth.middleware";
+import { adminMiddleware } from "../middleware/admin.middleware";
 import { success, unauthorized } from "../utils/response.utils";
 import { parseScheduleImage } from "../services/ai.service";
+import * as adminQuizController from "../controllers/admin.quiz.controller";
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -68,5 +70,12 @@ router.get("/logs", authMiddleware, async (req, res) => {
         return res.status(500).json({ error: "Internal server error" });
     }
 });
+
+/**
+ * Rotas de Gerenciamento de Quizzes
+ */
+router.get("/quizzes", authMiddleware, adminMiddleware, adminQuizController.getAllQuizzesAdmin);
+router.post("/quizzes", authMiddleware, adminMiddleware, adminQuizController.createQuizAdmin);
+router.delete("/quizzes/:id", authMiddleware, adminMiddleware, adminQuizController.deleteQuizAdmin);
 
 export default router;

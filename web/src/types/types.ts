@@ -68,3 +68,35 @@ export interface SwapRequest {
     user: { id: string; name: string };
   };
 }
+
+export interface QuizQuestionOption {
+  text: string;
+  isCorrect: boolean;
+}
+
+export interface QuizQuestion {
+  id: string;
+  text: string;
+  options: QuizQuestionOption[];
+}
+
+export interface Quiz {
+  id: string;
+  title: string;
+  description: string;
+  timeLimitMinutes: number;
+  questions?: QuizQuestion[];
+  isAnswered?: boolean;
+  score?: number;
+  timeSpentSeconds?: number;
+  results?: QuizResult[];
+}
+
+export interface QuizResult {
+  id: string;
+  quizId: string;
+  userId: string;
+  responderName: string;
+  totalScore: number;
+  timeSpentSeconds: number;
+}

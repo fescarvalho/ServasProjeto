@@ -6,7 +6,7 @@ async function main() {
     const users = await prisma.user.findMany({
         where: { birthDate: { not: null } }
     });
-    console.log(users.map(u => ({ name: u.name, birthDate: u.birthDate })));
+    console.log(users.map(u => ({ id: u.id, name: u.name, birthDate: u.birthDate })));
 }
 
 main()

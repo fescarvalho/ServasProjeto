@@ -41,6 +41,7 @@ import { RankingModal } from "./RankingModal";
 import { NoticeBoard } from "./NoticeBoard";
 import { LoginLogs } from "./LoginLogs";
 import { ReminderModal } from "./ReminderModal";
+import { AdminQuizManager } from "./AdminQuizManager";
 import { theme } from "../theme/theme";
 import "./css/AdminPanel.css";
 
@@ -303,7 +304,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [showCreateForm, setShowCreateForm] = useState(false);
 
   // ── SISTEMA DE ABAS ──
-  const [activeTab, setActiveTab] = useState<"escalas" | "servas" | "logs">("escalas");
+  const [activeTab, setActiveTab] = useState<"escalas" | "servas" | "logs" | "quizzes">("escalas");
 
   // ── CRUD DE SERVAS ──
   const [servasList, setServasList] = useState<ServaData[]>([]);
@@ -793,6 +794,12 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
             onClick={() => setActiveTab("logs")}
           >
             <ClipboardList size={18} /> Logs
+          </button>
+          <button
+            className={`admin-tab ${activeTab === "quizzes" ? "active" : ""}`}
+            onClick={() => setActiveTab("quizzes")}
+          >
+            <FileText size={18} /> AVA
           </button>
         </div>
       )}
@@ -1308,6 +1315,11 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
             )}
           </div>
         </div>
+      )}
+
+      {/* ═══════════════════ ABA: QUIZZES ═══════════════════ */}
+      {isAdmin && activeTab === "quizzes" && (
+        <AdminQuizManager />
       )}
 
       {/* ═══════════════════ ABA: LOGS ═══════════════════ */}

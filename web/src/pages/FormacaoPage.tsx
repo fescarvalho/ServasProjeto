@@ -102,6 +102,25 @@ export function FormacaoPage({ user, onLogout }: FormacaoPageProps) {
             </div>
           </div>
         ))}
+
+        {/* Card Adicional de AVA */}
+        <div 
+          className="module-card accessible" 
+          onClick={() => navigate("/formacao/quizzes")}
+          style={{ 
+            borderTop: `4px solid var(--color-danger)`,
+            marginTop: "10px"
+          }}
+        >
+          <div className="module-icon-wrapper">
+            <ShieldAlert size={28} style={{ color: 'var(--color-danger)' }} />
+          </div>
+          <div className="module-content">
+            <h3>📝 AVA</h3>
+            <p>Ambiente Virtual de Aprendizagem e testes rápidos.</p>
+            <div className="module-open-hint" style={{ color: 'var(--color-danger)' }}>Acessar Provas →</div>
+          </div>
+        </div>
       </div>
 
       <footer className="app-footer" style={{ width: "100%", boxSizing: "border-box" }}>

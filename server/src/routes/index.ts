@@ -9,6 +9,7 @@ import notificationRoutes from "./notification.routes";
 import pushRoutes from "./push.routes";
 import liturgyRoutes from "./liturgy.routes";
 import adminRoutes from "./admin.routes";
+import quizRoutes from "./quiz.routes";
 
 const router = Router();
 
@@ -23,6 +24,7 @@ router.use("/notifications", notificationRoutes);
 router.use("/push", pushRoutes);
 router.use("/liturgy", liturgyRoutes);
 router.use("/admin", adminRoutes);
+router.use("/quizzes", quizRoutes);
 
 export default router;
 
