@@ -50,23 +50,27 @@ export function QuizTakingPage() {
     loadQuiz();
   }, [id, navigate]);
 
+  const isTimeUp = timeLeft <= 0;
+
   useEffect(() => {
-    if (loading || finished || timeLeft <= 0 || !nameConfirmed) return;
+    if (loading || finished || !nameConfirmed || isTimeUp) return;
 
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          handleAutoSubmit();
-          return 0;
-        }
-        return prev - 1;
-      });
-      stateRef.current.timeSpentSeconds = (quiz?.timeLimitMinutes || 0) * 60 - timeLeft + 1;
+      setTimeLeft((prev) => Math.max(0, prev - 1));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [loading, finished, timeLeft, quiz]);
+  }, [loading, finished, nameConfirmed, isTimeUp]);
+
+  useEffect(() => {
+    if (quiz) {
+      stateRef.current.timeSpentSeconds = quiz.timeLimitMinutes * 60 - timeLeft;
+    }
+    if (isTimeUp && nameConfirmed && !finished && !loading) {
+      handleAutoSubmit();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft, nameConfirmed, finished, loading, quiz, isTimeUp]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
