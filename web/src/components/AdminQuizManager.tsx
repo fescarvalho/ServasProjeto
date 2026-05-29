@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { PlusCircle, Trash2, ChevronDown, ChevronUp, BookOpen, Clock, Loader2, Save, X, Plus } from "lucide-react";
 import { Quiz, QuizQuestion, QuizResult } from "../types/types";
 import { adminQuizService } from "../services/adminQuizService";
@@ -8,6 +8,7 @@ export function AdminQuizManager() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedQuizId, setExpandedQuizId] = useState<string | null>(null);
+  const [expandedResultId, setExpandedResultId] = useState<string | null>(null);
   
   // Form state
   const [showForm, setShowForm] = useState(false);
@@ -364,26 +365,108 @@ export function AdminQuizManager() {
                               const percentage = (r.totalScore / quiz.questions.length) * 100;
                               const colorClass = percentage >= 70 ? theme.colors.success : (percentage >= 50 ? theme.colors.warning : theme.colors.danger);
                               
+                              const isResultExpanded = expandedResultId === r.id;
+                              
                               return (
-                                <tr key={r.id} style={{ borderBottom: "1px solid #eee" }}>
-                                  <td style={{ padding: "12px", fontWeight: "bold", color: theme.colors.textMain }}>{r.responderName}</td>
-                                  <td style={{ padding: "12px", textAlign: "center", fontWeight: "bold", color: colorClass }}>
-                                    {r.totalScore} / {quiz.questions.length} ({(percentage).toFixed(0)}%)
-                                  </td>
-                                  <td style={{ padding: "12px", textAlign: "center", color: theme.colors.textSecondary, fontSize: "0.9rem" }}>
-                                    {formatTime(r.timeSpentSeconds)}
-                                  </td>
-                                  <td style={{ padding: "12px", textAlign: "right", color: theme.colors.textSecondary, fontSize: "0.85rem", whiteSpace: "nowrap" }}>
-                                    {new Date(r.createdAt || "").toLocaleDateString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
-                                    <button 
-                                      onClick={() => handleDeleteResult(r.id, r.responderName)}
-                                      style={{ background: "none", border: "none", color: theme.colors.danger, cursor: "pointer", marginLeft: "15px", padding: "2px", verticalAlign: "middle" }}
-                                      title="Apagar Resultado"
-                                    >
-                                      <Trash2 size={16} />
-                                    </button>
-                                  </td>
-                                </tr>
+                                <Fragment key={r.id}>
+                                  <tr 
+                                    style={{ borderBottom: "1px solid #eee", cursor: "pointer", background: isResultExpanded ? "#f0f7ff" : "white" }}
+                                    onClick={() => setExpandedResultId(isResultExpanded ? null : r.id)}
+                                  >
+                                    <td style={{ padding: "12px", fontWeight: "bold", color: theme.colors.textMain }}>{r.responderName}</td>
+                                    <td style={{ padding: "12px", textAlign: "center", fontWeight: "bold", color: colorClass }}>
+                                      {r.totalScore} / {quiz.questions.length} ({(percentage).toFixed(0)}%)
+                                    </td>
+                                    <td style={{ padding: "12px", textAlign: "center", color: theme.colors.textSecondary, fontSize: "0.9rem" }}>
+                                      {formatTime(r.timeSpentSeconds)}
+                                    </td>
+                                    <td style={{ padding: "12px", textAlign: "right", color: theme.colors.textSecondary, fontSize: "0.85rem", whiteSpace: "nowrap" }}>
+                                      {new Date(r.createdAt || "").toLocaleDateString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                                      <button 
+                                        onClick={(e) => { e.stopPropagation(); setExpandedResultId(isResultExpanded ? null : r.id); }}
+                                        style={{ background: "none", border: "none", color: theme.colors.primary, cursor: "pointer", marginLeft: "15px", padding: "2px", verticalAlign: "middle" }}
+                                        title="Ver Respostas"
+                                      >
+                                        {isResultExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                      </button>
+                                      <button 
+                                        onClick={(e) => { e.stopPropagation(); handleDeleteResult(r.id, r.responderName); }}
+                                        style={{ background: "none", border: "none", color: theme.colors.danger, cursor: "pointer", marginLeft: "10px", padding: "2px", verticalAlign: "middle" }}
+                                        title="Apagar Resultado"
+                                      >
+                                        <Trash2 size={16} />
+                                      </button>
+                                    </td>
+                                  </tr>
+                                  {isResultExpanded && r.answers && (
+                                    <tr>
+                                      <td colSpan={4} style={{ padding: "15px", background: "#f8f9fa", borderBottom: "2px solid #ddd" }}>
+                                        <h5 style={{ margin: "0 0 10px 0", color: theme.colors.textMain }}>Desempenho de {r.responderName}:</h5>
+                                        
+                                        {(() => {
+                                          const wrongQuestions = quiz.questions.map((q, i) => ({ q, qIndex: i })).filter(({ q, qIndex }) => {
+                                            const selectedOptIndex = r.answers![qIndex.toString()];
+                                            return !q.options[selectedOptIndex]?.isCorrect;
+                                          });
+
+                                          const correctQuestions = quiz.questions.map((q, i) => ({ q, qIndex: i })).filter(({ q, qIndex }) => {
+                                            const selectedOptIndex = r.answers![qIndex.toString()];
+                                            return q.options[selectedOptIndex]?.isCorrect;
+                                          });
+
+                                          return (
+                                            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                                              {wrongQuestions.length > 0 && (
+                                                <div>
+                                                  <h6 style={{ margin: "0 0 10px 0", color: theme.colors.danger, fontSize: "0.95rem" }}>❌ Respostas Incorretas ({wrongQuestions.length})</h6>
+                                                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                                                    {wrongQuestions.map(({ q, qIndex }) => {
+                                                      const selectedOptIndex = r.answers![qIndex.toString()];
+                                                      return (
+                                                        <div key={q.id} style={{ padding: "10px", background: "white", borderRadius: "8px", borderLeft: `4px solid ${theme.colors.danger}` }}>
+                                                          <p style={{ margin: "0 0 5px 0", fontWeight: "bold", fontSize: "0.9rem" }}>{qIndex + 1}. {q.text}</p>
+                                                          <p style={{ margin: 0, fontSize: "0.85rem", color: theme.colors.danger }}>
+                                                            <strong>Marcou:</strong> {selectedOptIndex !== undefined ? q.options[selectedOptIndex]?.text || "Opção excluída" : "Não respondeu"} ❌
+                                                          </p>
+                                                          <p style={{ margin: "3px 0 0 0", fontSize: "0.85rem", color: theme.colors.success }}>
+                                                            <strong>Correta:</strong> {q.options.find(opt => opt.isCorrect)?.text}
+                                                          </p>
+                                                        </div>
+                                                      );
+                                                    })}
+                                                  </div>
+                                                </div>
+                                              )}
+
+                                              {correctQuestions.length > 0 && (
+                                                <div>
+                                                  <h6 style={{ margin: "0 0 10px 0", color: theme.colors.success, fontSize: "0.95rem" }}>✅ Respostas Corretas ({correctQuestions.length})</h6>
+                                                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                                                    {correctQuestions.map(({ q, qIndex }) => {
+                                                      const selectedOptIndex = r.answers![qIndex.toString()];
+                                                      return (
+                                                        <div key={q.id} style={{ padding: "10px", background: "white", borderRadius: "8px", borderLeft: `4px solid ${theme.colors.success}` }}>
+                                                          <p style={{ margin: "0 0 5px 0", fontWeight: "bold", fontSize: "0.9rem" }}>{qIndex + 1}. {q.text}</p>
+                                                          <p style={{ margin: 0, fontSize: "0.85rem", color: theme.colors.success }}>
+                                                            <strong>Marcou:</strong> {selectedOptIndex !== undefined ? q.options[selectedOptIndex]?.text || "Opção excluída" : "Não respondeu"} ✅
+                                                          </p>
+                                                        </div>
+                                                      );
+                                                    })}
+                                                  </div>
+                                                </div>
+                                              )}
+                                              
+                                              {wrongQuestions.length === 0 && correctQuestions.length === 0 && (
+                                                <p style={{ fontSize: "0.9rem", color: "#666", fontStyle: "italic" }}>Nenhuma resposta registrada.</p>
+                                              )}
+                                            </div>
+                                          );
+                                        })()}
+                                      </td>
+                                    </tr>
+                                  )}
+                                </Fragment>
                               );
                             })}
                           </tbody>

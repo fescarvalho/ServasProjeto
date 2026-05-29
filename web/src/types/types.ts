@@ -100,5 +100,6 @@ export interface QuizResult {
   responderName: string;
   totalScore: number;
   timeSpentSeconds: number;
+  answers?: Record<string, number>;
   createdAt?: string;
 }
