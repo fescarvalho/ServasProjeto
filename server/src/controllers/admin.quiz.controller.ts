@@ -47,7 +47,7 @@ export async function createQuizAdmin(req: Request, res: Response) {
 
 export async function deleteQuizAdmin(req: Request, res: Response) {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     await prisma.quiz.delete({
       where: { id }

@@ -85,7 +85,8 @@ export interface Quiz {
   title: string;
   description: string;
   timeLimitMinutes: number;
-  questions?: QuizQuestion[];
+  isActive?: boolean;
+  questions: QuizQuestion[];
   isAnswered?: boolean;
   score?: number;
   timeSpentSeconds?: number;
@@ -99,4 +100,5 @@ export interface QuizResult {
   responderName: string;
   totalScore: number;
   timeSpentSeconds: number;
+  createdAt?: string;
 }

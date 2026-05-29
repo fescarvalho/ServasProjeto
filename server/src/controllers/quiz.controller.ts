@@ -47,7 +47,7 @@ export async function submitQuizResult(req: Request, res: Response): Promise<voi
       return;
     }
 
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { timeSpentSeconds, answers, responderName } = req.body; 
 
     if (!responderName || responderName.trim() === "") {

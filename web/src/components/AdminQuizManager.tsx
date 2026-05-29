@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { PlusCircle, Trash2, ChevronDown, ChevronUp, BookOpen, Clock, Loader2, Save, X, Plus } from "lucide-react";
-import { Quiz, Question, QuizResult } from "../types/types";
+import { Quiz, QuizQuestion, QuizResult } from "../types/types";
 import { adminQuizService } from "../services/adminQuizService";
 import { theme } from "../theme/theme";
 
@@ -16,7 +16,7 @@ export function AdminQuizManager() {
     description: "",
     timeLimitMinutes: 10,
     isActive: true,
-    questions: [] as Question[]
+    questions: [] as QuizQuestion[]
   });
   const [saving, setSaving] = useState(false);
 

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Clock, ArrowRight, CheckCircle } from "lucide-react";
+import { Clock, CheckCircle } from "lucide-react";
 import { quizService } from "../services/quizService";
 import { Quiz } from "../types/types";
 import { theme } from "../theme/theme";
@@ -81,14 +81,7 @@ export function QuizTakingPage() {
     await submitFinal(true);
   };
 
-  const handleManualSubmit = async () => {
-    if (finished) return;
-    const confirm = window.confirm("Deseja enviar suas respostas agora?");
-    if (!confirm) return;
-    
-    setFinished(true);
-    await submitFinal(false);
-  };
+
 
   const submitFinal = async (isAuto: boolean) => {
     try {

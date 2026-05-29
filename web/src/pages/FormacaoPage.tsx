@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Building2, Cross, CalendarDays, BookOpenText, Flower, LogOut, Shield } from 'lucide-react';
+import { Building2, Cross, CalendarDays, BookOpenText, Flower, LogOut, Shield, ShieldAlert } from 'lucide-react';
 import { UserData } from '../types/types';
 import './FormacaoPage.css';
 

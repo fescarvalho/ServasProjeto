@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, BookOpenCheck, Clock, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Clock, ShieldAlert } from "lucide-react";
 import { quizService } from "../services/quizService";
 import { Quiz } from "../types/types";
 import { theme } from "../theme/theme";
