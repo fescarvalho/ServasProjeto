@@ -16,12 +16,17 @@ export function QuizTakingPage() {
   const [score, setScore] = useState<number | null>(null);
   const [timeoutMsg, setTimeoutMsg] = useState(false);
   
+  // States for name since formandos share login
+  const [responderName, setResponderName] = useState("");
+  const [nameConfirmed, setNameConfirmed] = useState(false);
+
   // Use ref to keep track of latest values for auto-submit
-  const stateRef = useRef({ id, answers, timeSpentSeconds: 0 });
+  const stateRef = useRef({ id, answers, timeSpentSeconds: 0, responderName: "" });
 
   useEffect(() => {
     stateRef.current.answers = answers;
-  }, [answers]);
+    stateRef.current.responderName = responderName;
+  }, [answers, responderName]);
 
   useEffect(() => {
     async function loadQuiz() {
@@ -31,9 +36,22 @@ export function QuizTakingPage() {
         if (found) {
           setQuiz(found);
           const saved = localStorage.getItem(`quiz_progress_${id}`);
-          if (saved && !found.isAnswered) {
+          if (saved) {
             try {
               const parsed = JSON.parse(saved);
+              setResponderName(parsed.responderName || "");
+              setNameConfirmed(parsed.nameConfirmed || false);
+              
+              if (parsed.nameConfirmed && parsed.responderName) {
+                // Check if already answered in background
+                const resultCheck = await quizService.checkResult(id!, parsed.responderName);
+                if (resultCheck.isAnswered) {
+                  setQuiz(prev => prev ? { ...prev, isAnswered: true, score: resultCheck.score, answers: resultCheck.answers } : prev);
+                  setLoading(false);
+                  return; // Don't load saved answers if already answered
+                }
+              }
+
               setAnswers(parsed.answers || {});
               if (parsed.timeLeft !== undefined && parsed.timeLeft > 0) {
                 setTimeLeft(parsed.timeLeft);
@@ -66,30 +84,32 @@ export function QuizTakingPage() {
     localStorage.setItem(`quiz_progress_${id}`, JSON.stringify({
       timeLeft,
       answers,
+      responderName,
+      nameConfirmed
     }));
-  }, [id, timeLeft, answers, loading, finished, quiz?.isAnswered]);
+  }, [id, timeLeft, answers, responderName, nameConfirmed, loading, finished, quiz?.isAnswered]);
 
   const isTimeUp = timeLeft <= 0;
 
   useEffect(() => {
-    if (loading || finished || isTimeUp || quiz?.isAnswered) return;
+    if (loading || finished || !nameConfirmed || isTimeUp || quiz?.isAnswered) return;
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => Math.max(0, prev - 1));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [loading, finished, isTimeUp, quiz?.isAnswered]);
+  }, [loading, finished, nameConfirmed, isTimeUp, quiz?.isAnswered]);
 
   useEffect(() => {
     if (quiz) {
       stateRef.current.timeSpentSeconds = quiz.timeLimitMinutes * 60 - timeLeft;
     }
-    if (isTimeUp && !finished && !loading && !quiz?.isAnswered) {
+    if (isTimeUp && nameConfirmed && !finished && !loading && !quiz?.isAnswered) {
       handleAutoSubmit();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft, finished, loading, quiz, isTimeUp]);
+  }, [timeLeft, nameConfirmed, finished, loading, quiz, isTimeUp]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -104,19 +124,17 @@ export function QuizTakingPage() {
     await submitFinal(true);
   };
 
-
-
   const submitFinal = async (isAuto: boolean) => {
     try {
       if (!quiz || !id) return;
       const finalTimeSpent = isAuto ? quiz.timeLimitMinutes * 60 : stateRef.current.timeSpentSeconds;
       
-      const result = await quizService.submitQuiz(id, finalTimeSpent, stateRef.current.answers);
+      const result = await quizService.submitQuiz(id, finalTimeSpent, stateRef.current.answers, stateRef.current.responderName);
       setScore(result.totalScore);
       localStorage.removeItem(`quiz_progress_${id}`);
     } catch (error) {
       console.error("Erro ao enviar quiz:", error);
-      alert("Houve um erro ao salvar suas respostas. Verifique sua conexão e se você já não respondeu a este quiz.");
+      alert("Houve um erro ao salvar suas respostas. Verifique se você já não respondeu a este quiz antes.");
     }
   };
 
@@ -126,6 +144,28 @@ export function QuizTakingPage() {
       ...prev,
       [questionIndex]: optionIndex,
     }));
+  };
+
+  const handleConfirmName = async () => {
+    if (responderName.trim().length < 3) {
+      alert("Por favor, digite seu nome completo.");
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const resultCheck = await quizService.checkResult(id!, responderName);
+      if (resultCheck.isAnswered) {
+        setQuiz(prev => prev ? { ...prev, isAnswered: true, score: resultCheck.score, answers: resultCheck.answers } : prev);
+      } else {
+        setNameConfirmed(true);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Erro ao verificar nome. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (loading) {
@@ -225,6 +265,34 @@ export function QuizTakingPage() {
             ))}
           </div>
         )}
+      </div>
+    );
+  }
+
+  if (!nameConfirmed) {
+    return (
+      <div style={{ minHeight: "100vh", background: theme.colors.background, padding: "20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ background: "white", padding: "30px", borderRadius: "16px", boxShadow: `0 4px 12px ${theme.colors.shadowBase}`, maxWidth: "400px", width: "100%" }}>
+          <h2 style={{ color: theme.colors.textMain, marginBottom: "10px", textAlign: "center" }}>Identificação</h2>
+          <p style={{ color: theme.colors.textSecondary, marginBottom: "20px", textAlign: "center", fontSize: "0.9rem" }}>
+            Como todos usam a mesma conta de Formação, precisamos do seu nome para registrar sua nota e checar se você já fez a prova.
+          </p>
+          
+          <input
+            type="text"
+            placeholder="Digite seu nome completo"
+            value={responderName}
+            onChange={(e) => setResponderName(e.target.value)}
+            style={{ width: "100%", padding: "12px", borderRadius: "8px", border: `1px solid ${theme.colors.border}`, marginBottom: "20px", boxSizing: "border-box", fontSize: "1rem" }}
+          />
+          
+          <button
+            onClick={handleConfirmName}
+            style={{ width: "100%", padding: "14px", border: "none", borderRadius: "8px", background: theme.colors.primary, color: "white", fontWeight: "bold", cursor: "pointer" }}
+          >
+            Acessar Prova
+          </button>
+        </div>
       </div>
     );
   }

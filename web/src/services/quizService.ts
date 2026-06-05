@@ -7,10 +7,18 @@ export const quizService = {
     return response.data;
   },
 
-  submitQuiz: async (id: string, timeSpentSeconds: number, answers: Record<string, number>): Promise<QuizResult> => {
+  checkResult: async (id: string, responderName: string): Promise<{ isAnswered: boolean; score?: number; answers?: Record<string, number> }> => {
+    const response = await api.get(`/quizzes/${id}/result`, {
+      params: { responderName },
+    });
+    return response.data;
+  },
+
+  submitQuiz: async (id: string, timeSpentSeconds: number, answers: Record<string, number>, responderName: string): Promise<QuizResult> => {
     const response = await api.post(`/quizzes/${id}/submit`, {
       timeSpentSeconds,
       answers,
+      responderName,
     });
     return response.data;
   },

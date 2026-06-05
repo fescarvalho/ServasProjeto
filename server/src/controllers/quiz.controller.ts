@@ -16,23 +16,13 @@ export async function getAvailableQuizzes(req: Request, res: Response): Promise<
       orderBy: { createdAt: "desc" },
     });
 
-    // Busca resultados do usuário
-    const results = await prisma.quizResult.findMany({
-      where: { userId },
-    });
-
     const response = quizzes.map((quiz) => {
-      const userResult = results.find((r) => r.quizId === quiz.id);
-
       return {
         id: quiz.id,
         title: quiz.title,
         description: quiz.description,
         timeLimitMinutes: quiz.timeLimitMinutes,
         questions: quiz.questions, 
-        isAnswered: !!userResult,
-        score: userResult ? userResult.totalScore : undefined,
-        answers: userResult ? userResult.answers : undefined,
       };
     });
 
@@ -52,18 +42,15 @@ export async function submitQuizResult(req: Request, res: Response): Promise<voi
     }
 
     const id = req.params.id as string;
-    const { timeSpentSeconds, answers } = req.body; 
+    const { timeSpentSeconds, answers, responderName } = req.body; 
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      res.status(404).json({ error: "Usuário não encontrado." });
+    if (!responderName || responderName.trim() === "") {
+      res.status(400).json({ error: "O nome do respondente é obrigatório." });
       return;
     }
 
-    const responderName = user.name;
-
     const existingResult = await prisma.quizResult.findFirst({
-      where: { quizId: id, userId }
+      where: { quizId: id, responderName }
     });
 
     if (existingResult) {
@@ -114,5 +101,30 @@ export async function submitQuizResult(req: Request, res: Response): Promise<voi
   } catch (error) {
     console.error("Erro ao submeter quiz:", error);
     res.status(500).json({ error: "Erro interno ao salvar resultado do quiz" });
+  }
+}
+
+export async function getQuizResultForResponder(req: Request, res: Response): Promise<void> {
+  try {
+    const id = req.params.id;
+    const { responderName } = req.query;
+    
+    if (!responderName) {
+      res.status(400).json({ error: "Nome é obrigatório." });
+      return;
+    }
+
+    const result = await prisma.quizResult.findFirst({
+      where: { quizId: id, responderName: String(responderName) }
+    });
+
+    if (result) {
+      res.json({ isAnswered: true, score: result.totalScore, answers: result.answers });
+    } else {
+      res.json({ isAnswered: false });
+    }
+  } catch (error) {
+    console.error("Erro ao verificar resultado:", error);
+    res.status(500).json({ error: "Erro interno" });
   }
 }
