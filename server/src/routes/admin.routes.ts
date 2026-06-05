@@ -55,6 +55,13 @@ router.get("/logs", authMiddleware, async (req, res) => {
         }
 
         const logs = await prisma.loginLog.findMany({
+            where: {
+                user: {
+                    role: {
+                        not: "em_formacao",
+                    },
+                },
+            },
             orderBy: { timestamp: "desc" },
             take: 100,
             include: {
@@ -76,6 +83,7 @@ router.get("/logs", authMiddleware, async (req, res) => {
  */
 router.get("/quizzes", authMiddleware, adminMiddleware, adminQuizController.getAllQuizzesAdmin);
 router.post("/quizzes", authMiddleware, adminMiddleware, adminQuizController.createQuizAdmin);
+router.patch("/quizzes/:id/toggle", authMiddleware, adminMiddleware, adminQuizController.toggleQuizStatusAdmin);
 router.delete("/quizzes/:id", authMiddleware, adminMiddleware, adminQuizController.deleteQuizAdmin);
 router.delete("/quiz-results/:id", authMiddleware, adminMiddleware, adminQuizController.deleteQuizResultAdmin);
 

@@ -60,6 +60,16 @@ export function AdminQuizManager() {
     }
   };
 
+  const handleToggleStatus = async (id: string, currentStatus: boolean) => {
+    try {
+      await adminQuizService.toggleQuizStatus(id, !currentStatus);
+      loadQuizzes();
+    } catch (error) {
+      console.error("Erro ao alterar status", error);
+      alert("Erro ao alterar o status do AVA.");
+    }
+  };
+
   const addQuestion = () => {
     setFormData(prev => ({
       ...prev,
@@ -332,6 +342,13 @@ export function AdminQuizManager() {
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleToggleStatus(quiz.id, quiz.isActive); }}
+                      style={{ background: "none", border: "none", color: quiz.isActive ? theme.colors.warning : theme.colors.success, cursor: "pointer", padding: "5px", fontWeight: "bold", fontSize: "0.85rem" }}
+                      title={quiz.isActive ? "Encerrar AVA" : "Reabrir AVA"}
+                    >
+                      {quiz.isActive ? "Encerrar" : "Reabrir"}
+                    </button>
                     <button 
                       onClick={(e) => { e.stopPropagation(); handleDelete(quiz.id, quiz.title); }}
                       style={{ background: "none", border: "none", color: theme.colors.danger, cursor: "pointer", padding: "5px" }}

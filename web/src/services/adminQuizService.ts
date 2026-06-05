@@ -19,4 +19,9 @@ export const adminQuizService = {
   deleteQuizResult: async (id: string): Promise<void> => {
     await api.delete(`/admin/quiz-results/${id}`);
   },
+
+  toggleQuizStatus: async (id: string, isActive: boolean): Promise<Quiz> => {
+    const response = await api.patch(`/admin/quizzes/${id}/toggle`, { isActive });
+    return response.data;
+  },
 };

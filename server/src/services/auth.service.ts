@@ -32,8 +32,8 @@ export async function login(data: LoginData): Promise<UserResponse | null> {
         return null;
     }
 
-    // Registrar log de acesso apenas para Servas (não Admin)
-    if (user.role !== "ADMIN") {
+    // Registrar log de acesso apenas para Servas (não Admin e não em_formacao)
+    if (user.role !== "ADMIN" && user.role !== "em_formacao") {
         try {
             await prisma.loginLog.create({ data: { userId: user.id } });
         } catch (logError: any) {

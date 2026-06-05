@@ -74,3 +74,24 @@ export async function deleteQuizResultAdmin(req: Request, res: Response) {
     return error(res, "Erro ao excluir resultado.");
   }
 }
+
+export async function toggleQuizStatusAdmin(req: Request, res: Response) {
+  try {
+    const id = req.params.id as string;
+    const { isActive } = req.body;
+
+    if (typeof isActive !== "boolean") {
+      return badRequest(res, "O status isActive é obrigatório e deve ser booleano.");
+    }
+
+    const quiz = await prisma.quiz.update({
+      where: { id },
+      data: { isActive }
+    });
+
+    return success(res, quiz);
+  } catch (err) {
+    console.error("Error toggling quiz status:", err);
+    return error(res, "Erro ao alterar status do quiz.");
+  }
+}
