@@ -16,17 +16,12 @@ export function QuizTakingPage() {
   const [score, setScore] = useState<number | null>(null);
   const [timeoutMsg, setTimeoutMsg] = useState(false);
   
-  // Novos estados para o Nome
-  const [responderName, setResponderName] = useState("");
-  const [nameConfirmed, setNameConfirmed] = useState(false);
-
   // Use ref to keep track of latest values for auto-submit
-  const stateRef = useRef({ id, answers, timeSpentSeconds: 0, responderName: "" });
+  const stateRef = useRef({ id, answers, timeSpentSeconds: 0 });
 
   useEffect(() => {
     stateRef.current.answers = answers;
-    stateRef.current.responderName = responderName;
-  }, [answers, responderName]);
+  }, [answers]);
 
   useEffect(() => {
     async function loadQuiz() {
@@ -36,12 +31,10 @@ export function QuizTakingPage() {
         if (found) {
           setQuiz(found);
           const saved = localStorage.getItem(`quiz_progress_${id}`);
-          if (saved) {
+          if (saved && !found.isAnswered) {
             try {
               const parsed = JSON.parse(saved);
               setAnswers(parsed.answers || {});
-              setResponderName(parsed.responderName || "");
-              setNameConfirmed(parsed.nameConfirmed || false);
               if (parsed.timeLeft !== undefined && parsed.timeLeft > 0) {
                 setTimeLeft(parsed.timeLeft);
               } else {
@@ -68,37 +61,35 @@ export function QuizTakingPage() {
   }, [id, navigate]);
 
   useEffect(() => {
-    if (loading || finished || !id) return;
+    if (loading || finished || !id || quiz?.isAnswered) return;
     
     localStorage.setItem(`quiz_progress_${id}`, JSON.stringify({
       timeLeft,
       answers,
-      responderName,
-      nameConfirmed
     }));
-  }, [id, timeLeft, answers, responderName, nameConfirmed, loading, finished]);
+  }, [id, timeLeft, answers, loading, finished, quiz?.isAnswered]);
 
   const isTimeUp = timeLeft <= 0;
 
   useEffect(() => {
-    if (loading || finished || !nameConfirmed || isTimeUp) return;
+    if (loading || finished || isTimeUp || quiz?.isAnswered) return;
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => Math.max(0, prev - 1));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [loading, finished, nameConfirmed, isTimeUp]);
+  }, [loading, finished, isTimeUp, quiz?.isAnswered]);
 
   useEffect(() => {
     if (quiz) {
       stateRef.current.timeSpentSeconds = quiz.timeLimitMinutes * 60 - timeLeft;
     }
-    if (isTimeUp && nameConfirmed && !finished && !loading) {
+    if (isTimeUp && !finished && !loading && !quiz?.isAnswered) {
       handleAutoSubmit();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft, nameConfirmed, finished, loading, quiz, isTimeUp]);
+  }, [timeLeft, finished, loading, quiz, isTimeUp]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -120,17 +111,17 @@ export function QuizTakingPage() {
       if (!quiz || !id) return;
       const finalTimeSpent = isAuto ? quiz.timeLimitMinutes * 60 : stateRef.current.timeSpentSeconds;
       
-      const result = await quizService.submitQuiz(id, finalTimeSpent, stateRef.current.answers, stateRef.current.responderName);
+      const result = await quizService.submitQuiz(id, finalTimeSpent, stateRef.current.answers);
       setScore(result.totalScore);
       localStorage.removeItem(`quiz_progress_${id}`);
     } catch (error) {
       console.error("Erro ao enviar quiz:", error);
-      alert("Houve um erro ao salvar suas respostas. Comunique o administrador.");
+      alert("Houve um erro ao salvar suas respostas. Verifique sua conexão e se você já não respondeu a este quiz.");
     }
   };
 
   const selectOption = (questionIndex: number, optionIndex: number) => {
-    if (finished) return;
+    if (finished || quiz?.isAnswered) return;
     setAnswers((prev) => ({
       ...prev,
       [questionIndex]: optionIndex,
@@ -143,10 +134,20 @@ export function QuizTakingPage() {
 
   if (!quiz) return null;
 
-  if (finished && score !== null) {
+  if (quiz.isAnswered || (finished && score !== null)) {
+    const displayScore = quiz.isAnswered ? quiz.score : score;
+    const displayAnswers = quiz.isAnswered ? quiz.answers : answers;
+    
+    // Find errors
+    const errors = quiz.questions?.map((q, index) => {
+      const userAnswerIndex = displayAnswers?.[index];
+      const isCorrect = userAnswerIndex !== undefined && q.options[userAnswerIndex]?.isCorrect;
+      return { q, index, isCorrect, userAnswerIndex };
+    }).filter(item => !item.isCorrect) || [];
+
     return (
-      <div style={{ minHeight: "100vh", background: theme.colors.background, padding: "20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ background: "white", padding: "30px", borderRadius: "16px", boxShadow: `0 4px 12px ${theme.colors.shadowBase}`, textAlign: "center", maxWidth: "400px", width: "100%" }}>
+      <div style={{ minHeight: "100vh", background: theme.colors.background, padding: "20px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div style={{ background: "white", padding: "30px", borderRadius: "16px", boxShadow: `0 4px 12px ${theme.colors.shadowBase}`, textAlign: "center", maxWidth: "600px", width: "100%", marginBottom: "20px" }}>
           <CheckCircle size={64} color={theme.colors.success} style={{ marginBottom: "20px" }} />
           <h2 style={{ color: theme.colors.textMain, marginBottom: "10px" }}>Quiz Concluído!</h2>
           
@@ -156,9 +157,15 @@ export function QuizTakingPage() {
             </p>
           )}
 
-          <p style={{ fontSize: "1.2rem", marginBottom: "30px" }}>
-            Você acertou <strong>{score}</strong> de <strong>{quiz.questions?.length}</strong> perguntas.
-          </p>
+          {errors.length === 0 ? (
+            <p style={{ fontSize: "1.2rem", marginBottom: "30px", color: theme.colors.success, fontWeight: "bold" }}>
+              Parabéns! Você acertou todas as questões!
+            </p>
+          ) : (
+            <p style={{ fontSize: "1.2rem", marginBottom: "30px" }}>
+              Você acertou <strong>{displayScore}</strong> de <strong>{quiz.questions?.length}</strong> perguntas.
+            </p>
+          )}
           
           <button
             onClick={() => navigate("/formacao/quizzes", { replace: true })}
@@ -167,40 +174,57 @@ export function QuizTakingPage() {
             Voltar para o AVA
           </button>
         </div>
-      </div>
-    );
-  }
 
-  if (!nameConfirmed) {
-    return (
-      <div style={{ minHeight: "100vh", background: theme.colors.background, padding: "20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ background: "white", padding: "30px", borderRadius: "16px", boxShadow: `0 4px 12px ${theme.colors.shadowBase}`, maxWidth: "400px", width: "100%" }}>
-          <h2 style={{ color: theme.colors.textMain, marginBottom: "10px", textAlign: "center" }}>Identificação</h2>
-          <p style={{ color: theme.colors.textSecondary, marginBottom: "20px", textAlign: "center", fontSize: "0.9rem" }}>
-            Como todos usam a mesma conta de Formação, precisamos do seu nome para registrar sua nota.
-          </p>
-          
-          <input
-            type="text"
-            placeholder="Digite seu nome completo"
-            value={responderName}
-            onChange={(e) => setResponderName(e.target.value)}
-            style={{ width: "100%", padding: "12px", borderRadius: "8px", border: `1px solid ${theme.colors.border}`, marginBottom: "20px", boxSizing: "border-box", fontSize: "1rem" }}
-          />
-          
-          <button
-            onClick={() => {
-              if (responderName.trim().length < 3) {
-                alert("Por favor, digite seu nome completo.");
-                return;
-              }
-              setNameConfirmed(true);
-            }}
-            style={{ width: "100%", padding: "14px", border: "none", borderRadius: "8px", background: theme.colors.primary, color: "white", fontWeight: "bold", cursor: "pointer" }}
-          >
-            Começar Prova
-          </button>
-        </div>
+        {errors.length > 0 && (
+          <div style={{ maxWidth: "600px", width: "100%" }}>
+            <h3 style={{ color: theme.colors.textMain, marginBottom: "15px" }}>Revisão dos Erros</h3>
+            {errors.map(({ q, index, userAnswerIndex }) => (
+              <div key={q.id || index} style={{ background: "white", padding: "20px", borderRadius: "12px", marginBottom: "20px", boxShadow: `0 2px 8px ${theme.colors.shadowBase}`, borderLeft: `4px solid ${theme.colors.danger}` }}>
+                <h4 style={{ fontSize: "1.05rem", color: theme.colors.textMain, marginBottom: "15px" }}>
+                  {index + 1}. {q.text}
+                </h4>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  {q.options.map((opt, oIndex) => {
+                    const isUserAnswer = userAnswerIndex === oIndex;
+                    const isCorrect = opt.isCorrect;
+                    
+                    let bg = "transparent";
+                    let border = `1px solid ${theme.colors.border}`;
+                    let color = theme.colors.textMain;
+
+                    if (isCorrect) {
+                      bg = "#e8f5e9";
+                      border = "1px solid #4caf50";
+                      color = "#2e7d32";
+                    } else if (isUserAnswer) {
+                      bg = "#ffebee";
+                      border = "1px solid #f44336";
+                      color = "#c62828";
+                    }
+
+                    return (
+                      <div 
+                        key={oIndex} 
+                        style={{ 
+                          padding: "10px 15px", borderRadius: "8px", background: bg, border: border, color: color,
+                          display: "flex", alignItems: "center", justifyContent: "space-between"
+                        }}
+                      >
+                        <span>{opt.text}</span>
+                        {isCorrect && <CheckCircle size={18} color="#4caf50" />}
+                      </div>
+                    );
+                  })}
+                </div>
+                {q.rationale && (
+                  <div style={{ marginTop: "15px", padding: "10px", background: "#f5f5f5", borderRadius: "8px", fontSize: "0.9rem", color: theme.colors.textSecondary }}>
+                    <strong>Explicação:</strong> {q.rationale}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -226,7 +250,7 @@ export function QuizTakingPage() {
 
       <div style={{ padding: "20px", maxWidth: "600px", margin: "0 auto" }}>
         {quiz.questions?.map((q, qIndex) => (
-          <div key={q.id} style={{ background: "white", padding: "20px", borderRadius: "12px", marginBottom: "20px", boxShadow: `0 2px 8px ${theme.colors.shadowBase}` }}>
+          <div key={q.id || qIndex} style={{ background: "white", padding: "20px", borderRadius: "12px", marginBottom: "20px", boxShadow: `0 2px 8px ${theme.colors.shadowBase}` }}>
             <h3 style={{ fontSize: "1.1rem", color: theme.colors.textMain, marginBottom: "15px" }}>
               {qIndex + 1}. {q.text}
             </h3>

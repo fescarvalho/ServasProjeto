@@ -77,6 +77,7 @@ export interface QuizQuestionOption {
 export interface QuizQuestion {
   id: string;
   text: string;
+  rationale?: string;
   options: QuizQuestionOption[];
 }
 
@@ -89,6 +90,7 @@ export interface Quiz {
   questions: QuizQuestion[];
   isAnswered?: boolean;
   score?: number;
+  answers?: Record<string, number>;
   timeSpentSeconds?: number;
   results?: QuizResult[];
 }

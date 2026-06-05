@@ -16,19 +16,23 @@ export async function getAvailableQuizzes(req: Request, res: Response): Promise<
       orderBy: { createdAt: "desc" },
     });
 
-    // Busca resultados do usuário (opcional agora, pois múltiplos formandos usam a mesma conta)
+    // Busca resultados do usuário
     const results = await prisma.quizResult.findMany({
       where: { userId },
     });
 
     const response = quizzes.map((quiz) => {
+      const userResult = results.find((r) => r.quizId === quiz.id);
+
       return {
         id: quiz.id,
         title: quiz.title,
         description: quiz.description,
         timeLimitMinutes: quiz.timeLimitMinutes,
-        questions: quiz.questions, // Sempre retornar as perguntas
-        isAnswered: false, // Pode ser removido, mas mantemos false para o frontend
+        questions: quiz.questions, 
+        isAnswered: !!userResult,
+        score: userResult ? userResult.totalScore : undefined,
+        answers: userResult ? userResult.answers : undefined,
       };
     });
 
@@ -48,10 +52,22 @@ export async function submitQuizResult(req: Request, res: Response): Promise<voi
     }
 
     const id = req.params.id as string;
-    const { timeSpentSeconds, answers, responderName } = req.body; 
+    const { timeSpentSeconds, answers } = req.body; 
 
-    if (!responderName || responderName.trim() === "") {
-      res.status(400).json({ error: "O nome do respondente é obrigatório." });
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      res.status(404).json({ error: "Usuário não encontrado." });
+      return;
+    }
+
+    const responderName = user.name;
+
+    const existingResult = await prisma.quizResult.findFirst({
+      where: { quizId: id, userId }
+    });
+
+    if (existingResult) {
+      res.status(400).json({ error: "Você já respondeu a este quiz." });
       return;
     }
 
