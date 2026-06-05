@@ -106,8 +106,8 @@ export async function submitQuizResult(req: Request, res: Response): Promise<voi
 
 export async function getQuizResultForResponder(req: Request, res: Response): Promise<void> {
   try {
-    const id = req.params.id;
-    const { responderName } = req.query;
+    const id = req.params.id as string;
+    const responderName = req.query.responderName as string;
     
     if (!responderName) {
       res.status(400).json({ error: "Nome é obrigatório." });
@@ -115,7 +115,7 @@ export async function getQuizResultForResponder(req: Request, res: Response): Pr
     }
 
     const result = await prisma.quizResult.findFirst({
-      where: { quizId: id, responderName: String(responderName) }
+      where: { quizId: id, responderName }
     });
 
     if (result) {
