@@ -14,6 +14,10 @@
         {
             "path": "/push/cron/notify",
             "schedule": "0 20 * * *"
+        },
+        {
+            "path": "/notices/cron/monthly-champion",
+            "schedule": "0 10 1 * *"
         }
     ]
 }
