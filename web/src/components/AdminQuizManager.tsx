@@ -343,7 +343,7 @@ export function AdminQuizManager() {
                   </div>
                   <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
                     <button
-                      onClick={(e) => { e.stopPropagation(); handleToggleStatus(quiz.id, quiz.isActive); }}
+                      onClick={(e) => { e.stopPropagation(); handleToggleStatus(quiz.id, quiz.isActive ?? false); }}
                       style={{ background: "none", border: "none", color: quiz.isActive ? theme.colors.warning : theme.colors.success, cursor: "pointer", padding: "5px", fontWeight: "bold", fontSize: "0.85rem" }}
                       title={quiz.isActive ? "Encerrar AVA" : "Reabrir AVA"}
                     >
