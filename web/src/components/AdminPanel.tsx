@@ -100,6 +100,7 @@ function MassForm({
           <option value="SANTUARIO">SANTUARIO</option>
           <option value="SANTA TEREZINHA">SANTA TEREZINHA</option>
           <option value="SAO FRANCISCO">SAO FRANCISCO</option>
+          <option value="AGUA SANTA">AGUA SANTA</option>
         </select>
       </div>
       <div className="form-group">

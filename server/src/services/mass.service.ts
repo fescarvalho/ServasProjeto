@@ -146,6 +146,9 @@ export async function patchMass(id: string, data: any) {
         updateData.isSolemnity = Boolean(updateData.isSolemnity);
     }
 
+    // Remove points as it is not in the Mass schema
+    delete updateData.points;
+
     return await prisma.mass.update({
         where: { id },
         data: updateData,
