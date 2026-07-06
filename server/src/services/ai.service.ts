@@ -30,8 +30,9 @@ export async function parseScheduleImage(imageBuffer: Buffer, mimeType: string):
                 - SANTUARIO
                 - SANTA TEREZINHA
                 - SAO FRANCISCO
+                - AGUA SANTA
                 
-                IMPORTANTE: Ignore qualquer outra comunidade, capela ou local que não seja um dos três listados acima.
+                IMPORTANTE: Ignore qualquer outra comunidade, capela ou local que não seja um dos quatro listados acima.
                 
                 Regras de extração:
                 1. A data deve estar no formato YYYY-MM-DD. O ano é 2026.
@@ -40,13 +41,14 @@ export async function parseScheduleImage(imageBuffer: Buffer, mimeType: string):
                    - "SANTUARIO" para missas na Matriz/Igreja Matriz/Santuário ou quando estiver escrito apenas MATRIZ
                    - "SANTA TEREZINHA" para missas em Santa Terezinha ou Popular Nova
                    - "SAO FRANCISCO" para missas em São Francisco ou Balneário
+                   - "AGUA SANTA" para missas em Água Santa
                 
                 Retorne APENAS um array JSON válido no seguinte formato:
                 [
                     { "date": "2026-03-01", "time": "07:00", "local": "SANTUARIO" },
                     { "date": "2026-03-01", "time": "09:00", "local": "SANTA TEREZINHA" },
                     { "date": "2026-03-01", "time": "19:00", "local": "SAO FRANCISCO" },
-                    ...
+                    { "date": "2026-03-01", "time": "19:00", "local": "AGUA SANTA" }
                 ]
                 Não inclua nenhuma explicação ou formatação markdown. Apenas o array puro ou um array vazio [] se não houver missas nos locais listados.
             `;
@@ -63,7 +65,7 @@ export async function parseScheduleImage(imageBuffer: Buffer, mimeType: string):
             const extracted: ExtractedMass[] = JSON.parse(cleanJson);
 
             // Filtro de segurança: apenas locais permitidos
-            const allowedLocals = ["SANTUARIO", "SANTA TEREZINHA", "SAO FRANCISCO"];
+            const allowedLocals = ["SANTUARIO", "SANTA TEREZINHA", "SAO FRANCISCO", "AGUA SANTA"];
             return extracted.filter(m => allowedLocals.some(loc => m.local.toUpperCase().includes(loc.toUpperCase())));
 
         } catch (error: any) {
