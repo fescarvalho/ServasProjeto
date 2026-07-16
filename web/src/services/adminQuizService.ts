@@ -20,8 +20,13 @@ export const adminQuizService = {
     await api.delete(`/admin/quiz-results/${id}`);
   },
 
-  toggleQuizStatus: async (id: string, isActive: boolean): Promise<Quiz> => {
-    const response = await api.patch(`/admin/quizzes/${id}/toggle`, { isActive });
+  updateQuiz: async (id: string, quizData: Partial<Quiz>): Promise<Quiz> => {
+    const response = await api.put(`/admin/quizzes/${id}`, quizData);
+    return response.data;
+  },
+
+  duplicateQuiz: async (id: string): Promise<Quiz> => {
+    const response = await api.post(`/admin/quizzes/${id}/duplicate`);
     return response.data;
   },
 };

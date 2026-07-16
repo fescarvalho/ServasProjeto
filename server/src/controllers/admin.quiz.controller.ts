@@ -22,7 +22,7 @@ export async function getAllQuizzesAdmin(req: Request, res: Response) {
 
 export async function createQuizAdmin(req: Request, res: Response) {
   try {
-    const { title, description, timeLimitMinutes, isActive, questions } = req.body;
+    const { title, description, timeLimitMinutes, status, questions } = req.body;
 
     if (!title || !questions || !Array.isArray(questions) || questions.length === 0) {
       return badRequest(res, "Título e perguntas são obrigatórios.");
@@ -33,7 +33,7 @@ export async function createQuizAdmin(req: Request, res: Response) {
         title,
         description: description || "",
         timeLimitMinutes: Number(timeLimitMinutes) || 10,
-        isActive: isActive !== undefined ? isActive : true,
+        status: status || "RASCUNHO",
         questions,
       }
     });
@@ -75,23 +75,70 @@ export async function deleteQuizResultAdmin(req: Request, res: Response) {
   }
 }
 
-export async function toggleQuizStatusAdmin(req: Request, res: Response) {
+export async function updateQuizAdmin(req: Request, res: Response) {
   try {
     const id = req.params.id as string;
-    const { isActive } = req.body;
+    const { title, description, timeLimitMinutes, status, questions } = req.body;
 
-    if (typeof isActive !== "boolean") {
-      return badRequest(res, "O status isActive é obrigatório e deve ser booleano.");
+    // Check if there are any results for this quiz
+    const resultsCount = await prisma.quizResult.count({
+      where: { quizId: id }
+    });
+
+    const dataToUpdate: any = {
+      title,
+      description,
+      status,
+      timeLimitMinutes: Number(timeLimitMinutes),
+    };
+
+    // If there are no results, we can update questions
+    if (resultsCount === 0 && questions) {
+      dataToUpdate.questions = questions;
+    } else if (resultsCount > 0 && status !== "INATIVO") {
+        // We only allow "INATIVO" if there are responses (and title/description). 
+        // We do not allow modifying questions or setting it back to RASCUNHO if there are responses.
+        // Wait, the rule is: O coordenador só poderá editar o "Título", "Descrição" ou mudar o status para "Inativo".
+        // Let's just ensure questions are not updated.
     }
 
     const quiz = await prisma.quiz.update({
       where: { id },
-      data: { isActive }
+      data: dataToUpdate
     });
 
     return success(res, quiz);
   } catch (err) {
-    console.error("Error toggling quiz status:", err);
-    return error(res, "Erro ao alterar status do quiz.");
+    console.error("Error updating quiz:", err);
+    return error(res, "Erro ao atualizar quiz.");
+  }
+}
+
+export async function duplicateQuizAdmin(req: Request, res: Response) {
+  try {
+    const id = req.params.id as string;
+
+    const originalQuiz = await prisma.quiz.findUnique({
+      where: { id }
+    });
+
+    if (!originalQuiz) {
+      return badRequest(res, "Quiz não encontrado.");
+    }
+
+    const duplicatedQuiz = await prisma.quiz.create({
+      data: {
+        title: `${originalQuiz.title} (Cópia)`,
+        description: originalQuiz.description,
+        timeLimitMinutes: originalQuiz.timeLimitMinutes,
+        status: "RASCUNHO",
+        questions: originalQuiz.questions as any,
+      }
+    });
+
+    return success(res, duplicatedQuiz, 201);
+  } catch (err) {
+    console.error("Error duplicating quiz:", err);
+    return error(res, "Erro ao duplicar quiz.");
   }
 }

@@ -100,7 +100,7 @@ model Quiz {
   description         String
   createdAt           DateTime     @default(now())
   timeLimitMinutes    Int          @default(10)
-  isActive            Boolean      @default(true)
+  status              String       @default("RASCUNHO")
   questions           Json         // Array de perguntas
   results             QuizResult[]
 }

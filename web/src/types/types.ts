@@ -76,8 +76,10 @@ export interface QuizQuestionOption {
 
 export interface QuizQuestion {
   id: string;
+  type?: "MULTIPLE_CHOICE" | "OPEN_ENDED";
   text: string;
   rationale?: string;
+  expectedAnswer?: string;
   options: QuizQuestionOption[];
 }
 
@@ -86,7 +88,7 @@ export interface Quiz {
   title: string;
   description: string;
   timeLimitMinutes: number;
-  isActive?: boolean;
+  status?: "RASCUNHO" | "PUBLICADO" | "INATIVO";
   questions: QuizQuestion[];
   isAnswered?: boolean;
   score?: number;

@@ -10,9 +10,9 @@ export async function getAvailableQuizzes(req: Request, res: Response): Promise<
       return;
     }
 
-    // Busca quizzes ativos
+    // Busca quizzes publicados
     const quizzes = await prisma.quiz.findMany({
-      where: { isActive: true },
+      where: { status: "PUBLICADO" },
       orderBy: { createdAt: "desc" },
     });
 
@@ -75,11 +75,13 @@ export async function submitQuizResult(req: Request, res: Response): Promise<voi
       questions.forEach((q, index) => {
         const userAnswerIndex = answers[index.toString()];
         
-        // Verifica se a resposta foi fornecida e se está correta
-        if (userAnswerIndex !== undefined && userAnswerIndex !== null) {
-          const selectedOption = q.options[userAnswerIndex];
-          if (selectedOption && selectedOption.isCorrect) {
-            totalScore += 1; // 1 ponto por acerto
+        if (q.type !== "OPEN_ENDED") {
+          // Verifica se a resposta foi fornecida e se está correta
+          if (userAnswerIndex !== undefined && userAnswerIndex !== null) {
+            const selectedOption = q.options[userAnswerIndex];
+            if (selectedOption && selectedOption.isCorrect) {
+              totalScore += 1; // 1 ponto por acerto
+            }
           }
         }
       });

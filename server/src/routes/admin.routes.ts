@@ -83,7 +83,8 @@ router.get("/logs", authMiddleware, async (req, res) => {
  */
 router.get("/quizzes", authMiddleware, adminMiddleware, adminQuizController.getAllQuizzesAdmin);
 router.post("/quizzes", authMiddleware, adminMiddleware, adminQuizController.createQuizAdmin);
-router.patch("/quizzes/:id/toggle", authMiddleware, adminMiddleware, adminQuizController.toggleQuizStatusAdmin);
+router.put("/quizzes/:id", authMiddleware, adminMiddleware, adminQuizController.updateQuizAdmin);
+router.post("/quizzes/:id/duplicate", authMiddleware, adminMiddleware, adminQuizController.duplicateQuizAdmin);
 router.delete("/quizzes/:id", authMiddleware, adminMiddleware, adminQuizController.deleteQuizAdmin);
 router.delete("/quiz-results/:id", authMiddleware, adminMiddleware, adminQuizController.deleteQuizResultAdmin);
 
