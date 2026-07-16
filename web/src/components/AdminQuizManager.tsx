@@ -459,20 +459,20 @@ export function AdminQuizManager() {
               <div key={quiz.id} style={{ background: "white", borderRadius: "12px", boxShadow: `0 2px 8px ${theme.colors.shadowBase}`, overflow: "hidden" }}>
                 <div 
                   onClick={() => setExpandedQuizId(isExpanded ? null : quiz.id)}
-                  style={{ padding: "20px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", borderLeft: `4px solid ${quiz.status === "PUBLICADO" ? theme.colors.primary : "#999"}` }}
+                  style={{ padding: "20px", cursor: "pointer", display: "flex", flexWrap: "wrap", gap: "15px", justifyContent: "space-between", alignItems: "center", borderLeft: `4px solid ${quiz.status === "PUBLICADO" ? theme.colors.primary : "#999"}` }}
                 >
                   <div>
                     <h3 style={{ margin: "0 0 5px 0", color: theme.colors.textMain, display: "flex", alignItems: "center", gap: "10px" }}>
                       {quiz.title}
                       {getStatusBadge(quiz.status)}
                     </h3>
-                    <div style={{ display: "flex", gap: "15px", color: theme.colors.textSecondary, fontSize: "0.85rem", alignItems: "center" }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "15px", color: theme.colors.textSecondary, fontSize: "0.85rem", alignItems: "center" }}>
                       <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><BookOpen size={14} /> {quiz.questions.length} perguntas</span>
                       <span style={{ display: "flex", alignItems: "center", gap: "4px" }}><Clock size={14} /> {quiz.timeLimitMinutes} min</span>
                       <span>{results.length} resposta(s)</span>
                     </div>
                   </div>
-                  <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "15px", alignItems: "center" }}>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDuplicate(quiz.id, quiz.title); }}
                       style={{ background: "none", border: "none", color: theme.colors.secondary, cursor: "pointer", padding: "5px", fontWeight: "bold", fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "4px" }}
