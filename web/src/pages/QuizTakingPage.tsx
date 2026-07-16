@@ -186,13 +186,15 @@ export function QuizTakingPage() {
     const displayScore = quiz.isAnswered ? quiz.score : score;
     const displayAnswers = quiz.isAnswered ? quiz.answers : answers;
     
-    // Find errors (apenas de múltipla escolha)
-    const errors = quiz.questions?.map((q, index) => {
-      if (q.type === "OPEN_ENDED") return { q, index, isCorrect: true, userAnswerIndex: undefined };
+    // Find items for review (erros de múltipla escolha + todas abertas)
+    const reviewItems = quiz.questions?.map((q, index) => {
+      if (q.type === "OPEN_ENDED") return { q, index, isCorrect: false, userAnswerIndex: undefined, isError: false, isOpenEnded: true };
       const userAnswerIndex = displayAnswers?.[index];
       const isCorrect = userAnswerIndex !== undefined && q.options && q.options[userAnswerIndex]?.isCorrect;
-      return { q, index, isCorrect, userAnswerIndex };
-    }).filter(item => !item.isCorrect) || [];
+      return { q, index, isCorrect, userAnswerIndex, isError: !isCorrect, isOpenEnded: false };
+    }).filter(item => item.isError || item.isOpenEnded) || [];
+
+    const errorsCount = reviewItems.filter(item => item.isError).length;
 
     return (
       <div style={{ minHeight: "100vh", background: theme.colors.background, padding: "20px", display: "flex", flexDirection: "column", alignItems: "center" }}>
@@ -206,13 +208,13 @@ export function QuizTakingPage() {
             </p>
           )}
 
-          {errors.length === 0 ? (
+          {errorsCount === 0 ? (
             <p style={{ fontSize: "1.2rem", marginBottom: "30px", color: theme.colors.success, fontWeight: "bold" }}>
-              Parabéns! Você acertou todas as questões!
+              Parabéns! Você acertou todas as questões de múltipla escolha!
             </p>
           ) : (
             <p style={{ fontSize: "1.2rem", marginBottom: "30px" }}>
-              Você acertou <strong>{displayScore}</strong> de <strong>{quiz.questions?.length}</strong> perguntas.
+              Nas questões de múltipla escolha, você acertou <strong>{displayScore}</strong>.
             </p>
           )}
           
@@ -224,51 +226,71 @@ export function QuizTakingPage() {
           </button>
         </div>
 
-        {errors.length > 0 && (
+        {reviewItems.length > 0 && (
           <div style={{ maxWidth: "600px", width: "100%" }}>
-            <h3 style={{ color: theme.colors.textMain, marginBottom: "15px" }}>Revisão dos Erros</h3>
-            {errors.map(({ q, index, userAnswerIndex }) => (
-              <div key={q.id || index} style={{ background: "white", padding: "20px", borderRadius: "12px", marginBottom: "20px", boxShadow: `0 2px 8px ${theme.colors.shadowBase}`, borderLeft: `4px solid ${theme.colors.danger}` }}>
+            <h3 style={{ color: theme.colors.textMain, marginBottom: "15px" }}>Revisão e Gabarito</h3>
+            {reviewItems.map(({ q, index, userAnswerIndex, isOpenEnded }) => (
+              <div key={q.id || index} style={{ background: "white", padding: "20px", borderRadius: "12px", marginBottom: "20px", boxShadow: `0 2px 8px ${theme.colors.shadowBase}`, borderLeft: `4px solid ${isOpenEnded ? theme.colors.primary : theme.colors.danger}` }}>
                 <h4 style={{ fontSize: "1.05rem", color: theme.colors.textMain, marginBottom: "15px" }}>
                   {index + 1}. {q.text}
                 </h4>
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  {q.options.map((opt, oIndex) => {
-                    const isUserAnswer = userAnswerIndex === oIndex;
-                    const isCorrect = opt.isCorrect;
-                    
-                    let bg = "transparent";
-                    let border = `1px solid ${theme.colors.border}`;
-                    let color = theme.colors.textMain;
-
-                    if (isCorrect) {
-                      bg = "#e8f5e9";
-                      border = "1px solid #4caf50";
-                      color = "#2e7d32";
-                    } else if (isUserAnswer) {
-                      bg = "#ffebee";
-                      border = "1px solid #f44336";
-                      color = "#c62828";
-                    }
-
-                    return (
-                      <div 
-                        key={oIndex} 
-                        style={{ 
-                          padding: "10px 15px", borderRadius: "8px", background: bg, border: border, color: color,
-                          display: "flex", alignItems: "center", justifyContent: "space-between"
-                        }}
-                      >
-                        <span>{opt.text}</span>
-                        {isCorrect && <CheckCircle size={18} color="#4caf50" />}
+                
+                {isOpenEnded ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    <div style={{ padding: "12px", background: "#f5f5f5", borderRadius: "8px", fontSize: "0.95rem" }}>
+                      <strong style={{ color: theme.colors.textSecondary }}>Sua resposta:</strong><br/>
+                      <div style={{ marginTop: "5px" }}>
+                        {displayAnswers?.[index] || <span style={{ color: "#999", fontStyle: "italic" }}>Não respondido</span>}
                       </div>
-                    );
-                  })}
-                </div>
-                {q.rationale && (
-                  <div style={{ marginTop: "15px", padding: "10px", background: "#f5f5f5", borderRadius: "8px", fontSize: "0.9rem", color: theme.colors.textSecondary }}>
-                    <strong>Explicação:</strong> {q.rationale}
+                    </div>
+                    {q.expectedAnswer && (
+                      <div style={{ padding: "12px", background: "#e8f5e9", border: "1px solid #4caf50", color: "#2e7d32", borderRadius: "8px", fontSize: "0.95rem" }}>
+                        <strong>Gabarito Esperado (Modelo):</strong><br/>
+                        <div style={{ marginTop: "5px" }}>{q.expectedAnswer}</div>
+                      </div>
+                    )}
                   </div>
+                ) : (
+                  <>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                      {q.options?.map((opt, oIndex) => {
+                        const isUserAnswer = userAnswerIndex === oIndex;
+                        const isCorrect = opt.isCorrect;
+                        
+                        let bg = "transparent";
+                        let border = `1px solid ${theme.colors.border}`;
+                        let color = theme.colors.textMain;
+
+                        if (isCorrect) {
+                          bg = "#e8f5e9";
+                          border = "1px solid #4caf50";
+                          color = "#2e7d32";
+                        } else if (isUserAnswer) {
+                          bg = "#ffebee";
+                          border = "1px solid #f44336";
+                          color = "#c62828";
+                        }
+
+                        return (
+                          <div 
+                            key={oIndex} 
+                            style={{ 
+                              padding: "10px 15px", borderRadius: "8px", background: bg, border: border, color: color,
+                              display: "flex", alignItems: "center", justifyContent: "space-between"
+                            }}
+                          >
+                            <span>{opt.text}</span>
+                            {isCorrect && <CheckCircle size={18} color="#4caf50" />}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {q.rationale && (
+                      <div style={{ marginTop: "15px", padding: "10px", background: "#f5f5f5", borderRadius: "8px", fontSize: "0.9rem", color: theme.colors.textSecondary }}>
+                        <strong>Explicação:</strong> {q.rationale}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             ))}
