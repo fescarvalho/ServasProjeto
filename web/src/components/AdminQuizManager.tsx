@@ -461,8 +461,8 @@ export function AdminQuizManager() {
                   onClick={() => setExpandedQuizId(isExpanded ? null : quiz.id)}
                   style={{ padding: "20px", cursor: "pointer", display: "flex", flexWrap: "wrap", gap: "15px", justifyContent: "space-between", alignItems: "center", borderLeft: `4px solid ${quiz.status === "PUBLICADO" ? theme.colors.primary : "#999"}` }}
                 >
-                  <div>
-                    <h3 style={{ margin: "0 0 5px 0", color: theme.colors.textMain, display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div style={{ flex: "1 1 250px" }}>
+                    <h3 style={{ margin: "0 0 5px 0", color: theme.colors.textMain, display: "flex", flexWrap: "wrap", alignItems: "center", gap: "10px" }}>
                       {quiz.title}
                       {getStatusBadge(quiz.status)}
                     </h3>
@@ -472,7 +472,7 @@ export function AdminQuizManager() {
                       <span>{results.length} resposta(s)</span>
                     </div>
                   </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "15px", alignItems: "center" }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center", justifyContent: "flex-start" }}>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDuplicate(quiz.id, quiz.title); }}
                       style={{ background: "none", border: "none", color: theme.colors.secondary, cursor: "pointer", padding: "5px", fontWeight: "bold", fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "4px" }}
