@@ -11,7 +11,7 @@ export function QuizTakingPage() {
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [answers, setAnswers] = useState<Record<string, any>>({});
   const [finished, setFinished] = useState(false);
   const [score, setScore] = useState<number | null>(null);
   const [timeoutMsg, setTimeoutMsg] = useState(false);
@@ -146,6 +146,14 @@ export function QuizTakingPage() {
     }));
   };
 
+  const setAnswerText = (questionIndex: number, text: string) => {
+    if (finished || quiz?.isAnswered) return;
+    setAnswers((prev) => ({
+      ...prev,
+      [questionIndex]: text,
+    }));
+  };
+
   const handleConfirmName = async () => {
     if (responderName.trim().length < 3) {
       alert("Por favor, digite seu nome completo.");
@@ -178,10 +186,11 @@ export function QuizTakingPage() {
     const displayScore = quiz.isAnswered ? quiz.score : score;
     const displayAnswers = quiz.isAnswered ? quiz.answers : answers;
     
-    // Find errors
+    // Find errors (apenas de múltipla escolha)
     const errors = quiz.questions?.map((q, index) => {
+      if (q.type === "OPEN_ENDED") return { q, index, isCorrect: true, userAnswerIndex: undefined };
       const userAnswerIndex = displayAnswers?.[index];
-      const isCorrect = userAnswerIndex !== undefined && q.options[userAnswerIndex]?.isCorrect;
+      const isCorrect = userAnswerIndex !== undefined && q.options && q.options[userAnswerIndex]?.isCorrect;
       return { q, index, isCorrect, userAnswerIndex };
     }).filter(item => !item.isCorrect) || [];
 
@@ -322,31 +331,41 @@ export function QuizTakingPage() {
             <h3 style={{ fontSize: "1.1rem", color: theme.colors.textMain, marginBottom: "15px" }}>
               {qIndex + 1}. {q.text}
             </h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              {q.options.map((opt, oIndex) => {
-                const isSelected = answers[qIndex] === oIndex;
-                return (
-                  <label 
-                    key={oIndex} 
-                    style={{ 
-                      display: "flex", alignItems: "center", gap: "10px", padding: "12px 15px", 
-                      borderRadius: "8px", border: `2px solid ${isSelected ? theme.colors.primary : theme.colors.border}`, 
-                      background: isSelected ? `${theme.colors.primary}10` : "transparent",
-                      cursor: "pointer", transition: "all 0.2s"
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name={`question-${qIndex}`}
-                      checked={isSelected}
-                      onChange={() => selectOption(qIndex, oIndex)}
-                      style={{ accentColor: theme.colors.primary, width: "18px", height: "18px" }}
-                    />
-                    <span style={{ color: theme.colors.textMain }}>{opt.text}</span>
-                  </label>
-                );
-              })}
-            </div>
+            {q.type === "OPEN_ENDED" ? (
+              <textarea
+                value={answers[qIndex] || ""}
+                onChange={(e) => setAnswerText(qIndex, e.target.value)}
+                readOnly={finished || quiz?.isAnswered}
+                placeholder="Digite sua resposta aqui..."
+                style={{ width: "100%", minHeight: "120px", padding: "15px", borderRadius: "8px", border: `2px solid ${theme.colors.border}`, boxSizing: "border-box", fontSize: "1rem", resize: "vertical", fontFamily: "inherit" }}
+              />
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {q.options?.map((opt, oIndex) => {
+                  const isSelected = answers[qIndex] === oIndex;
+                  return (
+                    <label 
+                      key={oIndex} 
+                      style={{ 
+                        display: "flex", alignItems: "center", gap: "10px", padding: "12px 15px", 
+                        borderRadius: "8px", border: `2px solid ${isSelected ? theme.colors.primary : theme.colors.border}`, 
+                        background: isSelected ? `${theme.colors.primary}10` : "transparent",
+                        cursor: "pointer", transition: "all 0.2s"
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name={`question-${qIndex}`}
+                        checked={isSelected}
+                        onChange={() => selectOption(qIndex, oIndex)}
+                        style={{ accentColor: theme.colors.primary, width: "18px", height: "18px" }}
+                      />
+                      <span style={{ color: theme.colors.textMain }}>{opt.text}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
           </div>
         ))}
       </div>
