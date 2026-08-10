@@ -95,13 +95,19 @@ function MassForm({
       </div>
       <div className="form-group full-width">
         <label>Local</label>
-        <select className="form-input" value={newLocal} onChange={(e) => setNewLocal(e.target.value)}>
-          <option value="">Selecione o local</option>
-          <option value="SANTUARIO">SANTUARIO</option>
-          <option value="SANTA TEREZINHA">SANTA TEREZINHA</option>
-          <option value="SAO FRANCISCO">SAO FRANCISCO</option>
-          <option value="AGUA SANTA">AGUA SANTA</option>
-        </select>
+        <input 
+          className="form-input" 
+          list="locais-list" 
+          value={newLocal} 
+          onChange={(e) => setNewLocal(e.target.value)} 
+          placeholder="Selecione ou digite o local"
+        />
+        <datalist id="locais-list">
+          <option value="SANTUARIO" />
+          <option value="SANTA TEREZINHA" />
+          <option value="SAO FRANCISCO" />
+          <option value="AGUA SANTA" />
+        </datalist>
       </div>
       <div className="form-group">
         <label>Data</label>

@@ -10,6 +10,7 @@ interface MassData {
     deadline?: string;
     open?: boolean;
     isSolemnity?: boolean;
+    points?: number;
 }
 
 /**
@@ -39,6 +40,7 @@ export async function createMass(data: MassData) {
             published: false,
             open: Boolean(data.open),
             isSolemnity: Boolean(data.isSolemnity),
+            points: data.points !== undefined ? Number(data.points) : null,
         },
     });
 }
@@ -75,6 +77,10 @@ export async function updateMass(id: string, data: Partial<MassData>) {
 
     if (data.isSolemnity !== undefined) {
         updateData.isSolemnity = Boolean(data.isSolemnity);
+    }
+
+    if (data.points !== undefined) {
+        updateData.points = data.points === null ? null : Number(data.points);
     }
 
     return await prisma.mass.update({
@@ -146,8 +152,9 @@ export async function patchMass(id: string, data: any) {
         updateData.isSolemnity = Boolean(updateData.isSolemnity);
     }
 
-    // Remove points as it is not in the Mass schema
-    delete updateData.points;
+    if (updateData.points !== undefined) {
+        updateData.points = updateData.points === null ? null : Number(updateData.points);
+    }
 
     return await prisma.mass.update({
         where: { id },

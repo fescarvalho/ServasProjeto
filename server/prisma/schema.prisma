@@ -39,6 +39,7 @@ model Mass {
   maxServers  Int       @default(4)
   open        Boolean   @default(false)
   isSolemnity Boolean   @default(false)
+  points      Int?
   signups     Signup[]
 }
 
