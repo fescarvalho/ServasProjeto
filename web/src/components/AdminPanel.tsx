@@ -59,7 +59,7 @@ interface MassFormProps {
   newDeadline: string; setNewDeadline: (v: string) => void;
   newMax: number; setNewMax: (v: number) => void;
   newIsSolemnity: boolean; setNewIsSolemnity: (v: boolean) => void;
-  newPoints: number; setNewPoints: (v: number) => void;
+  newPoints: string; setNewPoints: (v: string) => void;
   repeatWeekly: boolean; setRepeatWeekly: (v: boolean) => void;
   repeatUntil: string; setRepeatUntil: (v: string) => void;
   handleSubmit: (e: React.FormEvent) => void;
@@ -138,9 +138,9 @@ function MassForm({
           className="form-input"
           type="number"
           value={newPoints}
-          onChange={(e) => setNewPoints(Number(e.target.value))}
-          min="0"
-          placeholder="Deixe 0 para regra automática"
+          onChange={(e) => setNewPoints(e.target.value)}
+          min="1"
+          placeholder="Vazio = regra automática"
         />
         <p style={{ fontSize: "0.65rem", color: "#888", marginTop: "4px" }}>
           Regra padrão: {pointsPreview}
@@ -293,7 +293,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [newLocal, setNewLocal] = useState("");
   const [newMax, setNewMax] = useState<number>(APP_CONFIG.DEFAULT_MAX_SERVERS);
   const [newIsSolemnity, setNewIsSolemnity] = useState(false);
-  const [newPoints, setNewPoints] = useState<number>(0);
+  const [newPoints, setNewPoints] = useState<string>("");
   const [newDeadline, setNewDeadline] = useState("");
   const [repeatWeekly, setRepeatWeekly] = useState(false);
   const [repeatUntil, setRepeatUntil] = useState("");
@@ -473,7 +473,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     setNewLocal(mass.local || "");
     setNewMax(mass.maxServers);
     setNewIsSolemnity(mass.isSolemnity || false);
-    setNewPoints(mass.points || 0);
+    setNewPoints(mass.points ? String(mass.points) : "");
 
     if (mass.deadline) {
       setNewDeadline(toLocalDateTime(new Date(mass.deadline)));
@@ -491,7 +491,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     setNewLocal("");
     setNewMax(APP_CONFIG.DEFAULT_MAX_SERVERS);
     setNewIsSolemnity(false);
-    setNewPoints(0);
+    setNewPoints("");
     setNewDeadline("");
     setRepeatWeekly(false);
     setRepeatUntil("");
@@ -543,7 +543,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         local: newLocal,
         deadline: newDeadline || null,
         isSolemnity: newIsSolemnity,
-        points: newPoints > 0 ? newPoints : undefined,
+        points: newPoints ? Number(newPoints) : null,
       };
 
       if (editingId) {

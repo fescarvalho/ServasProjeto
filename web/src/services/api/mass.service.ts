@@ -8,7 +8,7 @@ export interface CreateMassData {
     local?: string;
     maxServers: number;
     deadline?: string | null;
-    points?: number; // <-- Adicionado
+    points?: number | null; // <-- Adicionado
 }
 
 export interface UpdateMassData extends Partial<CreateMassData> { }

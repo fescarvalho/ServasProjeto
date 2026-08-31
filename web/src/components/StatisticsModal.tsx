@@ -1,24 +1,11 @@
 import { useState, useMemo } from "react";
 import { Mass } from "../types/types";
 import { X, BarChart2, Calendar } from "lucide-react";
+import { getMassPoints } from "../utils/ranking.utils";
 
 interface StatisticsModalProps {
   masses: Mass[];
   onClose: () => void;
-}
-
-function getMassPoints(dateString: string) {
-  const date = new Date(dateString);
-  const brazilDateString = date.toLocaleString("en-US", {
-    timeZone: "America/Sao_Paulo",
-  });
-  const brazilDate = new Date(brazilDateString);
-  const day = brazilDate.getDay();
-  const hour = brazilDate.getHours();
-
-  if (day >= 1 && day <= 5) return 2; // Semana
-  if (day === 0 && hour >= 9 && hour <= 11) return 2; // Dom 10h
-  return 1; // Resto
 }
 
 export function StatisticsModal({ masses, onClose }: StatisticsModalProps) {
@@ -66,7 +53,8 @@ export function StatisticsModal({ masses, onClose }: StatisticsModalProps) {
     filteredMasses.forEach((mass) => {
       const massDate = new Date(mass.date);
       const isPast = massDate < hoje;
-      const points = getMassPoints(mass.date);
+      // Usa a pontuação manual se existir, senão usa a lógica automática
+      const points = (mass.points !== undefined && mass.points !== null) ? mass.points : getMassPoints(mass.date);
 
       mass.signups.forEach((signup) => {
         if ((signup as any).status === "RESERVA") return;

@@ -40,7 +40,7 @@ export async function createMass(data: MassData) {
             published: false,
             open: Boolean(data.open),
             isSolemnity: Boolean(data.isSolemnity),
-            points: data.points !== undefined ? Number(data.points) : null,
+            points: (data.points !== undefined && data.points !== null) ? Number(data.points) : null,
         },
     });
 }

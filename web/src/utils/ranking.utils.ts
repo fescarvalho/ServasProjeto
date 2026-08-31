@@ -2,34 +2,7 @@ import { Mass } from "../types/types";
 
 // --- LÓGICA DE PONTUAÇÃO ---
 export function getMassPoints(dateString: string) {
-    const date = new Date(dateString);
-    const brazilDateString = date.toLocaleString("en-US", {
-        timeZone: "America/Sao_Paulo",
-    });
-    const brazilDate = new Date(brazilDateString);
-
-    const day = brazilDate.getDay();
-    const hour = brazilDate.getHours();
-
-    // --- SEMANA SANTA 2026 (29/03 a 05/04) = 3 PONTOS ---
-    const year = brazilDate.getFullYear();
-    const month = brazilDate.getMonth() + 1; // 0-indexed
-    const monthDay = brazilDate.getDate();
-
-    if (year === 2026) {
-        // Março 29 a Abril 05
-        if ((month === 3 && monthDay >= 29) || (month === 4 && monthDay <= 5)) {
-            return 3;
-        }
-    }
-
-    // 1. Semana (Segunda a Sexta) = 2 PONTOS
-    if (day >= 1 && day <= 5) return 2;
-
-    // 2. Domingo entre 9h e 11h = 2 PONTOS
-    if (day === 0 && hour >= 9 && hour <= 11) return 2;
-
-    // 3. Resto = 1 PONTO
+    // A regra padrão para missas é sempre 1 ponto, a menos que haja override manual
     return 1;
 }
 
@@ -54,7 +27,7 @@ export function calculateRanking(masses: Mass[], month: number, year: number): S
 
     filteredMasses.forEach((mass) => {
         // Usa a pontuação manual se existir, senão usa a lógica automática
-        const points = mass.points !== undefined ? mass.points : getMassPoints(mass.date);
+        const points = (mass.points !== undefined && mass.points !== null) ? mass.points : getMassPoints(mass.date);
 
         mass.signups.forEach((signup) => {
             if (signup.present) {

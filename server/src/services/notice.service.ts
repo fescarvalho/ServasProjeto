@@ -61,34 +61,7 @@ export async function deleteNotice(id: string) {
 function getMassPoints(dateString: string | Date, manualPoints?: number | null) {
     if (manualPoints !== undefined && manualPoints !== null) return manualPoints;
     
-    const date = new Date(dateString);
-    const brazilDateString = date.toLocaleString("en-US", {
-        timeZone: "America/Sao_Paulo",
-    });
-    const brazilDate = new Date(brazilDateString);
-
-    const day = brazilDate.getDay();
-    const hour = brazilDate.getHours();
-
-    // --- SEMANA SANTA 2026 (29/03 a 05/04) = 3 PONTOS ---
-    const year = brazilDate.getFullYear();
-    const month = brazilDate.getMonth() + 1; // 0-indexed
-    const monthDay = brazilDate.getDate();
-
-    if (year === 2026) {
-        // Março 29 a Abril 05
-        if ((month === 3 && monthDay >= 29) || (month === 4 && monthDay <= 5)) {
-            return 3;
-        }
-    }
-
-    // 1. Semana (Segunda a Sexta) = 2 PONTOS
-    if (day >= 1 && day <= 5) return 2;
-
-    // 2. Domingo entre 9h e 11h = 2 PONTOS
-    if (day === 0 && hour >= 9 && hour <= 11) return 2;
-
-    // 3. Resto = 1 PONTO
+    // A regra padrão para missas é sempre 1 ponto
     return 1;
 }
 
