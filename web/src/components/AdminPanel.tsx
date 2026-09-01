@@ -85,7 +85,7 @@ function MassForm({
   handleSubmit,
   handleCancelEdit,
 }: MassFormProps) {
-  const pointsPreview = newDate ? getMassPoints(newDate + (newTime ? `T${newTime}` : "")) : 0;
+  const pointsPreview = newDate ? getMassPoints(newDate + (newTime ? `T${newTime}` : "")) : 1;
 
   return (
     <form onSubmit={handleSubmit} className="form-grid" style={isInline ? { padding: "10px" } : {}}>

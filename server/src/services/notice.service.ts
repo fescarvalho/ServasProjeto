@@ -58,7 +58,7 @@ export async function deleteNotice(id: string) {
     return await prisma.notice.delete({ where: { id } });
 }
 
-function getMassPoints(dateString: string | Date, manualPoints?: number | null) {
+function getMassPoints(_dateString: string | Date, manualPoints?: number | null) {
     if (manualPoints !== undefined && manualPoints !== null) return manualPoints;
     
     // A regra padrão para missas é sempre 1 ponto

@@ -1,7 +1,7 @@
 import { Mass } from "../types/types";
 
 // --- LÓGICA DE PONTUAÇÃO ---
-export function getMassPoints(dateString: string) {
+export function getMassPoints(_dateString: string) {
     // A regra padrão para missas é sempre 1 ponto, a menos que haja override manual
     return 1;
 }
