@@ -128,7 +128,7 @@ export function FormacaoPage({ user, onLogout }: FormacaoPageProps) {
           Desenvolvido por <a href="https://fescarvpage.vercel.app/" target="_blank" rel="noopener noreferrer" style={{ color: "var(--color-danger)", textDecoration: "none", fontWeight: "bold" }}>Fernando Carvalho</a>
         </p>
         <p style={{ marginTop: "5px", opacity: 0.7 }}>
-          &copy; {new Date().getFullYear()} Santuário Diocesano Nossa Senhora da Natividade
+          &copy; {new Date().getFullYear()} Santuário Diocesano Nossa Senhora da Natividade - v6.0 (16/11/2026)
         </p>
       </footer>
     </div>
