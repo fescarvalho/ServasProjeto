@@ -323,7 +323,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
       setMyUnavailabilities(updated);
       setUnavDate("");
       setUnavReason("");
-      show("Indisponibilidade registrada! O sorteio automático respeitará esta data.", "success");
+      show("Indisponibilidade registrada! Os coordenadores não incluirão você nesta data.", "success");
     } catch {
       show("Erro ao registrar indisponibilidade.", "error");
     } finally {
@@ -606,7 +606,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
               <button onClick={() => setShowUnavailabilityModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: theme.colors.textSecondary, fontSize: "1.1rem" }}>✕</button>
             </div>
             <p style={{ margin: "0 0 14px 0", fontSize: "0.83rem", color: theme.colors.textSecondary, lineHeight: 1.4 }}>
-              Informe os dias em que você não poderá servir (viagem, provas, compromisso). O sorteio automático de escalas não escalará você nessas datas.
+              Informe os dias em que você não poderá servir (viagem, provas, compromisso). Os coordenadores não incluirão você na escala nessas datas.
             </p>
 
             <form onSubmit={handleAddUnavailability} style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "16px" }}>
