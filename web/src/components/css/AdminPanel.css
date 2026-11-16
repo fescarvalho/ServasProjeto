@@ -1,271 +1,171 @@
-/* src/components/AdminPanel.css */
+/* src/components/css/AdminPanel.css — Mobile-First Modern Design */
 
-/* --- Container Principal --- */
 .admin-container {
-  max-width: 800px;
+  max-width: 860px;
   margin: 0 auto;
-  padding: 15px;
-  /* Margem segura para não colar na borda do celular */
-  font-family: sans-serif;
+  padding: 14px 14px 96px 14px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--color-text-main, #23170F);
+  box-sizing: border-box;
 }
 
-/* --- 1. Header (Caixa Preta) --- */
+/* ─── 1. TOP APPBAR ──────────────────────────────────────────────────────── */
 .admin-header {
-  background-color: var(--color-text-main);
-  color: var(--color-white);
-  padding: 20px;
-  border-radius: 16px;
+  background: linear-gradient(135deg, #1E120B 0%, #3E2723 60%, #4A3222 100%);
+  color: var(--color-white, #ffffff);
+  padding: 16px 18px;
+  border-radius: 14px;
+  border-bottom: 2px solid #B8925A;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 25px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  flex-wrap: wrap;
-  /* Permite quebrar linha se apertar */
-  gap: 15px;
+  margin-bottom: 14px;
+  box-shadow: 0 6px 20px rgba(44, 26, 16, 0.22);
+  gap: 12px;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-brand-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(184, 146, 90, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #E6C786;
+  flex-shrink: 0;
 }
 
 .header-brand h1 {
   margin: 0;
-  font-size: 1.4rem;
-  color: var(--color-white);
-  font-family: serif;
-  /* Estilo elegante da imagem */
+  font-size: 1.15rem;
+  color: #ffffff;
+  font-family: 'Cinzel', Georgia, serif;
+  letter-spacing: 0.5px;
 }
 
 .header-brand span {
-  font-size: 0.75rem;
-  color: #bbb;
+  font-size: 0.76rem;
+  color: rgba(253, 235, 210, 0.85);
   display: block;
-  letter-spacing: 1px;
+  margin-top: 2px;
 }
 
-.header-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.btn-header {
-  padding: 8px 16px;
-  border-radius: 6px;
-  border: none;
-  font-weight: bold;
-  font-size: 0.8rem;
+.btn-logout-admin {
+  background: rgba(255, 255, 255, 0.10);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  text-decoration: none;
-  transition: transform 0.1s;
+  flex-shrink: 0;
 }
 
-.btn-header:active {
-  transform: scale(0.98);
+.btn-logout-admin:hover {
+  background: rgba(185, 28, 28, 0.85);
+  border-color: rgba(185, 28, 28, 1);
 }
 
-/* Cores específicas dos botões */
-.btn-white {
-  background: var(--color-white);
-  color: var(--color-text-main);
-}
-
-.btn-green {
-  background: var(--color-success);
-  color: var(--color-white);
-}
-
-.btn-dark {
-  background: var(--color-text-secondary);
-  color: var(--color-white);
-}
-
-/* --- 2. Formulário de Criação (Caixa Rosa) --- */
-.new-mass-card {
-  background-color: #FAF7F2;
-  /* Marfim claro */
-  border: 1px solid var(--color-border);
-  border-radius: 20px;
-  padding: 25px;
-  margin-bottom: 30px;
-}
-
-.section-title {
-  color: var(--color-primary);
-  /* Marrom elegante */
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 20px;
-  font-size: 1.1rem;
-  font-weight: bold;
-}
-
-/* O GRANDE SEGREDO: CSS GRID */
-.form-grid {
+/* ─── 2. GRADE DE FERRAMENTAS RÁPIDAS (3x2 no celular, 6 colunas no desktop) ─ */
+.admin-tools-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  /* Computador: 2 colunas */
-  gap: 15px;
-  align-items: end;
-  /* Alinha os inputs com o botão na base */
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
 }
 
-/* Inputs que devem ocupar a linha inteira */
-.full-width {
-  grid-column: 1 / -1;
+@media (min-width: 680px) {
+  .admin-tools-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
 }
 
-.form-group {
+.tool-card-btn {
+  background: #ffffff;
+  border: 1px solid var(--color-border-light, #E5DEC9);
+  border-radius: 10px;
+  padding: 10px 6px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-}
-
-.form-group label {
-  font-size: 0.8rem;
-  color: #795548;
-  font-weight: 600;
-}
-
-.form-input {
-  padding: 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 10px;
-  font-size: 0.95rem;
-  outline: none;
-  background: white;
-}
-
-.form-input:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(92, 64, 51, 0.15);
-}
-
-.btn-create {
-  background-color: var(--color-primary);
-  /* Tom rosa queimado da imagem */
-  color: var(--color-white);
-  border: none;
-  padding: 12px;
-  border-radius: 10px;
-  font-weight: bold;
-  cursor: pointer;
-  height: 45px;
-  /* Altura fixa para alinhar com inputs */
-  font-size: 0.9rem;
-}
-
-/* --- 3. Lista de Missas --- */
-.mass-list-item {
-  background: white;
-  border: 1px solid #f0f0f0;
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 15px;
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
-}
-
-.mass-info h3 {
-  margin: 0 0 5px 0;
-  color: #333;
-  font-family: serif;
-}
-
-.mass-actions {
-  display: flex;
-  gap: 15px;
-}
-
-.icon-btn {
-  background: none;
-  border: none;
+  justify-content: center;
+  gap: 6px;
   cursor: pointer;
-  padding: 5px;
-  opacity: 0.6;
-  transition: opacity 0.2s;
+  box-shadow: 0 2px 6px rgba(44, 26, 16, 0.05);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+  color: var(--color-text-main, #23170F);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
-.icon-btn:hover {
-  opacity: 1;
+.tool-card-btn:hover {
+  border-color: var(--color-secondary, #B8925A);
+  transform: translateY(-1px);
 }
 
-/* --- 📱 MÁGICA MOBILE --- */
-@media (max-width: 768px) {
-
-  /* Header: Um embaixo do outro */
-  .admin-header {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .header-actions {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .btn-header {
-    flex: 1;
-    /* Botões esticam para encher a tela */
-    justify-content: center;
-  }
-
-  /* Form: Tudo vira 1 coluna */
-  .form-grid {
-    grid-template-columns: 1fr;
-    /* Apenas 1 coluna */
-  }
-
-  .btn-create {
-    margin-top: 10px;
-  }
-
-  /* Lista: Informação em cima, botões embaixo */
-  .mass-list-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
-  }
-
-  .mass-actions {
-    width: 100%;
-    justify-content: flex-end;
-    /* Botões de editar/excluir à direita */
-    border-top: 1px solid #f5f5f5;
-    padding-top: 10px;
-  }
-
-  /* Tabs mobile */
-  .admin-tabs {
-    gap: 4px !important;
-  }
-
-  .admin-tab {
-    font-size: 0.8rem !important;
-    padding: 10px 8px !important;
-    gap: 4px !important;
-  }
-
-  /* Modal mobile */
-  .serva-modal {
-    margin: 15px !important;
-    max-height: 90vh;
-    overflow-y: auto;
-  }
+.tool-card-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* --- 4. Sistema de Abas (Tabs) --- */
+/* ─── 3. ACORDEÃO DO MURAL DE AVISOS ─────────────────────────────────────── */
+.notice-accordion {
+  background: #ffffff;
+  border: 1px solid var(--color-border-light, #E5DEC9);
+  border-radius: 12px;
+  margin-bottom: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(44, 26, 16, 0.04);
+}
+
+.notice-accordion-header {
+  width: 100%;
+  background: #FFFBEB;
+  border: none;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  color: #92400E;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: none;
+}
+
+.notice-accordion-body {
+  padding: 12px 14px 4px 14px;
+  border-top: 1px solid #FDE68A;
+}
+
+/* ─── 4. NAVEGAÇÃO DE ABAS (Desktop Top + Mobile Bottom Bar) ─────────────── */
 .admin-tabs {
   display: flex;
   gap: 6px;
-  margin-bottom: 20px;
-  background: #fff;
-  border-radius: 16px;
-  padding: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin-bottom: 16px;
+  background: #ffffff;
+  border: 1px solid var(--color-border-light, #E5DEC9);
+  border-radius: 12px;
+  padding: 5px;
+  box-shadow: 0 2px 8px rgba(44, 26, 16, 0.05);
 }
 
 .admin-tab {
@@ -273,67 +173,476 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 12px 16px;
+  gap: 7px;
+  padding: 10px 12px;
   border: none;
-  border-radius: 12px;
+  border-radius: 8px;
   background: transparent;
-  color: #888;
-  font-weight: 600;
-  font-size: 0.9rem;
+  color: var(--color-text-secondary, #5A4332);
+  font-weight: 700;
+  font-size: 0.82rem;
   cursor: pointer;
-  transition: all 0.25s ease;
-}
-
-.admin-tab:hover {
-  background: #f5f5f5;
-  color: #555;
+  transition: all 0.2s ease;
 }
 
 .admin-tab.active {
-  background: var(--color-primary, #5C4033);
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(92, 64, 51, 0.30);
+  background: var(--color-primary, #4A3222);
+  color: #ffffff;
+  box-shadow: 0 3px 10px rgba(74, 50, 34, 0.25);
 }
 
-/* --- 5. Modal de Serva --- */
+@media (max-width: 768px) {
+  .admin-tabs {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 0;
+    border-radius: 16px 16px 0 0;
+    border: none;
+    border-top: 1px solid var(--color-border, #D5CBB8);
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+    background: #ffffff;
+    box-shadow: 0 -4px 20px rgba(44, 26, 16, 0.14);
+    z-index: 950;
+  }
+
+  .admin-tab {
+    flex-direction: column;
+    gap: 3px;
+    padding: 8px 4px;
+    font-size: 0.68rem;
+    border-radius: 10px;
+  }
+}
+
+/* ─── 5. RESUMO RÁPIDO (KPIs) & BARRA DE AÇÕES ───────────────────────────── */
+.admin-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.admin-kpi-card {
+  background: #ffffff;
+  border: 1px solid var(--color-border-light, #E5DEC9);
+  border-radius: 10px;
+  padding: 10px 12px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(44, 26, 16, 0.04);
+}
+
+.admin-kpi-value {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-primary, #4A3222);
+  line-height: 1.1;
+}
+
+.admin-kpi-label {
+  font-size: 0.7rem;
+  color: var(--color-text-light, #8C7360);
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.admin-action-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.btn-action-primary {
+  flex: 1.3;
+  padding: 12px 14px;
+  background: var(--color-primary, #4A3222);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(74, 50, 34, 0.2);
+}
+
+.btn-action-secondary {
+  flex: 1;
+  padding: 12px 10px;
+  background: #ffffff;
+  color: var(--color-primary, #4A3222);
+  border: 1px solid var(--color-border, #D5CBB8);
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.78rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* ─── 6. FORMULÁRIO DE MISSA ─────────────────────────────────────────────── */
+.new-mass-card {
+  background-color: #ffffff;
+  border: 1px solid var(--color-border, #D5CBB8);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 18px;
+  box-shadow: 0 6px 20px rgba(44, 26, 16, 0.08);
+}
+
+.section-title {
+  color: var(--color-primary, #4A3222);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: end;
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.form-group label {
+  font-size: 0.78rem;
+  color: var(--color-text-secondary, #5A4332);
+  font-weight: 700;
+}
+
+.form-input {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border, #D5CBB8);
+  border-radius: 8px;
+  font-size: 0.92rem;
+  outline: none;
+  background: #ffffff;
+}
+
+.form-input:focus {
+  border-color: var(--color-primary, #4A3222);
+  box-shadow: 0 0 0 3px rgba(74, 50, 34, 0.12);
+}
+
+.btn-create {
+  background-color: var(--color-primary, #4A3222);
+  color: #ffffff;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  height: 44px;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 600px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─── 7. CARDS DE MISSA (MOBILE-FIRST) ───────────────────────────────────── */
+.admin-mass-card {
+  background: #ffffff;
+  border: 1px solid var(--color-border-light, #E5DEC9);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 14px;
+  box-shadow: 0 3px 12px rgba(44, 26, 16, 0.06);
+}
+
+.admin-mass-card.solemnity {
+  border: 2px solid #D97706;
+  background: linear-gradient(180deg, #FFFBEB 0%, #FFFFFF 35%);
+}
+
+.admin-mass-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.admin-date-box {
+  width: 54px;
+  height: 54px;
+  border-radius: 10px;
+  background: var(--color-primary, #4A3222);
+  color: #FDFBF7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 3px 8px rgba(44, 26, 16, 0.2);
+}
+
+.admin-date-box.solemnity {
+  background: linear-gradient(180deg, #D97706 0%, #B45309 100%);
+}
+
+.admin-date-box .day {
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.admin-date-box .month {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-top: 2px;
+  opacity: 0.9;
+}
+
+.admin-mass-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-mass-title {
+  margin: 0 0 3px 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--color-text-main, #23170F);
+  font-family: 'Inter', sans-serif;
+  text-transform: capitalize;
+  line-height: 1.25;
+}
+
+.admin-mass-sub {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary, #5A4332);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.admin-card-tools {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.btn-card-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border-light, #E5DEC9);
+  background: #FAF8F5;
+  color: var(--color-text-secondary, #5A4332);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.btn-card-icon.danger {
+  color: #B91C1C;
+  background: #FEF2F2;
+  border-color: #FECACA;
+}
+
+/* Barra de Status + Lotação */
+.admin-status-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #F7F5F0;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.status-toggles {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.chip-toggle {
+  border: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  text-transform: none;
+}
+
+/* Lista de Inscritos Mobile-First */
+.admin-signups-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-signup-row {
+  border: 1px solid #EFECE6;
+  background: #FFFFFF;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-signup-row.reserva {
+  background: #FFFBEB;
+  border-color: #FDE68A;
+}
+
+.admin-signup-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-signup-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-text-main, #23170F);
+  word-break: break-word;
+}
+
+.role-select {
+  width: auto !important;
+  min-width: 135px;
+  padding: 6px 10px !important;
+  font-size: 0.8rem !important;
+  font-weight: 700;
+  border-radius: 8px !important;
+  border: 1px solid var(--color-border, #D5CBB8) !important;
+  background: #F7F5F0 !important;
+  color: var(--color-primary, #4A3222) !important;
+}
+
+.admin-signup-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed #EFECE6;
+}
+
+.chip-action {
+  border: none;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-transform: none;
+}
+
+/* ─── 8. ABA DE SERVOS (CARDS RESPONSIVOS) ───────────────────────────────── */
+.servos-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 640px) {
+  .servos-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.servo-member-card {
+  background: #ffffff;
+  border: 1px solid var(--color-border-light, #E5DEC9);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 2px 6px rgba(44, 26, 16, 0.04);
+}
+
+.servo-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--color-background-light, #EFECE6);
+  color: var(--color-primary, #4A3222);
+  border: 1px solid var(--color-border, #D5CBB8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+/* ─── 9. MODAL DE SERVO ──────────────────────────────────────────────────── */
 .serva-modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  animation: fadeIn 0.2s ease;
+  padding: 16px;
 }
 
 .serva-modal {
-  background: #fff;
-  border-radius: 20px;
-  padding: 30px;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 24px;
   width: 100%;
-  max-width: 480px;
-  margin: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-  animation: slideDown 0.3s ease;
+  max-width: 440px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
 }
 
-/* --- Animação de Slide Down --- */
 @keyframes slideDown {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(-6px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
