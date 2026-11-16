@@ -337,7 +337,7 @@ export function RankingModal({ masses, onClose }: RankingModalProps) {
             )}
 
             <div style={{ marginTop: "20px", textAlign: "center", fontSize: "0.65rem", color: "#ccc", fontStyle: "italic" }}>
-              Gerado por Aplicativo Servas • {new Date().toLocaleDateString()}
+              Gerado por Servos do Altar • {new Date().toLocaleDateString()}
             </div>
           </div>
         </div>

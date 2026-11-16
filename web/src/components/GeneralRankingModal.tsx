@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { X, Trophy, Flower, Share2 } from "lucide-react";
+import { X, Trophy, Shield, Award, Crown, Share2 } from "lucide-react";
 import { Mass } from "../types/types";
 import html2canvas from "html2canvas";
 
@@ -16,7 +16,7 @@ export function GeneralRankingModal({ masses, onClose }: GeneralRankingModalProp
   masses.forEach(mass => {
     mass.signups.forEach(signup => {
       // @ts-ignore
-      const name = signup.user?.name || "Serva Desconhecida";
+      const name = signup.user?.name || "Servo(a) Desconhecido(a)";
       // Só conta se o Admin deu presença (Check verde)
       if (signup.present) {
         scores[name] = (scores[name] || 0) + 1;
@@ -29,9 +29,9 @@ export function GeneralRankingModal({ masses, onClose }: GeneralRankingModalProp
     .sort((a, b) => b.count - a.count);
 
   const getBadge = (count: number) => {
-    if (count >= 15) return { icon: <Flower size={20} fill="#B71C1C" stroke="#7F0000" />, name: "Rosa de Amor", color: "#FFEBEE", border: "#B71C1C" };
-    if (count >= 5) return { icon: <Flower size={20} fill="#D32F2F" />, name: "Botão de Rosa", color: "#FFF5F5", border: "#D32F2F" };
-    return { icon: <Flower size={20} />, name: "Semente da Fé", color: "#e8f5e9", border: "#81c784" };
+    if (count >= 15) return { icon: <Crown size={18} />, name: "Guardião(ã) do Altar", color: "#F7F5F0", border: "#4A3222" };
+    if (count >= 5) return { icon: <Award size={18} />, name: "Servo(a) Fiel", color: "#FEF3C7", border: "#92400E" };
+    return { icon: <Shield size={18} />, name: "Iniciante do Altar", color: "#E8F5E9", border: "#2E7D32" };
   };
 
   const handleShare = async () => {
@@ -63,8 +63,8 @@ export function GeneralRankingModal({ masses, onClose }: GeneralRankingModalProp
             try {
               await navigator.share({
                 files: [file],
-                title: "Ranking de Pontos - Servas",
-                text: "Confira o nosso ranking de presenças atualizado! 🌹✨"
+                title: "Ranking de Pontos - Servos do Altar",
+                text: "Confira o nosso ranking de presenças atualizado! ✝️🏆"
               });
             } catch (shareError) {
               console.log("Share cancelled or failed", shareError);
@@ -151,7 +151,7 @@ export function GeneralRankingModal({ masses, onClose }: GeneralRankingModalProp
           )}
 
           <div style={{ marginTop: "20px", textAlign: "center", fontSize: "0.7rem", color: "#aaa" }}>
-            Gerado por Aplicativo Servas - {new Date().toLocaleDateString()}
+            Gerado por Servos do Altar - {new Date().toLocaleDateString()}
           </div>
         </div>
       </div>

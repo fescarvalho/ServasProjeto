@@ -1,6 +1,7 @@
 import { Mass } from "../types/types";
-import { Flower, ArrowLeft, Calendar, Clock } from "lucide-react";
+import { Cross, ArrowLeft, Calendar, Clock } from "lucide-react";
 import { theme } from "../theme/theme";
+import { formatRole } from "../constants/roles";
 
 interface OfficialDocumentProps {
   masses: Mass[];
@@ -46,8 +47,8 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "");
 
-    if (normalized.includes("cerimoniaria")) return 1;
-    if (normalized.includes("librifera")) return 2;
+    if (normalized.includes("cerimonia")) return 1;
+    if (normalized.includes("librifer")) return 2;
     // Auxiliar e qualquer outra coisa ficam por último
     return 99;
   };
@@ -117,15 +118,16 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            width: "60px",
-            height: "60px",
-            backgroundColor: "rgba(92,64,51,0.10)",
-            borderRadius: "50%",
+            width: "54px",
+            height: "54px",
+            backgroundColor: "rgba(74, 50, 34, 0.08)",
+            border: `1px solid ${theme.colors.border}`,
+            borderRadius: "10px",
             marginBottom: "10px",
             color: theme.colors.primary,
           }}
         >
-          <Flower size={32} strokeWidth={2} />
+          <Cross size={28} strokeWidth={2.2} />
         </div>
 
         <h1
@@ -135,10 +137,11 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
             color: theme.colors.primary,
             textTransform: "uppercase",
             letterSpacing: "1px",
-            fontWeight: "normal",
+            fontWeight: "bold",
+            fontFamily: "'Cinzel', Georgia, serif",
           }}
         >
-          Escala de Servas
+          Escala de Servos e Servas
         </h1>
         <div
           style={{
@@ -229,9 +232,9 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
                 (s: any) => s.status !== "RESERVA",
               );
 
-              // Agrupa as servas
+              // Agrupa os(as) servos(as)
               servasConfirmadas.forEach((s) => {
-                const role = s.role || "Auxiliar";
+                const role = formatRole(s.role);
                 if (!funcoes[role]) funcoes[role] = [];
 
                 // Adiciona o ícone se for substituição
@@ -401,14 +404,15 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
       <div style={{ marginTop: "40px", textAlign: "center" }}>
         <p
           style={{
-            fontSize: "14px",
-            fontStyle: "italic",
+            fontSize: "13px",
+            letterSpacing: "1px",
+            textTransform: "uppercase",
             color: theme.colors.primary,
             fontWeight: "bold",
-            fontFamily: "cursive",
+            fontFamily: "'Cinzel', Georgia, serif",
           }}
         >
-          "Servir com alegria"
+          "Servir ao Altar com zelo e alegria"
         </p>
         <div
           style={{ width: "100%", borderTop: "1px solid #eee", marginTop: "15px" }}

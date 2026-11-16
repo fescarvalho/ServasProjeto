@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Flower, RefreshCw } from "lucide-react";
+import { Cross, RefreshCw } from "lucide-react";
 import { useAuth } from "./hooks/useAuth";
 import { useMasses } from "./hooks/useMasses";
 import { useSignup } from "./hooks/useSignup";
@@ -160,18 +160,30 @@ function App() {
             <Navigate to={user.role === 'ADMIN' ? '/admin' : user.role === 'em_formacao' ? '/formacao' : '/escalas'} replace />
           ) : (
             <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: theme.colors.background }}>
-              <div className="card" style={{ width: "100%", maxWidth: "350px", textAlign: "center", background: "white", padding: "40px", borderRadius: "16px", boxShadow: `0 8px 32px ${theme.colors.shadowBase}` }}>
-                <div style={{ color: theme.colors.primary, marginBottom: 20, display: "flex", justifyContent: "center" }}>
-                  <Flower size={48} strokeWidth={1.5} />
+              <div className="card" style={{ width: "100%", maxWidth: "360px", textAlign: "center", background: "white", padding: "40px 32px", borderRadius: "12px", border: `1px solid ${theme.colors.borderLight}`, boxShadow: `0 10px 30px ${theme.colors.shadowBase}` }}>
+                <div style={{
+                  width: 56,
+                  height: 56,
+                  margin: "0 auto 20px",
+                  borderRadius: "12px",
+                  background: theme.colors.primaryGradient,
+                  border: `1px solid ${theme.colors.secondary}`,
+                  color: "#FDFBF7",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: theme.colors.shadowPrimary
+                }}>
+                  <Cross size={28} strokeWidth={2.2} />
                 </div>
-                <h2 style={{ marginBottom: 10, color: theme.colors.primary, fontFamily: "'Playfair Display', serif" }}>Bem-vindo(a), Servo(a)</h2>
-                <p style={{ color: theme.colors.textSecondary, fontSize: "0.9rem", marginBottom: 30 }}>Faça login para continuar</p>
+                <h2 style={{ marginBottom: 8, color: theme.colors.primary, fontFamily: "'Cinzel', Georgia, serif", fontSize: "1.35rem", letterSpacing: "0.5px" }}>SERVOS DO ALTAR</h2>
+                <p style={{ color: theme.colors.textSecondary, fontSize: "0.9rem", marginBottom: 28 }}>Acesse sua conta para continuar</p>
 
                 <form onSubmit={handleLogin}>
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Seu E-mail" style={{ marginBottom: 15, width: "100%", padding: "12px", borderRadius: "10px", border: `1px solid ${theme.colors.border}`, boxSizing: "border-box", color: theme.colors.textMain }} />
-                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Sua Senha" style={{ marginBottom: 25, width: "100%", padding: "12px", borderRadius: "10px", border: `1px solid ${theme.colors.border}`, boxSizing: "border-box", color: theme.colors.textMain }} />
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Seu E-mail" style={{ marginBottom: 14, width: "100%", padding: "12px 14px", borderRadius: "8px", border: `1px solid ${theme.colors.border}`, boxSizing: "border-box", color: theme.colors.textMain }} />
+                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Sua Senha" style={{ marginBottom: 24, width: "100%", padding: "12px 14px", borderRadius: "8px", border: `1px solid ${theme.colors.border}`, boxSizing: "border-box", color: theme.colors.textMain }} />
                   {authError && <p style={{ color: theme.colors.dangerDark, fontSize: "0.9rem", marginBottom: 15 }}>{authError}</p>}
-                  <button type="submit" style={{ width: "100%", padding: "14px", border: "none", cursor: "pointer", borderRadius: "10px", fontWeight: "bold", fontSize: "1rem", background: theme.colors.primaryGradient, color: "#FDFBF7", letterSpacing: "1px" }}>
+                  <button type="submit" style={{ width: "100%", padding: "14px", border: "none", cursor: "pointer", borderRadius: "8px", fontWeight: "bold", fontSize: "0.95rem", background: theme.colors.primaryGradient, color: "#FDFBF7", letterSpacing: "1px" }}>
                     ENTRAR
                   </button>
                 </form>

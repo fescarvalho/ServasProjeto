@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
-  Flower,
+  Cross,
   Calendar,
   FileText,
   User,
   Clock,
   LogOut,
-  Heart,
+  Check,
   Trophy,
   Medal,
   Megaphone,
@@ -17,9 +17,10 @@ import {
   Hourglass,
   Bell,
   BookOpen,
-  BookHeart
+  BookMarked
 } from "lucide-react";
 import { Mass, UserData, Notice, SwapRequest } from "../types/types";
+import { formatRole } from "../constants/roles";
 import { OfficialDocument } from "./OfficialDocument";
 import { api } from "../services/api";
 import * as swapRequestService from "../services/api/swap-request.service";
@@ -316,28 +317,29 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
       )}
 
       {/* HEADER HERO */}
-      <div className="header-hero no-print" style={{ width: "100%", boxSizing: "border-box", paddingBottom: "30px" }}>
+      <div className="header-hero no-print" style={{ width: "100%", boxSizing: "border-box", paddingBottom: "34px" }}>
         <div className="header-icon-wrapper">
-          <Flower size={32} strokeWidth={2} color="white" />
+          <Cross size={28} strokeWidth={2.2} color="#E6C786" />
         </div>
 
-        <h1>GRUPO DE SERVAS <br /> SANTA TEREZINHA</h1>
+        <h1>GRUPO DE SERVOS E SERVAS <br /> SANTA TEREZINHA</h1>
 
         <div style={{
           marginTop: "10px",
-          marginBottom: "5px",
-          background: "rgba(255, 255, 255, 0.2)",
-          padding: "6px 16px",
-          borderRadius: "30px",
+          marginBottom: "6px",
+          background: "rgba(255, 255, 255, 0.12)",
+          border: "1px solid rgba(230, 199, 134, 0.35)",
+          padding: "6px 18px",
+          borderRadius: "8px",
           display: "inline-block",
           backdropFilter: "blur(5px)"
         }}>
-          <p style={{ margin: 0, fontSize: "1.1rem", fontWeight: "400" }}>
-            Bem-vindo(a), <strong style={{ fontWeight: "800" }}>{user.name.split(" ")[0]}</strong> 🕊️
+          <p style={{ margin: 0, fontSize: "1rem", fontWeight: "500", fontStyle: "normal", color: "#FDFBF7" }}>
+            Olá, <strong style={{ fontWeight: "800", color: "#E6C786" }}>{user.name.split(" ")[0]}</strong>
           </p>
         </div>
 
-        <p style={{ fontSize: "0.9rem", opacity: 0.9, marginTop: "5px" }}>"Servir com alegria."</p>
+        <p style={{ fontSize: "0.85rem", opacity: 0.85, marginTop: "4px", letterSpacing: "0.5px" }}>"Servir ao Altar com zelo e alegria."</p>
       </div>
 
       {/* ABAS */}
@@ -347,10 +349,12 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           display: "flex",
           width: "100%",
           background: "white",
-          borderRadius: "50px 50px 0 0",
-          padding: "5px 5px 0",
+          borderRadius: "12px 12px 0 0",
+          padding: "6px 6px 0",
           boxSizing: "border-box",
           boxShadow: "0 -2px 10px rgba(0,0,0,0.05)",
+          border: `1px solid ${theme.colors.borderLight}`,
+          borderBottom: "none",
           overflowX: "auto",
           scrollbarWidth: "none",
           msOverflowStyle: "none"
@@ -362,15 +366,15 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
             <FileText size={16} /> <span className="mobile-hide-text">Escala</span>
           </button>
           <button onClick={() => setActiveTab("calendario")} className={`tab-btn ${activeTab === "calendario" ? "active" : ""}`} style={{ flex: "1 0 auto", minWidth: isMobile ? "60px" : "auto", display: "flex", justifyContent: "center", gap: "5px" }} title="Calendário Litúrgico">
-            <BookOpen size={16} /> <span className="mobile-hide-text">Santos</span>
+            <BookOpen size={16} /> <span className="mobile-hide-text">Liturgia</span>
           </button>
           <button onClick={() => setActiveTab("oracoes")} className={`tab-btn ${activeTab === "oracoes" ? "active" : ""}`} style={{ flex: "1 0 auto", minWidth: isMobile ? "80px" : "auto", display: "flex", justifyContent: "center", gap: "5px" }} title="Orações">
-            <BookHeart size={16} /> <span className="mobile-hide-text">Orações</span>
+            <BookMarked size={16} /> <span className="mobile-hide-text">Orações</span>
           </button>
         </div>
 
         {/* Linha 2: Botões de ação */}
-        <div style={{ display: "flex", width: "100%", background: "white", borderRadius: "0 0 50px 50px", padding: "0 5px 5px", boxSizing: "border-box", borderTop: "1px solid #f0f0f0", boxShadow: "0 5px 15px rgba(0,0,0,0.08)", justifyContent: "flex-end", gap: "2px" }}>
+        <div style={{ display: "flex", width: "100%", background: "white", borderRadius: "0 0 12px 12px", padding: "4px 6px 6px", boxSizing: "border-box", border: `1px solid ${theme.colors.borderLight}`, borderTop: "1px solid #f0ede6", boxShadow: "0 6px 16px rgba(44, 26, 16, 0.08)", justifyContent: "flex-end", gap: "4px" }}>
           <button onClick={() => setShowRanking(true)} className="tab-btn" style={{ flex: 1, color: theme.colors.success, display: "flex", justifyContent: "center" }} title="Placar Mensal">
             <Medal size={18} />
           </button>
@@ -416,8 +420,8 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                 <Megaphone size={20} fill="white" />
               </div>
               <div>
-                <strong style={{ display: "block", fontSize: "0.8rem", textTransform: "uppercase", color: theme.colors.warningDark, marginBottom: "2px" }}>Atenção, servas!</strong>
-                <span style={{ fontSize: "1rem", fontWeight: "bold" }}>{notice.text}</span>
+                <strong style={{ display: "block", fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "0.5px", color: theme.colors.warningDark, marginBottom: "2px" }}>Comunicado do Grupo</strong>
+                <span style={{ fontSize: "0.98rem", fontWeight: "bold" }}>{notice.text}</span>
               </div>
             </div>
           ))}
@@ -459,7 +463,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                       <div style={{ fontSize: "0.9rem", color: theme.colors.textMain }}>
                         <strong>{sr.signup.user.name}</strong> não pode atender a <strong>{sr.signup.mass.name || massDate}</strong>
                       </div>
-                      <div style={{ fontSize: "0.8rem", color: theme.colors.textSecondary }}>{massDate} · Função: {sr.signup.role || "Auxiliar"}</div>
+                      <div style={{ fontSize: "0.8rem", color: theme.colors.textSecondary }}>{massDate} · Função: {formatRole(sr.signup.role)}</div>
                       {isMyRequest ? (
                         <button
                           onClick={() => handleCancelSwap(sr.id)}
@@ -524,7 +528,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                     const meuSignup = mass.signups.find((s) => s.userId === user.id);
                     const jaEstouInscrita = !!meuSignup;
                     const souReserva = (meuSignup as any)?.status === "RESERVA";
-                    const minhaFuncao = meuSignup?.role || "Auxiliar";
+                    const minhaFuncao = formatRole(meuSignup?.role);
 
                     const liturgical = getLiturgicalData(new Date(mass.date));
                     const isSundayDay = isSunday(new Date(mass.date));
@@ -556,7 +560,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                     }
 
                     let btnClass = "btn-servir";
-                    let btnText: React.ReactNode = <><Heart size={16} fill="white" /> SERVIR</>;
+                    let btnText: React.ReactNode = <><Check size={16} strokeWidth={2.5} /> QUERO SERVIR</>;
 
                     if (jaEstouInscrita) {
                       if (botaoDesabilitado) {
@@ -704,7 +708,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                                       fontSize: "0.82rem"
                                     }}
                                   >
-                                    {hasOpenRequest ? "⏳ Aguardando substituta..." : "↔ Pedir Substituição"}
+                                    {hasOpenRequest ? "⏳ Aguardando substituto(a)..." : "↔ Pedir Substituição"}
                                   </button>
                                 );
                               })()

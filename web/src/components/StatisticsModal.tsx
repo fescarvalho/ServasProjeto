@@ -237,7 +237,7 @@ export function StatisticsModal({ masses, onClose }: StatisticsModalProps) {
                       width: "40%",
                     }}
                   >
-                    Serva
+                    Servo(a)
                   </th>
                   <th
                     style={{

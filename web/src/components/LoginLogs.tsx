@@ -92,7 +92,7 @@ export function LoginLogs() {
                                         whiteSpace: "nowrap",
                                     }}
                                 >
-                                    Serva
+                                    Servo(a)
                                 </th>
                                 <th
                                     style={{

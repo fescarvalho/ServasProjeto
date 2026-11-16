@@ -170,7 +170,7 @@ function MassForm({
               <table className="admin-table" style={{ margin: 0 }}>
                 <thead style={{ position: "sticky", top: 0, background: "#f1f1f1" }}>
                   <tr>
-                    <th style={{ padding: "8px", fontSize: "0.8rem", textAlign: "left" }}>Serva</th>
+                    <th style={{ padding: "8px", fontSize: "0.8rem", textAlign: "left" }}>Servo(a)</th>
                     <th style={{ padding: "8px", fontSize: "0.8rem", textAlign: "left" }}>Status</th>
                     <th style={{ padding: "8px", fontSize: "0.8rem", textAlign: "left" }}>Função</th>
                   </tr>
@@ -193,8 +193,8 @@ function MassForm({
                         >
                           <option value="">Nenhuma</option>
                           <option value="Auxiliar">Auxiliar</option>
-                          <option value="Cerimoniária">Cerimoniária</option>
-                          <option value="Librífera">Librífera</option>
+                          <option value="Cerimoniária">Cerimoniário(a)</option>
+                          <option value="Librífera">Librífero(a)</option>
                           <option value="Lava-pés">Lava-pés</option>
                           <option value="Leituras">Leituras</option>
                           <option value="Matraca">Matraca</option>
@@ -519,7 +519,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         // Só faz sentido notificar vaga aberta se a missa já estiver publicada e visível para as servas
         if (mass) {
           const formattedDate = new Date(mass.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "long" });
-          const text = encodeURIComponent(`📅 *Atenção, Servas!*\n\nAs inscrições para a missa do dia *${formattedDate}* foram *Abertas*!\n\nCorra no aplicativo e garanta o seu horário acessando a aba de Inscrições.\n🔗 https://servasdoaltar.vercel.app/`);
+          const text = encodeURIComponent(`📅 *Atenção, Servos e Servas!*\n\nAs inscrições para a missa do dia *${formattedDate}* foram *Abertas*!\n\nCorra no aplicativo e garanta o seu horário acessando a aba de Inscrições.\n🔗 https://servasdoaltar.vercel.app/`);
 
           window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
         }
@@ -748,7 +748,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <Shield size={28} />
             <div>
-              <h1>{isAdmin ? "Painel Admin" : "Escala de Servas"}</h1>
+              <h1>{isAdmin ? "Painel Admin" : "Escala de Servos"}</h1>
               <span>{user.name}</span>
             </div>
           </div>
@@ -765,7 +765,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
               <button className="btn-header" onClick={() => setShowTextModal(true)} style={{ background: "#e8f5e9", color: "#2e7d32", border: "1px solid #a5d6a7" }}>
                 <Edit size={16} /> GERAR TEXTO
               </button>
-              <button className="btn-header" onClick={() => setShowReminderModal(true)} style={{ background: "#f3e5f5", color: "#7b1fa2", border: "1px solid #ce93d8" }}>
+              <button className="btn-header" onClick={() => setShowReminderModal(true)} style={{ background: "#EFECE6", color: "#4A3222", border: "1px solid #D5CBB8" }}>
                 <Megaphone size={16} /> LEMBRETES
               </button>
               <button className="btn-header btn-white" onClick={() => setViewMode("pdf")}>
@@ -794,7 +794,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
             className={`admin-tab ${activeTab === "servas" ? "active" : ""}`}
             onClick={() => setActiveTab("servas")}
           >
-            <Users size={18} /> Servas
+            <Users size={18} /> Servos
           </button>
           <button
             className={`admin-tab ${activeTab === "logs" ? "active" : ""}`}
@@ -821,10 +821,10 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                 style={{
                   flex: 1,
                   padding: "12px 16px",
-                  background: "#f3e5f5",
-                  color: "#7b1fa2",
-                  border: "1px solid #ce93d8",
-                  borderRadius: "12px",
+                  background: "#EFECE6",
+                  color: "#4A3222",
+                  border: "1px solid #D5CBB8",
+                  borderRadius: "10px",
                   cursor: isAiLoading ? "not-allowed" : "pointer",
                   fontWeight: "bold",
                   fontSize: "0.9rem",
@@ -856,15 +856,15 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
           {showAiPreview && (
             <div className="no-print" style={{
               background: "#fff",
-              borderRadius: "16px",
+              borderRadius: "12px",
               marginBottom: "20px",
               padding: "20px",
-              boxShadow: "0 10px 25px rgba(123, 31, 162, 0.15)",
-              border: "2px solid #ce93d8",
+              boxShadow: "0 10px 25px rgba(44, 26, 16, 0.15)",
+              border: "2px solid #D5CBB8",
               animation: "slideDown 0.3s ease"
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
-                <h3 style={{ color: "#7b1fa2", margin: 0, display: "flex", alignItems: "center", gap: "10px" }}>
+                <h3 style={{ color: "#4A3222", margin: 0, display: "flex", alignItems: "center", gap: "10px" }}>
                   <Camera /> Missas Identificadas pela IA
                 </h3>
                 <button onClick={() => setShowAiPreview(false)} style={{ background: "none", border: "none", color: "#666", cursor: "pointer" }}><X /></button>
@@ -873,7 +873,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
               <div style={{ maxHeight: "300px", overflowY: "auto", marginBottom: "15px", border: "1px solid #eee", borderRadius: "8px" }}>
                 <table className="admin-table" style={{ margin: 0 }}>
                   <thead>
-                    <tr style={{ background: "#f3e5f5" }}>
+                    <tr style={{ background: "#EFECE6" }}>
                       <th style={{ padding: "10px", textAlign: "left" }}>Data</th>
                       <th style={{ padding: "10px", textAlign: "left" }}>Hora</th>
                       <th style={{ padding: "10px", textAlign: "left" }}>Local</th>
@@ -908,7 +908,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                   style={{
                     flex: 1,
                     padding: "12px",
-                    background: "#7b1fa2",
+                    background: "#4A3222",
                     color: "#fff",
                     border: "none",
                     borderRadius: "8px",
@@ -1121,8 +1121,8 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                                       {isAdmin ? (
                                         <select className="role-select" value={signup.role || "Auxiliar"} onChange={(e) => handleChangeRole(signup.id, e.target.value)}>
                                           <option value="Auxiliar">Auxiliar</option>
-                                          <option value="Cerimoniária">Cerimoniária</option>
-                                          <option value="Librífera">Librífera</option>
+                                          <option value="Cerimoniária">Cerimoniário(a)</option>
+                                          <option value="Librífera">Librífero(a)</option>
                                           <option value="Lava-pés">Lava-pés</option>
                                           <option value="Leituras">Leituras</option>
                                           <option value="Matraca">Matraca</option>
@@ -1146,7 +1146,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                               }}
                               style={{ flex: 1, minWidth: "200px", padding: "8px", borderRadius: "6px", border: "1px solid #ccc", minHeight: "80px" }}
                             >
-                              <option value="" disabled>Selecione uma ou mais servas...</option>
+                              <option value="" disabled>Selecione um(a) ou mais servos(as)...</option>
                               {allUsers
                                 .filter(u => !mass.signups.some(s => s.userId === u.id))
                                 .map(u => (
@@ -1188,7 +1188,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
               <div className="serva-modal" onClick={(e) => e.stopPropagation()}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
                   <h3 style={{ margin: 0, color: theme.colors.primary, display: "flex", alignItems: "center", gap: "8px" }}>
-                    {editingServa ? <><Edit size={20} /> Editar Serva</> : <><PlusCircle size={20} /> Nova Serva</>}
+                    {editingServa ? <><Edit size={20} /> Editar Servo(a)</> : <><PlusCircle size={20} /> Novo(a) Servo(a)</>}
                   </h3>
                   <button onClick={() => setShowServaModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#666" }}><X size={22} /></button>
                 </div>
@@ -1221,14 +1221,14 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                   <div className="form-group">
                     <label>Status</label>
                     <select className="form-input" value={servaForm.role} onChange={(e) => setServaForm(p => ({ ...p, role: e.target.value }))}>
-                      <option value="USER">Serva Ativa</option>
+                      <option value="USER">Servo(a) Ativo(a)</option>
                       <option value="em_formacao">Em Formação</option>
                     </select>
                   </div>
                   <div style={{ display: "flex", gap: "10px", marginTop: "5px" }}>
                     <button type="submit" disabled={servaLoading} className="btn-create" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
                       {servaLoading ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}
-                      {editingServa ? "SALVAR ALTERAÇÕES" : "CADASTRAR SERVA"}
+                      {editingServa ? "SALVAR ALTERAÇÕES" : "CADASTRAR"}
                     </button>
                     <button type="button" onClick={() => setShowServaModal(false)} style={{ padding: "12px 20px", background: "#f5f5f5", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: "bold", color: "#666" }}>
                       CANCELAR
@@ -1239,7 +1239,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
             </div>
           )}
 
-          {/* BOTÃO NOVA SERVA */}
+          {/* BOTÃO NOVO SERVO */}
           <button
             onClick={() => handleOpenServaModal()}
             style={{
@@ -1248,7 +1248,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
               background: theme.colors.primary,
               color: "white",
               border: "none",
-              borderRadius: "12px",
+              borderRadius: "10px",
               cursor: "pointer",
               fontWeight: "bold",
               fontSize: "1rem",
@@ -1261,32 +1261,32 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
               transition: "all 0.3s ease",
             }}
           >
-            <PlusCircle size={20} /> Nova Serva
+            <PlusCircle size={20} /> Novo(a) Servo(a)
           </button>
 
-          {/* LISTA DE SERVAS */}
-          <div className="servas-card" style={{ background: "#fff", borderRadius: "16px", padding: "20px", boxShadow: `0 2px 12px ${theme.colors.shadowBase}` }}>
+          {/* LISTA DE SERVOS */}
+          <div className="servas-card" style={{ background: "#fff", borderRadius: "12px", padding: "20px", boxShadow: `0 2px 12px ${theme.colors.shadowBase}` }}>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", color: theme.colors.primary, fontWeight: "bold", marginBottom: "15px", fontSize: "1.05rem" }}>
-              <Users size={20} /> Servas Cadastradas ({servasList.length})
+              <Users size={20} /> Servos e Servas Cadastrados ({servasList.length})
             </div>
 
             {servaLoading && servasList.length === 0 ? (
               <div style={{ textAlign: "center", padding: "40px", color: "#888" }}>
                 <Loader2 className="animate-spin" size={24} style={{ margin: "0 auto 10px" }} />
-                <p>Carregando servas...</p>
+                <p>Carregando lista...</p>
               </div>
             ) : servasList.length === 0 ? (
-              <p style={{ textAlign: "center", padding: "30px", color: "#888" }}>Nenhuma serva cadastrada.</p>
+              <p style={{ textAlign: "center", padding: "30px", color: "#888" }}>Nenhum(a) servo(a) cadastrado(a).</p>
             ) : (
               <div style={{ overflowX: "auto" }}>
                 <table className="admin-table" style={{ width: "100%" }}>
                   <thead>
-                    <tr style={{ background: "#fce4ec", borderBottom: "2px solid #f8bbd0" }}>
-                      <th style={{ padding: "12px 14px", textAlign: "left", fontSize: "0.8rem", color: theme.colors.secondary, fontWeight: "700" }}>Nome</th>
-                      <th style={{ padding: "12px 14px", textAlign: "left", fontSize: "0.8rem", color: theme.colors.secondary, fontWeight: "700" }}>Email</th>
-                      <th style={{ padding: "12px 14px", textAlign: "center", fontSize: "0.8rem", color: theme.colors.secondary, fontWeight: "700" }}>Status</th>
-                      <th style={{ padding: "12px 14px", textAlign: "center", fontSize: "0.8rem", color: theme.colors.secondary, fontWeight: "700" }}>Nascimento</th>
-                      <th style={{ padding: "12px 14px", textAlign: "center", fontSize: "0.8rem", color: theme.colors.secondary, fontWeight: "700", width: "90px" }}>Ações</th>
+                    <tr style={{ background: "#EFECE6", borderBottom: "2px solid #D5CBB8" }}>
+                      <th style={{ padding: "12px 14px", textAlign: "left", fontSize: "0.8rem", color: theme.colors.primary, fontWeight: "700" }}>Nome</th>
+                      <th style={{ padding: "12px 14px", textAlign: "left", fontSize: "0.8rem", color: theme.colors.primary, fontWeight: "700" }}>Email</th>
+                      <th style={{ padding: "12px 14px", textAlign: "center", fontSize: "0.8rem", color: theme.colors.primary, fontWeight: "700" }}>Status</th>
+                      <th style={{ padding: "12px 14px", textAlign: "center", fontSize: "0.8rem", color: theme.colors.primary, fontWeight: "700" }}>Nascimento</th>
+                      <th style={{ padding: "12px 14px", textAlign: "center", fontSize: "0.8rem", color: theme.colors.primary, fontWeight: "700", width: "90px" }}>Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1296,9 +1296,9 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                         <td style={{ padding: "12px 14px", color: "#666", fontSize: "0.9rem" }}>{serva.email}</td>
                         <td style={{ padding: "12px 14px", textAlign: "center", color: "#666", fontSize: "0.9rem" }}>
                           {serva.role === 'em_formacao' ? (
-                            <span style={{ background: "#e1f5fe", color: "#0277bd", padding: "4px 8px", borderRadius: "10px", fontSize: "0.75rem", fontWeight: "bold" }}>Formação</span>
+                            <span style={{ background: "#e1f5fe", color: "#0277bd", padding: "4px 8px", borderRadius: "6px", fontSize: "0.75rem", fontWeight: "bold" }}>Formação</span>
                           ) : (
-                            <span style={{ background: "#e8f5e9", color: "#2e7d32", padding: "4px 8px", borderRadius: "10px", fontSize: "0.75rem", fontWeight: "bold" }}>Ativa</span>
+                            <span style={{ background: "#e8f5e9", color: "#2e7d32", padding: "4px 8px", borderRadius: "6px", fontSize: "0.75rem", fontWeight: "bold" }}>Ativo(a)</span>
                           )}
                         </td>
                         <td style={{ padding: "12px 14px", textAlign: "center", color: "#666", fontSize: "0.9rem" }}>

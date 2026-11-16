@@ -88,7 +88,7 @@ export function WinnerModal({ score, month, year, userName, onClose }: WinnerMod
                 </h2>
 
                 <p style={{ color: theme.colors.textMain, fontSize: "1.1rem", lineHeight: "1.5", margin: "0 0 20px 0" }}>
-                    Você foi a <strong>Serva Campeã</strong> do mês de <strong>{monthName} de {year}</strong>!
+                    Você alcançou o <strong>1º Lugar (Destaque do Mês)</strong> em <strong>{monthName} de {year}</strong>!
                 </p>
 
                 <div style={{

@@ -7,6 +7,24 @@ export const ROLES = {
   MATRACA: "Matraca",
 } as const;
 
+export const ROLE_LABELS: Record<string, string> = {
+  "Cerimoniária": "Cerimoniário(a)",
+  "Cerimoniário": "Cerimoniário(a)",
+  "Cerimoniário(a)": "Cerimoniário(a)",
+  "Librífera": "Librífero(a)",
+  "Librífero": "Librífero(a)",
+  "Librífero(a)": "Librífero(a)",
+  "Auxiliar": "Auxiliar",
+  "Lava-pés": "Lava-pés",
+  "Leituras": "Leituras",
+  "Matraca": "Matraca",
+};
+
+export function formatRole(role?: string | null): string {
+  if (!role) return "Auxiliar";
+  return ROLE_LABELS[role] || role;
+}
+
 export const USER_ROLES = {
   ADMIN: "ADMIN",
   USER: "USER",

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Building2, Cross, CalendarDays, BookOpenText, Flower, LogOut, Shield, ShieldAlert } from 'lucide-react';
+import { Building2, Cross, CalendarDays, BookOpenText, LogOut, Shield, ShieldAlert } from 'lucide-react';
 import { UserData } from '../types/types';
 import './FormacaoPage.css';
 
@@ -67,7 +67,7 @@ export function FormacaoPage({ user, onLogout }: FormacaoPageProps) {
     <div className="formacao-container">
       <div className="formacao-topbar">
         <div className="formacao-brand">
-          <Flower size={24} color="var(--color-primary)" />
+          <Cross size={22} color="var(--color-primary)" />
           <span>Servos do Altar</span>
         </div>
         {user && (

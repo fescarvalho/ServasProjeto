@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { ClipboardList, Download } from "lucide-react";
 import { Mass } from "../types/types";
+import { formatRole } from "../constants/roles";
 
 interface MonthlyReportProps {
   masses: Mass[];
@@ -27,7 +28,7 @@ export function MonthlyReport({ masses }: MonthlyReportProps) {
     pastMasses.forEach((mass) => {
       mass.signups.forEach((signup) => {
         const name = signup.user.name;
-        const role = signup.role || "Auxiliar";
+        const role = formatRole(signup.role);
 
         if (signup.present) {
           // Presença confirmada
@@ -76,12 +77,12 @@ export function MonthlyReport({ masses }: MonthlyReportProps) {
 
     autoTable(doc, {
       startY: 48,
-      head: [["Nome da Serva", "Presenças", "Detalhamento por Função"]],
+      head: [["Nome do(a) Servo(a)", "Presenças", "Detalhamento por Função"]],
       body:
         presenceRows.length > 0
           ? presenceRows
           : [["Nenhuma presença registrada", "", ""]],
-      headStyles: { fillColor: [92, 64, 51] },
+      headStyles: { fillColor: [74, 50, 34] },
       styles: { fontSize: 10, cellPadding: 4 },
       columnStyles: {
         1: { halign: "center", cellWidth: 30 },
@@ -97,7 +98,7 @@ export function MonthlyReport({ masses }: MonthlyReportProps) {
 
     autoTable(doc, {
       startY: afterPresenceY + 16,
-      head: [["Nome da Serva", "Faltas"]],
+      head: [["Nome do(a) Servo(a)", "Faltas"]],
       body:
         absenceRows.length > 0
           ? absenceRows
@@ -109,7 +110,7 @@ export function MonthlyReport({ masses }: MonthlyReportProps) {
       },
     });
 
-    doc.save("relatorio-mensal-servas.pdf");
+    doc.save("relatorio-mensal-servos.pdf");
   };
 
   return (

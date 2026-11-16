@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { X, Copy, ExternalLink, CheckCircle, AlertCircle, Calendar, MessageSquare, Megaphone } from "lucide-react";
 import { Mass, FUNCOES } from "../types/types";
+import { formatRole } from "../constants/roles";
 import api from "../services/api";
 
 interface ReminderModalProps {
@@ -27,8 +28,8 @@ export function ReminderModal({ masses, onClose }: ReminderModalProps) {
         let text = "";
 
         if (type === "SUNDAY_SCALE") {
-            text = "🌸 *GRUPO DE SERVAS SANTA TEREZINHA* 🌸\n\n";
-            text += "✨ *Lembrete da Escala do Final de Semana* ✨\n\n";
+            text = "✝️ *GRUPO DE SERVOS E SERVAS SANTA TEREZINHA* ✝️\n\n";
+            text += "📅 *Lembrete da Escala do Final de Semana*\n\n";
 
             const upcoming = masses
                 .filter(m => new Date(m.date) >= new Date())
@@ -48,7 +49,7 @@ export function ReminderModal({ masses, onClose }: ReminderModalProps) {
                     FUNCOES.forEach(funcao => {
                         const serva = mass.signups.find(s => s.role === funcao && s.status === "CONFIRMADO");
                         if (serva) {
-                            text += `   • ${funcao}: ${serva.user.name}\n`;
+                            text += `   • ${formatRole(funcao)}: ${serva.user.name}\n`;
                         }
                     });
                     text += "\n";
@@ -62,10 +63,10 @@ export function ReminderModal({ masses, onClose }: ReminderModalProps) {
             text += "As inscrições para as próximas missas já estão disponíveis no sistema.\n\n";
             text += "Acesse agora e garanta sua vaga!\n";
             text += "🔗 https://servasdoaltar.vercel.app/\n\n";
-            text += "Não deixe para a última hora! 🌸✨";
+            text += "Não deixe para a última hora! ✝️";
         }
         else if (type === "GENERAL_NOTICE") {
-            text = "🌸 *COMUNICADO: GRUPO DE SERVAS* 🌸\n\n";
+            text = "✝️ *COMUNICADO: GRUPO DE SERVOS E SERVAS* ✝️\n\n";
             text += "[Escreva seu aviso aqui...]\n\n";
             text += "Atenciosamente,\nCoordenação.";
         }
@@ -93,7 +94,7 @@ export function ReminderModal({ masses, onClose }: ReminderModalProps) {
 
         try {
             await api.post("/push/send-custom", {
-                title: "Aviso do Grupo de Servas 🌸",
+                title: "Aviso - Servos do Altar ✝️",
                 body: customText
             });
 
@@ -131,7 +132,7 @@ export function ReminderModal({ masses, onClose }: ReminderModalProps) {
             }}>
                 {/* Header */}
                 <div style={{
-                    background: "linear-gradient(135deg, #7b1fa2 0%, #4a148c 100%)",
+                    background: "linear-gradient(135deg, #2C1A10 0%, #4A3222 100%)",
                     padding: "24px",
                     color: "white",
                     display: "flex",
@@ -174,11 +175,11 @@ export function ReminderModal({ masses, onClose }: ReminderModalProps) {
                                 onClick={() => setTemplate("SUNDAY_SCALE")}
                                 style={{
                                     padding: "12px 8px",
-                                    borderRadius: "12px",
+                                    borderRadius: "10px",
                                     border: "2px solid",
-                                    borderColor: template === "SUNDAY_SCALE" ? "#7b1fa2" : "#E5E7EB",
-                                    background: template === "SUNDAY_SCALE" ? "#F5F3FF" : "white",
-                                    color: template === "SUNDAY_SCALE" ? "#7b1fa2" : "#6B7280",
+                                    borderColor: template === "SUNDAY_SCALE" ? "#4A3222" : "#E5E7EB",
+                                    background: template === "SUNDAY_SCALE" ? "#F7F5F0" : "white",
+                                    color: template === "SUNDAY_SCALE" ? "#4A3222" : "#6B7280",
                                     fontSize: "0.8rem",
                                     fontWeight: "bold",
                                     cursor: "pointer",
@@ -195,11 +196,11 @@ export function ReminderModal({ masses, onClose }: ReminderModalProps) {
                                 onClick={() => setTemplate("OPEN_REGISTRATION")}
                                 style={{
                                     padding: "12px 8px",
-                                    borderRadius: "12px",
+                                    borderRadius: "10px",
                                     border: "2px solid",
-                                    borderColor: template === "OPEN_REGISTRATION" ? "#7b1fa2" : "#E5E7EB",
-                                    background: template === "OPEN_REGISTRATION" ? "#F5F3FF" : "white",
-                                    color: template === "OPEN_REGISTRATION" ? "#7b1fa2" : "#6B7280",
+                                    borderColor: template === "OPEN_REGISTRATION" ? "#4A3222" : "#E5E7EB",
+                                    background: template === "OPEN_REGISTRATION" ? "#F7F5F0" : "white",
+                                    color: template === "OPEN_REGISTRATION" ? "#4A3222" : "#6B7280",
                                     fontSize: "0.8rem",
                                     fontWeight: "bold",
                                     cursor: "pointer",
@@ -216,11 +217,11 @@ export function ReminderModal({ masses, onClose }: ReminderModalProps) {
                                 onClick={() => setTemplate("GENERAL_NOTICE")}
                                 style={{
                                     padding: "12px 8px",
-                                    borderRadius: "12px",
+                                    borderRadius: "10px",
                                     border: "2px solid",
-                                    borderColor: template === "GENERAL_NOTICE" ? "#7b1fa2" : "#E5E7EB",
-                                    background: template === "GENERAL_NOTICE" ? "#F5F3FF" : "white",
-                                    color: template === "GENERAL_NOTICE" ? "#7b1fa2" : "#6B7280",
+                                    borderColor: template === "GENERAL_NOTICE" ? "#4A3222" : "#E5E7EB",
+                                    background: template === "GENERAL_NOTICE" ? "#F7F5F0" : "white",
+                                    color: template === "GENERAL_NOTICE" ? "#4A3222" : "#6B7280",
                                     fontSize: "0.8rem",
                                     fontWeight: "bold",
                                     cursor: "pointer",
@@ -301,13 +302,13 @@ export function ReminderModal({ masses, onClose }: ReminderModalProps) {
                                 padding: "14px",
                                 borderRadius: "14px",
                                 border: "none",
-                                background: template === "GENERAL_NOTICE" ? "#7b1fa2" : "#25D366",
+                                background: template === "GENERAL_NOTICE" ? "#4A3222" : "#25D366",
                                 color: "white",
                                 fontWeight: "bold",
                                 fontSize: "1rem",
                                 cursor: isSending ? "not-allowed" : "pointer",
                                 boxShadow: template === "GENERAL_NOTICE"
-                                    ? "0 4px 6px -1px rgba(123, 31, 162, 0.2)"
+                                    ? "0 4px 6px -1px rgba(74, 50, 34, 0.25)"
                                     : "0 4px 6px -1px rgba(37, 211, 102, 0.2)",
                                 transition: "all 0.2s",
                                 opacity: isSending ? 0.7 : 1
@@ -332,7 +333,7 @@ export function ReminderModal({ masses, onClose }: ReminderModalProps) {
                     {sendSuccess && (
                         <div style={{ marginTop: "16px", display: "flex", alignItems: "center", gap: "8px", color: "#059669", fontSize: "0.85rem", padding: "10px", background: "#ecfdf5", borderRadius: "10px", border: "1px solid #10b981" }}>
                             <CheckCircle size={14} />
-                            Notificações enviadas com sucesso para as servas!
+                            Notificações enviadas com sucesso para o grupo!
                         </div>
                     )}
 
@@ -346,7 +347,7 @@ export function ReminderModal({ masses, onClose }: ReminderModalProps) {
                     <div style={{ marginTop: "16px", display: "flex", alignItems: "center", gap: "8px", color: "#6B7280", fontSize: "0.8rem", padding: "10px", background: "#f3f4f6", borderRadius: "10px" }}>
                         <AlertCircle size={14} />
                         {template === "GENERAL_NOTICE"
-                            ? "Dica: Este aviso chegará como uma notificação no celular de todas as servas."
+                            ? "Dica: Este aviso chegará como uma notificação no celular de todos os membros."
                             : "Dica: Clique em \"Copiado e Abrir\" para levar o texto direto para o grupo."}
                     </div>
                 </div>

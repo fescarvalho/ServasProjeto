@@ -5,8 +5,8 @@ import { Mass, Signup } from "../types/types";
  * Retorna o peso de uma função para ordenação
  */
 export function getRoleWeight(role?: string | null): number {
-    if (role === ROLES.CEREMONIAL) return 1;
-    if (role === ROLES.BOOK_BEARER) return 2;
+    if (role === ROLES.CEREMONIAL || role === "Cerimoniário(a)" || role === "Cerimoniário") return 1;
+    if (role === ROLES.BOOK_BEARER || role === "Librífero(a)" || role === "Librífero") return 2;
     if (role === ROLES.LAVA_PES) return 4;
     if (role === ROLES.LEITURAS) return 5;
     if (role === ROLES.MATRACA) return 6;

@@ -28,7 +28,7 @@ export async function getActiveNotices() {
 
     if (birthdayGirls.length > 0) {
         const names = birthdayGirls.map(u => u.name.split(" ")[0]).join(" e ");
-        const prefix = birthdayGirls.length > 1 ? "Hoje é aniversário das nossas servas" : "Hoje é aniversário da nossa serva";
+        const prefix = "Hoje celebramos o aniversário de";
         const birthdayNotice = {
             id: "birthday-notice-auto",
             text: `🎉 ${prefix} ${names}! Parabéns e que Deus abençoe muito a sua vida! 🎉`,
@@ -88,7 +88,7 @@ export async function postMonthlyChampionNotice() {
         }
     });
 
-    if (existingNotice && existingNotice.text.includes("Serva Campeã")) {
+    if (existingNotice && (existingNotice.text.includes("Serva Campeã") || existingNotice.text.includes("Destaque do mês"))) {
         return { success: false, message: "Notice already exists for the previous month." };
     }
 
@@ -148,7 +148,7 @@ export async function postMonthlyChampionNotice() {
     const champions = ranking.filter(r => r.score === championScore && r.count === championCount && r.absences === championAbsences);
     const championNames = champions.map(c => c.name.split(" ")[0]).join(" e ");
     
-    const text = `🏆 Parabéns ${championNames}! ${champions.length > 1 ? 'Vocês foram as Servas Campeãs' : 'Você foi a Serva Campeã'} do mês de ${previousMonthName} com ${championCount} presenças e ${championScore} pontos! Deus abençoe! 🏆`;
+    const text = `🏆 Parabéns ${championNames}! ${champions.length > 1 ? 'Vocês foram os Destaques do mês' : 'Você foi o Destaque do mês'} de ${previousMonthName} com ${championCount} presenças e ${championScore} pontos! Deus abençoe! 🏆`;
 
     await prisma.notice.create({
         data: { text, active: true }

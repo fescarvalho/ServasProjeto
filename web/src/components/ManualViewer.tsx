@@ -15,7 +15,7 @@ export function ManualViewer() {
   }, []);
 
   const page = searchParams.get('page') || '1';
-  const title = searchParams.get('title') || 'Manual da Serva';
+  const title = searchParams.get('title') || 'Manual do Servidor';
   const manualUrl = '/materiais/manual-servos.pdf';
 
   // Monta a URL do PDF com a página de abertura (suporte no Chrome/Edge/Firefox)
@@ -58,7 +58,7 @@ export function ManualViewer() {
           key={pdfSrc}
           src={pdfSrc}
           className="pdf-iframe"
-          title={`Manual das Servas do Altar — ${title}`}
+          title={`Manual dos Servos do Altar — ${title}`}
         />
       </div>
     </div>
