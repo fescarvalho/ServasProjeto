@@ -68,7 +68,7 @@ export async function togglePresence(req: Request, res: Response) {
 export async function selfCheckIn(req: Request, res: Response) {
     try {
         const { id } = req.params;
-        const { token, lat, lng } = req.body || {};
+        const { token, lat, lng, scannedAt } = req.body || {};
         let isAdmin = false;
         if (req.userId) {
             const reqUser = await prisma.user.findUnique({ where: { id: req.userId } });
@@ -81,7 +81,8 @@ export async function selfCheckIn(req: Request, res: Response) {
             isAdmin,
             token,
             typeof lat === "number" ? lat : undefined,
-            typeof lng === "number" ? lng : undefined
+            typeof lng === "number" ? lng : undefined,
+            typeof scannedAt === "string" ? scannedAt : undefined
         );
         return success(res, signup);
     } catch (err: any) {

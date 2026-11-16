@@ -28,9 +28,10 @@ export async function selfCheckIn(
     signupId: string,
     token: string = "SACRISTIA_ST_2026",
     lat?: number,
-    lng?: number
+    lng?: number,
+    scannedAt?: string
 ): Promise<void> {
-    await apiClient.post(`/signup/${signupId}/checkin`, { token, lat, lng });
+    await apiClient.post(`/signup/${signupId}/checkin`, { token, lat, lng, scannedAt });
 }
 
 /**

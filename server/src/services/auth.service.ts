@@ -68,6 +68,6 @@ export async function login(data: LoginData): Promise<UserResponse | null> {
  */
 export function generateToken(userId: string): string {
     return jwt.sign({ id: userId }, env.JWT_SECRET, {
-        expiresIn: "7d",
+        expiresIn: "180d",
     });
 }

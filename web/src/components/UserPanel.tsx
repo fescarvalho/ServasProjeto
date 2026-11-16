@@ -28,6 +28,12 @@ import { Mass, UserData, Notice, SwapRequest } from "../types/types";
 import { formatRole, setGlobalUserGenders } from "../constants/roles";
 import { getGoogleCalendarUrl, downloadMassICS } from "../utils/calendar.utils";
 import {
+  isWithinSantuarioRadius,
+  enqueueOfflineCheckin,
+  syncOfflineCheckins,
+  hasPendingOfflineCheckin,
+} from "../services/storage/offlineCheckin.service";
+import {
   getUserMetadata,
   addUnavailability,
   removeUnavailability,
@@ -138,7 +144,34 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
       .catch(() => {});
   }, [user?.id]);
 
-  // --- CHECK-IN AUTOMÁTICO VIA QR CODE DA SACRISTIA (persiste mesmo se pediu login antes) ---
+  // --- SINCRONIZAÇÃO AUTOMÁTICA DE CHECK-INS OFFLINE QUANDO VOLTAR A INTERNET ---
+  useEffect(() => {
+    if (!user) return;
+
+    const runSync = async () => {
+      const { syncedCount, failedMessages } = await syncOfflineCheckins();
+      if (syncedCount > 0) {
+        show(
+          `${syncedCount} check-in(s) registrado(s) offline foi(ram) sincronizado(s) com sucesso!`,
+          "success",
+          6000
+        );
+        onUpdate?.();
+      }
+      if (failedMessages.length > 0) {
+        show(failedMessages[0], "error", 8000);
+      }
+    };
+
+    if (navigator.onLine) {
+      runSync();
+    }
+
+    window.addEventListener("online", runSync);
+    return () => window.removeEventListener("online", runSync);
+  }, [user?.id]);
+
+  // --- CHECK-IN AUTOMÁTICO VIA QR CODE DA SACRISTIA (online ou offline com fila) ---
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlToken = params.get("checkin");
@@ -149,6 +182,11 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
       sessionStorage.removeItem("pending_qr_checkin_token");
       if (urlToken) {
         window.history.replaceState({}, "", window.location.pathname);
+      }
+
+      if (qrToken !== "SACRISTIA_ST_2026") {
+        show("Check-in permitido apenas escaneando o QR Code oficial na sacristia.", "error", 7000);
+        return;
       }
 
       const now = new Date();
@@ -189,6 +227,11 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
         return;
       }
 
+      if (hasPendingOfflineCheckin(myWindowEntry.signup.id)) {
+        show("Sua presença já está salva no modo offline e será enviada assim que houver internet!", "info", 6000);
+        return;
+      }
+
       if (!("geolocation" in navigator)) {
         show("Seu navegador não suporta GPS. Procure a coordenação para confirmar sua presença.", "error", 7000);
         return;
@@ -197,13 +240,52 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
       show("Validando sua localização no Santuário...", "info", 4000);
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          selfCheckIn(myWindowEntry.signup!.id, qrToken, pos.coords.latitude, pos.coords.longitude)
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          const scannedAt = new Date().toISOString();
+          const signupId = myWindowEntry.signup!.id;
+
+          const saveOfflineIfAllowed = () => {
+            if (!isWithinSantuarioRadius(lat, lng)) {
+              show(
+                "Check-in recusado: você precisa estar presencialmente na sacristia do Santuário para confirmar sua presença.",
+                "error",
+                8000
+              );
+              return;
+            }
+            enqueueOfflineCheckin({
+              signupId,
+              token: qrToken,
+              lat,
+              lng,
+              scannedAt,
+              massName: myWindowEntry.mass.name,
+            });
+            show(
+              "Modo Offline: presença registrada no aparelho! Será enviada ao servidor assim que houver internet.",
+              "success",
+              8000
+            );
+          };
+
+          if (!navigator.onLine) {
+            saveOfflineIfAllowed();
+            return;
+          }
+
+          selfCheckIn(signupId, qrToken, lat, lng, scannedAt)
             .then(() => {
               show("Check-in no Santuário confirmado com sucesso! Bom serviço no Altar!", "success", 6000);
               onUpdate?.();
             })
             .catch((err: any) => {
-              show(err?.response?.data?.error || "Não foi possível confirmar o check-in agora.", "error", 8000);
+              if (!err?.response) {
+                // Queda ou oscilação de rede dentro da igreja -> salva offline
+                saveOfflineIfAllowed();
+              } else {
+                show(err?.response?.data?.error || "Não foi possível confirmar o check-in agora.", "error", 8000);
+              }
             });
         },
         () => {

@@ -11,14 +11,34 @@ clientsClaim();
 precacheAndRoute(self.__WB_MANIFEST || []);
 cleanupOutdatedCaches();
 
-const RUNTIME_CACHE = 'servos-runtime-v2';
+const RUNTIME_CACHE = 'servos-runtime-v3';
+const SHELL_CACHE_KEY = '/__app_shell__';
 
-// Cache inteligente para economizar dados móveis (Fontes, Imagens de Formação e Ícones)
+// Cache inteligente para economizar dados móveis (Fontes, Imagens de Formação, Ícones e App Shell offline)
 self.addEventListener('fetch', (event: FetchEvent) => {
     const req = event.request;
     if (req.method !== 'GET') return;
 
     const url = new URL(req.url);
+
+    // 0. Navegação SPA (ex: abrir /escalas?checkin=SACRISTIA_ST_2026 offline) -> Network-First com fallback offline
+    if (req.mode === 'navigate' && url.origin === self.location.origin) {
+        event.respondWith(
+            caches.open(RUNTIME_CACHE).then(async (cache) => {
+                try {
+                    const netRes = await fetch(req);
+                    if (netRes && netRes.status === 200) {
+                        cache.put(SHELL_CACHE_KEY, netRes.clone());
+                    }
+                    return netRes;
+                } catch {
+                    const cachedShell = await cache.match(SHELL_CACHE_KEY);
+                    return cachedShell || Response.error();
+                }
+            })
+        );
+        return;
+    }
 
     // 1. Cache-First para Fontes do Google e Imagens estáticas (/formacao/, ícones, etc.)
     const isFont = url.origin.includes('fonts.googleapis.com') || url.origin.includes('fonts.gstatic.com');

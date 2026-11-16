@@ -154,7 +154,8 @@ export async function selfCheckIn(
     isAdmin: boolean = false,
     qrToken?: string,
     lat?: number,
-    lng?: number
+    lng?: number,
+    scannedAt?: string
 ) {
     if (!isAdmin && (!qrToken || !VALID_QR_TOKENS.has(String(qrToken)))) {
         throw new Error("Check-in permitido apenas escaneando o QR Code oficial na sacristia.");
@@ -199,10 +200,23 @@ export async function selfCheckIn(
             );
         }
 
-        // 3. Valida janela de horário da missa
+        // 3. Valida janela de horário da missa (suporta horário salvo offline pelo aparelho)
         const now = new Date();
+        let checkTime = now;
+        if (scannedAt) {
+            const parsedScan = new Date(scannedAt);
+            const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+            if (
+                !isNaN(parsedScan.getTime()) &&
+                parsedScan.getTime() <= now.getTime() + 5 * 60 * 1000 &&
+                now.getTime() - parsedScan.getTime() <= sevenDaysMs
+            ) {
+                checkTime = parsedScan;
+            }
+        }
+
         const massTime = new Date(existing.mass.date);
-        const diffMinutes = (now.getTime() - massTime.getTime()) / (1000 * 60);
+        const diffMinutes = (checkTime.getTime() - massTime.getTime()) / (1000 * 60);
 
         // Permite check-in desde 2h antes do início da missa até 4h após o início
         if (diffMinutes < -120 || diffMinutes > 240) {

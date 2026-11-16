@@ -19,8 +19,8 @@ const ModuleViewer = lazy(() => import("./pages/ModuleViewer").then((m) => ({ de
 const QuizListPage = lazy(() => import("./pages/QuizListPage").then((m) => ({ default: m.QuizListPage })));
 const QuizTakingPage = lazy(() => import("./pages/QuizTakingPage").then((m) => ({ default: m.QuizTakingPage })));
 
-// Tempo máximo offline antes de forçar logout (2 minutos em ms)
-const OFFLINE_TIMEOUT_MS = 2 * 60 * 1000;
+// Tempo máximo sem renovação online antes de exigir novo login (180 dias em ms)
+const OFFLINE_TIMEOUT_MS = 180 * 24 * 60 * 60 * 1000;
 
 // Captura imediatamente o parâmetro ?checkin=... do QR Code antes de qualquer redirecionamento para /login
 if (typeof window !== "undefined") {
