@@ -154,7 +154,7 @@ function MassForm({
           value={newPoints}
           onChange={(e) => setNewPoints(e.target.value)}
           min="1"
-          placeholder={`Padrão (${pointsPreview} pt)`}
+          placeholder={`Padrão (${pointsPreview} ${pointsPreview === 1 ? "pt" : "pts"})`}
         />
       </div>
       <div className="form-group full-width">

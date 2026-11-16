@@ -58,11 +58,19 @@ export async function deleteNotice(id: string) {
     return await prisma.notice.delete({ where: { id } });
 }
 
-function getMassPoints(_dateString: string | Date, manualPoints?: number | null) {
+function getMassPoints(dateInput: string | Date, manualPoints?: number | null) {
     if (manualPoints !== undefined && manualPoints !== null) return manualPoints;
-    
-    // A regra padrão para missas é sempre 1 ponto
-    return 1;
+
+    const normalized =
+        typeof dateInput === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)
+            ? `${dateInput}T12:00:00`
+            : dateInput;
+    const d = new Date(normalized);
+    if (isNaN(d.getTime())) return 1;
+
+    const brDate = new Date(d.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+    // Domingo (0) = 1 ponto; Dias de semana (1 a 6) = 2 pontos
+    return brDate.getDay() === 0 ? 1 : 2;
 }
 
 /**

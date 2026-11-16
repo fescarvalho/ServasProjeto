@@ -1,9 +1,15 @@
 import { Mass } from "../types/types";
 
 // --- LÓGICA DE PONTUAÇÃO ---
-export function getMassPoints(_dateString: string) {
-    // A regra padrão para missas é sempre 1 ponto, a menos que haja override manual
-    return 1;
+export function getMassPoints(dateString: string) {
+    if (!dateString) return 1;
+    const normalized = /^\d{4}-\d{2}-\d{2}$/.test(dateString) ? `${dateString}T12:00:00` : dateString;
+    const d = new Date(normalized);
+    if (isNaN(d.getTime())) return 1;
+
+    const brDate = new Date(d.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+    // Domingo (0) = 1 ponto; Dias de semana (1 a 6) = 2 pontos
+    return brDate.getDay() === 0 ? 1 : 2;
 }
 
 export interface ServaRanking {

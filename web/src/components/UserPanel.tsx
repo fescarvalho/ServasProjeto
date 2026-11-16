@@ -488,7 +488,12 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
           <BadgesModal count={confirmedScore} onClose={() => setShowBadges(false)} />
         )}
         {showRanking && (
-          <RankingModal masses={masses} onClose={() => setShowRanking(false)} />
+          <RankingModal
+            masses={masses}
+            currentUserId={user.id}
+            currentUserName={user.name}
+            onClose={() => setShowRanking(false)}
+          />
         )}
         {showWinnerModal && winnerDetails && (
           <WinnerModal
