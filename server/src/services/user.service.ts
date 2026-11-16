@@ -213,6 +213,7 @@ export async function getUsersListFull() {
             gender: meta.genders[u.id] || null,
             unavailabilities: meta.unavailabilities[u.id] || [],
             lastMassDate,
+            firstLoginDate,
         };
     });
 

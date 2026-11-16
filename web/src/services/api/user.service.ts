@@ -14,6 +14,7 @@ export interface ServaData {
     gender?: "M" | "F" | null;
     unavailabilities?: UnavailabilityItem[];
     lastMassDate?: string | null;
+    firstLoginDate?: string | null;
 }
 
 export interface UserMetadataResponse {

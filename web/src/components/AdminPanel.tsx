@@ -357,6 +357,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [servasList, setServasList] = useState<ServaData[]>([]);
   const [servaSearch, setServaSearch] = useState("");
   const [servaFilter, setServaFilter] = useState<"ALL" | "ACTIVE" | "FORMACAO" | "INATIVO" | "M" | "F">("ALL");
+  const [servaSortByDays, setServaSortByDays] = useState(false);
   const [showServaModal, setShowServaModal] = useState(false);
   const [editingServa, setEditingServa] = useState<ServaData | null>(null);
   const [servaForm, setServaForm] = useState<{ name: string; email: string; password: string; birthDate: string; role: string; gender: "M" | "F" | "" }>({
@@ -815,21 +816,110 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const publishedCount = filteredMasses.filter(m => m.published).length;
   const openCount = filteredMasses.filter(m => m.open).length;
 
-  const filteredServasList = servasList.filter((s) => {
-    const matchesSearch =
-      !servaSearch.trim() ||
-      s.name.toLowerCase().includes(servaSearch.toLowerCase()) ||
-      s.email.toLowerCase().includes(servaSearch.toLowerCase());
-    if (!matchesSearch) return false;
+  const getAgeFromBirthDate = (birthDate?: string | null): number | null => {
+    if (!birthDate) return null;
+    const datePart = birthDate.split("T")[0];
+    const [yStr, mStr, dStr] = datePart.split("-");
+    const year = Number(yStr);
+    const month = Number(mStr);
+    const day = Number(dStr);
+    if (!year || !month || !day) return null;
 
-    const g = s.gender || getUserGender(s.id, s.name);
-    if (servaFilter === "ACTIVE") return s.role === "USER" || (!s.role);
-    if (servaFilter === "FORMACAO") return s.role === "em_formacao";
-    if (servaFilter === "INATIVO") return s.role === "INATIVO";
-    if (servaFilter === "M") return g === "M" && s.role !== "INATIVO";
-    if (servaFilter === "F") return g === "F" && s.role !== "INATIVO";
-    return true;
-  });
+    const today = new Date();
+    let age = today.getFullYear() - year;
+    const mDiff = today.getMonth() + 1 - month;
+    if (mDiff < 0 || (mDiff === 0 && today.getDate() < day)) {
+      age--;
+    }
+    return age >= 0 ? age : null;
+  };
+
+  const getDaysWithoutScaleInfo = (serva: ServaData) => {
+    const refIso = serva.lastMassDate || serva.firstLoginDate;
+    if (!refIso) {
+      return {
+        label: "Nunca escalado(a)",
+        days: null as number | null,
+        bg: "#F3F4F6",
+        color: "#6B7280",
+        border: "#E5E7EB",
+        tooltip: "Nenhuma escala ou acesso registrado",
+      };
+    }
+
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const refDate = new Date(refIso);
+    const refStart = new Date(refDate.getFullYear(), refDate.getMonth(), refDate.getDate()).getTime();
+    const diffDays = Math.round((todayStart - refStart) / (1000 * 60 * 60 * 24));
+    const dateBr = refDate.toLocaleDateString("pt-BR");
+
+    if (serva.lastMassDate && diffDays < 0) {
+      return {
+        label: `Escalado(a) (${refDate.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })})`,
+        days: 0,
+        bg: "#DCFCE7",
+        color: "#166534",
+        border: "#BBF7D0",
+        tooltip: `Próxima escala em ${dateBr}`,
+      };
+    }
+
+    const days = Math.max(0, diffDays);
+    const shortDate = refDate.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+    const dayText =
+      days === 0
+        ? "Escalado(a) hoje"
+        : days === 1
+        ? "1 dia sem escala"
+        : `${days} dias sem escala`;
+    const suffix = serva.lastMassDate ? ` (${shortDate})` : " (1º acesso)";
+
+    let bg = "#FAF8F5";
+    let color = "#5A4332";
+    let border = "#E5DEC9";
+    if (days >= 60) {
+      bg = "#FEE2E2";
+      color = "#991B1B";
+      border = "#FECACA";
+    } else if (days >= 30) {
+      bg = "#FEF3C7";
+      color = "#B45309";
+      border = "#FDE68A";
+    }
+
+    return {
+      label: `${dayText}${days > 0 ? suffix : ""}`,
+      days,
+      bg,
+      color,
+      border,
+      tooltip: serva.lastMassDate ? `Última escala: ${dateBr}` : `Sem escalas desde o 1º acesso (${dateBr})`,
+    };
+  };
+
+  const filteredServasList = servasList
+    .filter((s) => {
+      const matchesSearch =
+        !servaSearch.trim() ||
+        s.name.toLowerCase().includes(servaSearch.toLowerCase()) ||
+        s.email.toLowerCase().includes(servaSearch.toLowerCase());
+      if (!matchesSearch) return false;
+
+      const g = s.gender || getUserGender(s.id, s.name);
+      if (servaFilter === "ACTIVE") return s.role === "USER" || (!s.role);
+      if (servaFilter === "FORMACAO") return s.role === "em_formacao";
+      if (servaFilter === "INATIVO") return s.role === "INATIVO";
+      if (servaFilter === "M") return g === "M" && s.role !== "INATIVO";
+      if (servaFilter === "F") return g === "F" && s.role !== "INATIVO";
+      return true;
+    })
+    .sort((a, b) => {
+      if (!servaSortByDays) return 0;
+      const daysA = getDaysWithoutScaleInfo(a).days ?? -1;
+      const daysB = getDaysWithoutScaleInfo(b).days ?? -1;
+      return daysB - daysA;
+    });
 
   return (
     <div className="admin-container">
@@ -1791,6 +1881,29 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                 {f.label}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => setServaSortByDays((prev) => !prev)}
+              style={{
+                padding: "6px 12px",
+                borderRadius: "8px",
+                border: `1px solid ${servaSortByDays ? "#B8925A" : theme.colors.border}`,
+                background: servaSortByDays ? "#FEF3C7" : "#ffffff",
+                color: servaSortByDays ? "#92400E" : theme.colors.textSecondary,
+                fontSize: "0.75rem",
+                fontWeight: 700,
+                whiteSpace: "nowrap",
+                cursor: "pointer",
+                textTransform: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+              }}
+              title="Ordenar pelos que estão há mais dias sem escala"
+            >
+              <Clock size={13} />
+              <span>Mais dias sem escala</span>
+            </button>
           </div>
 
           {/* LISTA DE MEMBROS EM CARDS RESPONSIVOS */}
@@ -1816,6 +1929,8 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                   .join("");
 
                 const isInactive = serva.role === "INATIVO";
+                const daysInfo = getDaysWithoutScaleInfo(serva);
+                const age = getAgeFromBirthDate(serva.birthDate);
 
                 return (
                   <div
@@ -1852,15 +1967,32 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                             </span>
                           )}
                           {serva.birthDate && (
-                            <span style={{ fontSize: "0.7rem", color: "#6B7280" }}>
+                            <span
+                              title={`Nascimento: ${new Date(serva.birthDate.split("T")[0] + "T12:00:00").toLocaleDateString("pt-BR")}`}
+                              style={{ fontSize: "0.7rem", color: "#5A4332", fontWeight: 600 }}
+                            >
                               🎂 {new Date(serva.birthDate.split("T")[0] + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                              {age !== null ? ` • ${age} ${age === 1 ? "ano" : "anos"}` : ""}
                             </span>
                           )}
-                          {serva.lastMassDate && (
-                            <span style={{ fontSize: "0.68rem", color: isInactive ? "#991B1B" : "#5A4332", background: "#FAF8F5", border: "1px solid #E5DEC9", padding: "1px 6px", borderRadius: "6px" }}>
-                              ⛪ Última: {new Date(serva.lastMassDate).toLocaleDateString("pt-BR")}
-                            </span>
-                          )}
+                          <span
+                            title={daysInfo.tooltip}
+                            style={{
+                              fontSize: "0.68rem",
+                              color: daysInfo.color,
+                              background: daysInfo.bg,
+                              border: `1px solid ${daysInfo.border}`,
+                              padding: "2px 7px",
+                              borderRadius: "6px",
+                              fontWeight: 700,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                            }}
+                          >
+                            <Clock size={11} />
+                            <span>{daysInfo.label}</span>
+                          </span>
                           {unavList.length > 0 && (
                             <span style={{ fontSize: "0.68rem", background: "#FEF3C7", color: "#B45309", padding: "2px 6px", borderRadius: "6px", fontWeight: 700 }}>
                               📅 {unavList.length} ausência(s)
