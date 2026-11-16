@@ -903,7 +903,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
               </strong>
               <div><strong>1.</strong> Abra a câmera do seu celular e aponte para o QR Code acima.</div>
               <div><strong>2.</strong> Toque no link que aparecer na tela para abrir o aplicativo.</div>
-              <div><strong>3.</strong> Pronto! Sua presença na escala de hoje será registrada automaticamente.</div>
+              <div><strong>3.</strong> Permita o acesso à localização (GPS) para confirmar sua presença no Santuário!</div>
             </div>
 
             <p style={{ margin: "0 0 18px 0", fontSize: "0.78rem", fontStyle: "italic", color: theme.colors.textSecondary, fontWeight: 600 }}>

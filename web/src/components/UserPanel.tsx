@@ -168,19 +168,53 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
         return;
       }
 
-      if (myWindowEntry.signup.present) {
-        show("Sua presença na missa de hoje já está confirmada! Bom serviço no Altar!", "success", 6000);
+      // Verifica se a missa é no Santuário (bloqueia capelas São Francisco, Santa Terezinha, Água Santa, etc.)
+      const massLocalNorm = (myWindowEntry.mass.local || "SANTUARIO")
+        .trim()
+        .toUpperCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+
+      if (!massLocalNorm.includes("SANTUARIO") && !massLocalNorm.includes("MATRIZ")) {
+        show(
+          `O check-in por QR Code é exclusivo para missas no Santuário (sua escala de hoje é em ${myWindowEntry.mass.local}).`,
+          "error",
+          8000
+        );
         return;
       }
 
-      selfCheckIn(myWindowEntry.signup.id, qrToken)
-        .then(() => {
-          show("Check-in na Sacristia confirmado com sucesso! Bom serviço no Altar!", "success", 6000);
-          onUpdate?.();
-        })
-        .catch((err: any) => {
-          show(err?.response?.data?.error || "Não foi possível confirmar o check-in agora.", "error");
-        });
+      if (myWindowEntry.signup.present) {
+        show("Sua presença na missa de hoje no Santuário já está confirmada! Bom serviço no Altar!", "success", 6000);
+        return;
+      }
+
+      if (!("geolocation" in navigator)) {
+        show("Seu navegador não suporta GPS. Procure a coordenação para confirmar sua presença.", "error", 7000);
+        return;
+      }
+
+      show("Validando sua localização no Santuário...", "info", 4000);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          selfCheckIn(myWindowEntry.signup!.id, qrToken, pos.coords.latitude, pos.coords.longitude)
+            .then(() => {
+              show("Check-in no Santuário confirmado com sucesso! Bom serviço no Altar!", "success", 6000);
+              onUpdate?.();
+            })
+            .catch((err: any) => {
+              show(err?.response?.data?.error || "Não foi possível confirmar o check-in agora.", "error", 8000);
+            });
+        },
+        () => {
+          show(
+            "Permita o acesso à localização (GPS) do celular ao ler o QR Code para confirmar que você está no Santuário.",
+            "error",
+            8000
+          );
+        },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+      );
     }
   }, [masses, user]);
 

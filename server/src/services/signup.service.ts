@@ -118,10 +118,44 @@ export async function togglePresence(signupId: string) {
 
 const VALID_QR_TOKENS = new Set(["SACRISTIA_ST_2026", "1"]);
 
+// Coordenadas do Santuário Diocesano Nossa Senhora da Natividade (Praça Ferreira Rabello, Centro, Natividade - RJ)
+const SANTUARIO_LAT = -21.0422;
+const SANTUARIO_LNG = -41.9732;
+const MAX_DISTANCE_METERS = 300; // Raio de tolerância para GPS interno na sacristia
+
+function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371000; // Raio da Terra em metros
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
+function isSantuarioMass(local?: string | null): boolean {
+    if (!local || !local.trim()) return true; // Quando vazio, o padrão do sistema é o Santuário
+    const norm = local
+        .trim()
+        .toUpperCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    return norm.includes("SANTUARIO") || norm.includes("MATRIZ");
+}
+
 /**
- * Self check-in by the server on the day/time window of the mass via Sacristy QR Code
+ * Self check-in by the server on the day/time window of the mass via Sacristy QR Code + GPS
  */
-export async function selfCheckIn(signupId: string, userId: string, isAdmin: boolean = false, qrToken?: string) {
+export async function selfCheckIn(
+    signupId: string,
+    userId: string,
+    isAdmin: boolean = false,
+    qrToken?: string,
+    lat?: number,
+    lng?: number
+) {
     if (!isAdmin && (!qrToken || !VALID_QR_TOKENS.has(String(qrToken)))) {
         throw new Error("Check-in permitido apenas escaneando o QR Code oficial na sacristia.");
     }
@@ -143,7 +177,29 @@ export async function selfCheckIn(signupId: string, userId: string, isAdmin: boo
         throw new Error("Inscrições na fila de espera não podem fazer check-in.");
     }
 
+    // 1. Verifica se a missa é exclusivamente no Santuário (bloqueia São Francisco, Santa Terezinha, Água Santa, etc.)
+    if (!isSantuarioMass(existing.mass.local)) {
+        throw new Error(
+            `O check-in por QR Code é exclusivo para missas no Santuário (esta missa é em ${existing.mass.local}).`
+        );
+    }
+
     if (!isAdmin) {
+        // 2. Valida localização GPS para impedir check-in feito de casa com foto do QR Code
+        if (typeof lat !== "number" || typeof lng !== "number" || isNaN(lat) || isNaN(lng)) {
+            throw new Error(
+                "Para confirmar presença pelo QR Code, permita o acesso à localização (GPS) do celular para validar que você está no Santuário."
+            );
+        }
+
+        const distance = getDistanceMeters(lat, lng, SANTUARIO_LAT, SANTUARIO_LNG);
+        if (distance > MAX_DISTANCE_METERS) {
+            throw new Error(
+                "Check-in recusado: você precisa estar presencialmente na sacristia do Santuário para confirmar sua presença."
+            );
+        }
+
+        // 3. Valida janela de horário da missa
         const now = new Date();
         const massTime = new Date(existing.mass.date);
         const diffMinutes = (now.getTime() - massTime.getTime()) / (1000 * 60);
