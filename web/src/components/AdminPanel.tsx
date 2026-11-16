@@ -22,9 +22,11 @@ import {
   Megaphone,
   Calendar,
   Users,
-  ClipboardList
+  ClipboardList,
+  QrCode
 } from "lucide-react";
 import { Mass, User, Signup } from "../types/types";
+import { formatRole, setGlobalUserGenders, getUserGender } from "../constants/roles";
 import { useMasses } from "../hooks/useMasses";
 import { useSignup } from "../hooks/useSignup";
 import { getRoleWeight } from "../utils/format.utils";
@@ -32,7 +34,15 @@ import { getMassPoints } from "../utils/ranking.utils";
 import { toLocalDate, toLocalDateTime } from "../utils/date.utils";
 import { APP_CONFIG } from "../constants/config";
 import { getUsersList } from "../services/api/notice.service";
-import { getServasList, createServa, updateServa, deleteServa, ServaData } from "../services/api/user.service";
+import {
+  getServasList,
+  createServa,
+  updateServa,
+  deleteServa,
+  getUserMetadata,
+  ServaData,
+  UnavailabilityItem
+} from "../services/api/user.service";
 import { autoAssign } from "../utils/autoAssign";
 import { ScaleModal } from "./ScaleModal";
 import { OfficialDocument } from "./OfficialDocument";
@@ -52,6 +62,7 @@ interface MassFormProps {
   allMasses?: Mass[];
   localSignups?: Signup[];
   setLocalSignups?: React.Dispatch<React.SetStateAction<Signup[]>>;
+  unavailabilitiesMap?: Record<string, UnavailabilityItem[]>;
   newName: string; setNewName: (v: string) => void;
   newLocal: string; setNewLocal: (v: string) => void;
   newDate: string; setNewDate: (v: string) => void;
@@ -72,6 +83,7 @@ function MassForm({
   allMasses,
   localSignups,
   setLocalSignups,
+  unavailabilitiesMap = {},
   newName, setNewName,
   newLocal, setNewLocal,
   newDate, setNewDate,
@@ -154,7 +166,11 @@ function MassForm({
             <button
               type="button"
               onClick={() => {
-                const newSignups = autoAssign({ ...mass, maxServers: newMax, signups: localSignups }, allMasses);
+                const targetDateStr = newDate || new Date(mass.date).toISOString().split("T")[0];
+                const unavailableIds = Object.entries(unavailabilitiesMap)
+                  .filter(([, list]) => list.some((u) => u.date === targetDateStr))
+                  .map(([uid]) => uid);
+                const newSignups = autoAssign({ ...mass, maxServers: newMax, isSolemnity: newIsSolemnity, signups: localSignups }, allMasses, unavailableIds);
                 setLocalSignups(newSignups);
               }}
               style={{ background: theme.colors.secondary, color: "#fff", border: "none", padding: "8px 12px", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "0.85rem", display: "flex", gap: "5px", alignItems: "center" }}
@@ -166,7 +182,7 @@ function MassForm({
           {localSignups.length === 0 ? (
             <p style={{ fontSize: "0.85rem", color: "#666" }}>Nenhuma inscrição para esta missa.</p>
           ) : (
-            <div style={{ maxHeight: "200px", overflowY: "auto", border: "1px solid #ddd", borderRadius: "4px", background: "#fff" }}>
+            <div style={{ maxHeight: "220px", overflowY: "auto", border: "1px solid #ddd", borderRadius: "4px", background: "#fff" }}>
               <table className="admin-table" style={{ margin: 0 }}>
                 <thead style={{ position: "sticky", top: 0, background: "#f1f1f1" }}>
                   <tr>
@@ -176,9 +192,19 @@ function MassForm({
                   </tr>
                 </thead>
                 <tbody>
-                  {localSignups.map((s: Signup) => (
-                    <tr key={s.id} style={{ borderBottom: "1px solid #eee" }}>
-                      <td style={{ padding: "8px", fontSize: "0.85rem" }}>{s.user?.name || 'Desconhecido'} {s.isSubstitution && <span style={{ color: "#888", fontSize: "0.7rem" }}>(Subst.)</span>}</td>
+                  {localSignups.map((s: Signup) => {
+                    const targetDateStr = newDate || new Date(mass.date).toISOString().split("T")[0];
+                    const unavItem = (unavailabilitiesMap[s.userId] || []).find((u) => u.date === targetDateStr);
+                    return (
+                    <tr key={s.id} style={{ borderBottom: "1px solid #eee", background: unavItem ? "#fff8e1" : "transparent" }}>
+                      <td style={{ padding: "8px", fontSize: "0.85rem" }}>
+                        {s.user?.name || 'Desconhecido'} {s.isSubstitution && <span style={{ color: "#888", fontSize: "0.7rem" }}>(Subst.)</span>}
+                        {unavItem && (
+                          <div style={{ fontSize: "0.7rem", color: "#b45309", fontWeight: "bold" }}>
+                            ⚠️ Indisponível ({unavItem.reason || "Ausência programada"})
+                          </div>
+                        )}
+                      </td>
                       <td style={{ padding: "8px", fontSize: "0.85rem", color: s.status === 'CONFIRMADO' ? '#2e7d32' : '#ed6c02', fontWeight: "bold" }}>{s.status}</td>
                       <td style={{ padding: "8px" }}>
                         <select
@@ -193,15 +219,20 @@ function MassForm({
                         >
                           <option value="">Nenhuma</option>
                           <option value="Auxiliar">Auxiliar</option>
-                          <option value="Cerimoniária">Cerimoniário(a)</option>
-                          <option value="Librífera">Librífero(a)</option>
+                          <option value="Cerimoniária">{formatRole("Cerimoniária", s.user?.name, s.userId)}</option>
+                          <option value="Librífera">{formatRole("Librífera", s.user?.name, s.userId)}</option>
+                          {(getUserGender(s.userId, s.user?.name) === "M" || s.role === "Turiferário") && (
+                            <option value="Turiferário">Turiferário</option>
+                          )}
+                          <option value="Naveteiro">{formatRole("Naveteiro", s.user?.name, s.userId)}</option>
                           <option value="Lava-pés">Lava-pés</option>
                           <option value="Leituras">Leituras</option>
                           <option value="Matraca">Matraca</option>
                         </select>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -306,6 +337,8 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [showRankingModal, setShowRankingModal] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showReminderModal, setShowReminderModal] = useState(false);
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [unavailabilitiesMap, setUnavailabilitiesMap] = useState<Record<string, UnavailabilityItem[]>>({});
 
   // Form visibility
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -313,11 +346,18 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   // ── SISTEMA DE ABAS ──
   const [activeTab, setActiveTab] = useState<"escalas" | "servas" | "logs" | "quizzes">("escalas");
 
-  // ── CRUD DE SERVAS ──
+  // ── CRUD DE SERVOS ──
   const [servasList, setServasList] = useState<ServaData[]>([]);
   const [showServaModal, setShowServaModal] = useState(false);
   const [editingServa, setEditingServa] = useState<ServaData | null>(null);
-  const [servaForm, setServaForm] = useState({ name: "", email: "", password: "", birthDate: "", role: "USER" });
+  const [servaForm, setServaForm] = useState<{ name: string; email: string; password: string; birthDate: string; role: string; gender: "M" | "F" | "" }>({
+    name: "",
+    email: "",
+    password: "",
+    birthDate: "",
+    role: "USER",
+    gender: "",
+  });
   const [servaLoading, setServaLoading] = useState(false);
   const [servaError, setServaError] = useState("");
 
@@ -330,11 +370,18 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [swappingSignupId, setSwappingSignupId] = useState<string | null>(null);
   const [selectedReplacementId, setSelectedReplacementId] = useState("");
 
-  // ESTADO PARA ADICIONAR SERVA
+  // ESTADO PARA ADICIONAR SERVO
   const [selectedUserToAdd, setSelectedUserToAdd] = useState<Record<string, string[]>>({});
 
-  // Carrega lista de usuários para o Admin
+  // Carrega lista de usuários e metadados para o Admin
   useEffect(() => {
+    getUserMetadata()
+      .then((meta) => {
+        if (meta?.genders) setGlobalUserGenders(meta.genders);
+        if (meta?.unavailabilities) setUnavailabilitiesMap(meta.unavailabilities);
+      })
+      .catch(() => {});
+
     if (isAdmin) {
       getUsersList()
         .then((users) => setAllUsers(users))
@@ -342,14 +389,16 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     }
   }, [isAdmin]);
 
-  // Carrega lista completa de servas quando a aba é ativada
+  // Carrega lista completa de servos quando a aba é ativada
   const loadServas = async () => {
     try {
       setServaLoading(true);
-      const list = await getServasList();
+      const [list, meta] = await Promise.all([getServasList(), getUserMetadata()]);
+      if (meta?.genders) setGlobalUserGenders(meta.genders);
+      if (meta?.unavailabilities) setUnavailabilitiesMap(meta.unavailabilities);
       setServasList(list.filter(s => s.role !== "ADMIN"));
     } catch (err) {
-      console.error("Erro ao carregar servas:", err);
+      console.error("Erro ao carregar servos:", err);
     } finally {
       setServaLoading(false);
     }
@@ -370,10 +419,11 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         password: "",
         birthDate: serva.birthDate ? serva.birthDate.split("T")[0] : "",
         role: serva.role || "USER",
+        gender: serva.gender || getUserGender(serva.id, serva.name) || "",
       });
     } else {
       setEditingServa(null);
-      setServaForm({ name: "", email: "", password: "", birthDate: "", role: "USER" });
+      setServaForm({ name: "", email: "", password: "", birthDate: "", role: "USER", gender: "" });
     }
     setServaError("");
     setShowServaModal(true);
@@ -390,10 +440,11 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
           email: servaForm.email,
           birthDate: servaForm.birthDate || undefined,
           role: servaForm.role,
+          gender: servaForm.gender,
         });
       } else {
         if (!servaForm.password) {
-          setServaError("Senha é obrigatória para nova serva");
+          setServaError("Senha é obrigatória para novo cadastro");
           setServaLoading(false);
           return;
         }
@@ -403,6 +454,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
           password: servaForm.password,
           birthDate: servaForm.birthDate || undefined,
           role: servaForm.role,
+          gender: servaForm.gender,
         });
       }
       setShowServaModal(false);
@@ -721,6 +773,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const massFormProps: MassFormProps = {
     allMasses: masses,
     localSignups, setLocalSignups,
+    unavailabilitiesMap,
     newName, setNewName,
     newLocal, setNewLocal,
     newDate, setNewDate,
@@ -742,6 +795,66 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
       {showRankingModal && isAdmin && <RankingModal masses={masses} onClose={() => setShowRankingModal(false)} />}
       {showStatsModal && isAdmin && <StatisticsModal masses={masses} onClose={() => setShowStatsModal(false)} />}
       {showReminderModal && isAdmin && <ReminderModal masses={masses} onClose={() => setShowReminderModal(false)} />}
+      {showQrModal && isAdmin && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.65)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+            backdropFilter: "blur(3px)",
+          }}
+          onClick={() => setShowQrModal(false)}
+        >
+          <div
+            style={{
+              background: "white",
+              width: "100%",
+              maxWidth: "380px",
+              borderRadius: "14px",
+              padding: "28px 24px",
+              textAlign: "center",
+              boxShadow: "0 12px 30px rgba(0,0,0,0.3)",
+              border: `1px solid ${theme.colors.borderLight}`,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: "0 0 6px 0", color: theme.colors.primary, fontSize: "1.15rem" }}>
+              QR Code de Check-in (Sacristia)
+            </h3>
+            <p style={{ margin: "0 0 16px 0", fontSize: "0.84rem", color: theme.colors.textSecondary }}>
+              Imprima e fixe na sacristia. Ao escanear com a câmera do celular no dia da missa, a presença do(a) servo(a) é confirmada automaticamente.
+            </p>
+            <div style={{ padding: "16px", background: "#fff", border: `2px solid ${theme.colors.border}`, borderRadius: "12px", display: "inline-block", marginBottom: "16px" }}>
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent("https://servasdoaltar.vercel.app/escalas?checkin=1")}`}
+                alt="QR Code Check-in Sacristia"
+                width={200}
+                height={200}
+                style={{ display: "block" }}
+              />
+            </div>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button
+                onClick={() => window.print()}
+                style={{ flex: 1, padding: "11px", background: theme.colors.primaryGradient, color: "white", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}
+              >
+                🖨️ Imprimir
+              </button>
+              <button
+                onClick={() => setShowQrModal(false)}
+                style={{ flex: 1, padding: "11px", background: "#f5f5f5", color: "#555", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="admin-header no-print">
         <div className="header-brand">
@@ -767,6 +880,9 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
               </button>
               <button className="btn-header" onClick={() => setShowReminderModal(true)} style={{ background: "#EFECE6", color: "#4A3222", border: "1px solid #D5CBB8" }}>
                 <Megaphone size={16} /> LEMBRETES
+              </button>
+              <button className="btn-header" onClick={() => setShowQrModal(true)} style={{ background: "#EFECE6", color: "#4A3222", border: "1px solid #D5CBB8" }} title="QR Code de Check-in da Sacristia">
+                <QrCode size={16} /> CHECK-IN QR
               </button>
               <button className="btn-header btn-white" onClick={() => setViewMode("pdf")}>
                 <FileText size={16} /> PDF
@@ -1121,13 +1237,17 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                                       {isAdmin ? (
                                         <select className="role-select" value={signup.role || "Auxiliar"} onChange={(e) => handleChangeRole(signup.id, e.target.value)}>
                                           <option value="Auxiliar">Auxiliar</option>
-                                          <option value="Cerimoniária">Cerimoniário(a)</option>
-                                          <option value="Librífera">Librífero(a)</option>
+                                          <option value="Cerimoniária">{formatRole("Cerimoniária", signup.user.name, signup.userId)}</option>
+                                          <option value="Librífera">{formatRole("Librífera", signup.user.name, signup.userId)}</option>
+                                          {(getUserGender(signup.userId, signup.user.name) === "M" || signup.role === "Turiferário") && (
+                                            <option value="Turiferário">Turiferário</option>
+                                          )}
+                                          <option value="Naveteiro">{formatRole("Naveteiro", signup.user.name, signup.userId)}</option>
                                           <option value="Lava-pés">Lava-pés</option>
                                           <option value="Leituras">Leituras</option>
                                           <option value="Matraca">Matraca</option>
                                         </select>
-                                      ) : <span>{signup.role || "Auxiliar"}</span>}
+                                      ) : <span>{formatRole(signup.role, signup.user.name, signup.userId)}</span>}
                                     </td>
                                   </tr>
                                 );
@@ -1219,6 +1339,14 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                     <input className="form-input" type="date" value={servaForm.birthDate} onChange={(e) => setServaForm(p => ({ ...p, birthDate: e.target.value }))} />
                   </div>
                   <div className="form-group">
+                    <label>Sexo (Flexão de Cargos na Escala)</label>
+                    <select className="form-input" value={servaForm.gender} onChange={(e) => setServaForm(p => ({ ...p, gender: e.target.value as "M" | "F" | "" }))}>
+                      <option value="">Automático pelo nome</option>
+                      <option value="F">Feminino (Serva — Cerimoniária, Librífera...)</option>
+                      <option value="M">Masculino (Servo — Cerimoniário, Librífero...)</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
                     <label>Status</label>
                     <select className="form-input" value={servaForm.role} onChange={(e) => setServaForm(p => ({ ...p, role: e.target.value }))}>
                       <option value="USER">Servo(a) Ativo(a)</option>
@@ -1284,16 +1412,32 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                     <tr style={{ background: "#EFECE6", borderBottom: "2px solid #D5CBB8" }}>
                       <th style={{ padding: "12px 14px", textAlign: "left", fontSize: "0.8rem", color: theme.colors.primary, fontWeight: "700" }}>Nome</th>
                       <th style={{ padding: "12px 14px", textAlign: "left", fontSize: "0.8rem", color: theme.colors.primary, fontWeight: "700" }}>Email</th>
+                      <th style={{ padding: "12px 14px", textAlign: "center", fontSize: "0.8rem", color: theme.colors.primary, fontWeight: "700" }}>Perfil</th>
                       <th style={{ padding: "12px 14px", textAlign: "center", fontSize: "0.8rem", color: theme.colors.primary, fontWeight: "700" }}>Status</th>
                       <th style={{ padding: "12px 14px", textAlign: "center", fontSize: "0.8rem", color: theme.colors.primary, fontWeight: "700" }}>Nascimento</th>
                       <th style={{ padding: "12px 14px", textAlign: "center", fontSize: "0.8rem", color: theme.colors.primary, fontWeight: "700", width: "90px" }}>Ações</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {servasList.map((serva) => (
+                    {servasList.map((serva) => {
+                      const resolvedGender = serva.gender || getUserGender(serva.id, serva.name);
+                      const unavCount = (unavailabilitiesMap[serva.id] || []).length;
+                      return (
                       <tr key={serva.id} style={{ borderBottom: "1px solid #f0f0f0", transition: "background 0.15s" }} onMouseEnter={(e) => (e.currentTarget.style.background = "#fafafa")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
-                        <td style={{ padding: "12px 14px", fontWeight: "600", color: "#333" }}>{serva.name}</td>
+                        <td style={{ padding: "12px 14px", fontWeight: "600", color: "#333" }}>
+                          {serva.name}
+                          {unavCount > 0 && (
+                            <div style={{ fontSize: "0.72rem", color: "#b45309", fontWeight: "normal" }}>
+                              📅 {unavCount} data(s) indisponível(is)
+                            </div>
+                          )}
+                        </td>
                         <td style={{ padding: "12px 14px", color: "#666", fontSize: "0.9rem" }}>{serva.email}</td>
+                        <td style={{ padding: "12px 14px", textAlign: "center", fontSize: "0.8rem" }}>
+                          <span style={{ background: "#F7F5F0", color: theme.colors.primary, border: `1px solid ${theme.colors.border}`, padding: "3px 8px", borderRadius: "6px", fontWeight: "bold", fontSize: "0.75rem" }}>
+                            {resolvedGender === "M" ? "Servo" : "Serva"}
+                          </span>
+                        </td>
                         <td style={{ padding: "12px 14px", textAlign: "center", color: "#666", fontSize: "0.9rem" }}>
                           {serva.role === 'em_formacao' ? (
                             <span style={{ background: "#e1f5fe", color: "#0277bd", padding: "4px 8px", borderRadius: "6px", fontSize: "0.75rem", fontWeight: "bold" }}>Formação</span>
@@ -1315,7 +1459,8 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                           </div>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

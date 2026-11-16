@@ -5,12 +5,17 @@ import { Mass, Signup } from "../types/types";
  * Retorna o peso de uma função para ordenação
  */
 export function getRoleWeight(role?: string | null): number {
-    if (role === ROLES.CEREMONIAL || role === "Cerimoniário(a)" || role === "Cerimoniário") return 1;
-    if (role === ROLES.BOOK_BEARER || role === "Librífero(a)" || role === "Librífero") return 2;
-    if (role === ROLES.LAVA_PES) return 4;
-    if (role === ROLES.LEITURAS) return 5;
-    if (role === ROLES.MATRACA) return 6;
-    return 3; // AUXILIARY
+    if (!role) return 5;
+    const norm = role.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (norm.includes("cerimonia")) return 1;
+    if (norm.includes("librifer")) return 2;
+    if (norm.includes("turifer")) return 3;
+    if (norm.includes("navet")) return 4;
+    if (norm.includes("auxiliar")) return 5;
+    if (role === ROLES.LAVA_PES) return 6;
+    if (role === ROLES.LEITURAS) return 7;
+    if (role === ROLES.MATRACA) return 8;
+    return 5; // AUXILIARY
 }
 
 /**

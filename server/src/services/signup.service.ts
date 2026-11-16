@@ -117,6 +117,44 @@ export async function togglePresence(signupId: string) {
 }
 
 /**
+ * Self check-in by the server on the day/time window of the mass
+ */
+export async function selfCheckIn(signupId: string, userId: string, isAdmin: boolean = false) {
+    const existing = await prisma.signup.findUnique({
+        where: { id: signupId },
+        include: { mass: true },
+    });
+
+    if (!existing) {
+        throw new Error("Inscrição não encontrada.");
+    }
+
+    if (existing.userId !== userId && !isAdmin) {
+        throw new Error("Você só pode confirmar sua própria presença.");
+    }
+
+    if (existing.status === SIGNUP_STATUS.RESERVE) {
+        throw new Error("Inscrições na fila de espera não podem fazer check-in.");
+    }
+
+    if (!isAdmin) {
+        const now = new Date();
+        const massTime = new Date(existing.mass.date);
+        const diffMinutes = (now.getTime() - massTime.getTime()) / (1000 * 60);
+
+        // Permite check-in desde 2h antes do início da missa até 4h após o início
+        if (diffMinutes < -120 || diffMinutes > 240) {
+            throw new Error("O check-in só fica disponível a partir de 2 horas antes do início da missa.");
+        }
+    }
+
+    return await prisma.signup.update({
+        where: { id: signupId },
+        data: { present: true },
+    });
+}
+
+/**
  * Promote a signup from RESERVE to CONFIRMED
  */
 export async function promoteSignup(signupId: string) {

@@ -15,10 +15,17 @@ export async function changeRole(signupId: string, role: string): Promise<void> 
 }
 
 /**
- * Alterna a presença de uma inscrição
+ * Alterna a presença de uma inscrição (Admin)
  */
 export async function togglePresence(signupId: string): Promise<void> {
     await apiClient.patch(`/signup/${signupId}/toggle-presence`);
+}
+
+/**
+ * Realiza check-in de presença pelo próprio servo(a) no dia/horário da missa
+ */
+export async function selfCheckIn(signupId: string): Promise<void> {
+    await apiClient.post(`/signup/${signupId}/checkin`);
 }
 
 /**
@@ -36,7 +43,7 @@ export async function removeSignup(signupId: string): Promise<void> {
 }
 
 /**
- * Troca uma serva por outra
+ * Troca um(a) servo(a) por outro(a)
  */
 export async function swapSignup(oldSignupId: string, newUserId: string): Promise<void> {
     await apiClient.post("/signup/swap", {

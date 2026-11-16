@@ -47,10 +47,10 @@ export function ReminderModal({ masses, onClose }: ReminderModalProps) {
                     text += `📅 *${diaStr} às ${hora}h*\n`;
 
                     FUNCOES.forEach(funcao => {
-                        const serva = mass.signups.find(s => s.role === funcao && s.status === "CONFIRMADO");
-                        if (serva) {
-                            text += `   • ${formatRole(funcao)}: ${serva.user.name}\n`;
-                        }
+                        const inscritos = mass.signups.filter(s => s.role === funcao && s.status === "CONFIRMADO");
+                        inscritos.forEach(serva => {
+                            text += `   • ${formatRole(funcao, serva.user.name, serva.userId)}: ${serva.user.name}\n`;
+                        });
                     });
                     text += "\n";
                 });

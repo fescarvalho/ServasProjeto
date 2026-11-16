@@ -22,8 +22,10 @@ export function ScaleModal({ masses, onClose }: ScaleModalProps) {
 
       fullText += `📅 *${dia} – ${sem}* às ${hora}h${nome}\n`;
       FUNCOES.forEach((funcao) => {
-        const serva = mass.signups.find((s) => s.role === funcao);
-        if (serva) fullText += `   • ${formatRole(funcao)}: ${serva.user.name}\n`;
+        const inscritos = mass.signups.filter((s) => s.role === funcao && s.status !== "RESERVA");
+        inscritos.forEach((serva) => {
+          fullText += `   • ${formatRole(funcao, serva.user.name, serva.userId)}: ${serva.user.name}\n`;
+        });
       });
       fullText += "\n";
     });

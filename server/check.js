@@ -1,1 +1,0 @@
-﻿const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); prisma.mass.findMany({ where: { date: { gte: new Date('2026-08-01'), lt: new Date('2026-09-01') } }, select: { date: true, points: true, signups: { select: { present: true } } } }).then(masses => { console.log(JSON.stringify(masses, null, 2)); prisma.$disconnect(); });

@@ -17,10 +17,24 @@ import {
   Hourglass,
   Bell,
   BookOpen,
-  BookMarked
+  BookMarked,
+  CalendarPlus,
+  CalendarOff,
+  MapPin,
+  CheckCircle2,
+  Trash2,
+  Filter
 } from "lucide-react";
 import { Mass, UserData, Notice, SwapRequest } from "../types/types";
-import { formatRole } from "../constants/roles";
+import { formatRole, setGlobalUserGenders } from "../constants/roles";
+import { getGoogleCalendarUrl, downloadMassICS } from "../utils/calendar.utils";
+import {
+  getUserMetadata,
+  addUnavailability,
+  removeUnavailability,
+  UnavailabilityItem
+} from "../services/api/user.service";
+import { selfCheckIn } from "../services/api/signup.service";
 import { OfficialDocument } from "./OfficialDocument";
 import { api } from "../services/api";
 import * as swapRequestService from "../services/api/swap-request.service";
@@ -41,12 +55,21 @@ interface UserPanelProps {
   user: UserData;
   onToggleSignup: (massId: string) => void;
   onLogout: () => void;
+  onUpdate?: () => void;
 }
 
-export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelProps) {
+export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: UserPanelProps) {
   const [activeTab, setActiveTab] = useState<"inscricoes" | "documento" | "calendario" | "oracoes">("inscricoes");
+  const [onlyMyMasses, setOnlyMyMasses] = useState(false);
   const [showBadges, setShowBadges] = useState(false);
   const [showRanking, setShowRanking] = useState(false);
+  const [showUnavailabilityModal, setShowUnavailabilityModal] = useState(false);
+  const [myUnavailabilities, setMyUnavailabilities] = useState<UnavailabilityItem[]>([]);
+  const [unavDate, setUnavDate] = useState("");
+  const [unavReason, setUnavReason] = useState("");
+  const [unavLoading, setUnavLoading] = useState(false);
+  const [calendarModalMass, setCalendarModalMass] = useState<{ mass: Mass; roleLabel: string } | null>(null);
+  const [checkInLoading, setCheckInLoading] = useState<string | null>(null);
   const [notices, setNotices] = useState<Notice[]>([]);
   const [swapRequests, setSwapRequests] = useState<SwapRequest[]>([]);
   const [swapLoading, setSwapLoading] = useState<string | null>(null);
@@ -94,7 +117,47 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
     api.get("/notices").then((res) => setNotices(res.data));
     loadSwapRequests();
     loadUnreadNotifications();
-  }, []);
+    getUserMetadata()
+      .then((meta) => {
+        if (meta?.genders) setGlobalUserGenders(meta.genders);
+        if (meta?.unavailabilities && user?.id) {
+          setMyUnavailabilities(meta.unavailabilities[user.id] || []);
+        }
+      })
+      .catch(() => {});
+  }, [user?.id]);
+
+  // --- CHECK-IN AUTOMÁTICO VIA QR CODE DA SACRISTIA (?checkin=1) ---
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("checkin") === "1" && masses.length > 0 && user) {
+      const now = new Date();
+      const myTodaySignup = masses
+        .map((m) => ({
+          mass: m,
+          signup: m.signups.find((s) => s.userId === user.id && s.status !== "RESERVA"),
+        }))
+        .find(({ mass, signup }) => {
+          if (!signup || signup.present) return false;
+          const diffMin = (now.getTime() - new Date(mass.date).getTime()) / 60000;
+          return diffMin >= -120 && diffMin <= 240;
+        });
+
+      if (myTodaySignup?.signup) {
+        selfCheckIn(myTodaySignup.signup.id)
+          .then(() => {
+            show("Check-in na Sacristia confirmado com sucesso! Bom serviço no Altar!", "success", 6000);
+            onUpdate?.();
+          })
+          .catch((err: any) => {
+            show(err?.response?.data?.error || "Não foi possível confirmar o check-in agora.", "error");
+          })
+          .finally(() => {
+            window.history.replaceState({}, "", window.location.pathname);
+          });
+      }
+    }
+  }, [masses, user]);
 
   async function loadUnreadNotifications() {
     try {
@@ -216,6 +279,49 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
     }
   }
 
+  async function handleAddUnavailability(e: React.FormEvent) {
+    e.preventDefault();
+    if (!unavDate) return;
+    try {
+      setUnavLoading(true);
+      const updated = await addUnavailability(unavDate, unavReason);
+      setMyUnavailabilities(updated);
+      setUnavDate("");
+      setUnavReason("");
+      show("Indisponibilidade registrada! O sorteio automático respeitará esta data.", "success");
+    } catch {
+      show("Erro ao registrar indisponibilidade.", "error");
+    } finally {
+      setUnavLoading(false);
+    }
+  }
+
+  async function handleRemoveUnavailability(date: string) {
+    try {
+      setUnavLoading(true);
+      const updated = await removeUnavailability(date);
+      setMyUnavailabilities(updated);
+      show("Data liberada novamente.", "info");
+    } catch {
+      show("Erro ao remover data.", "error");
+    } finally {
+      setUnavLoading(false);
+    }
+  }
+
+  async function handleSelfCheckIn(signupId: string) {
+    try {
+      setCheckInLoading(signupId);
+      await selfCheckIn(signupId);
+      show("Presença confirmada com sucesso! Bom serviço no Altar!", "success");
+      onUpdate?.();
+    } catch (err: any) {
+      show(err?.response?.data?.error || "Check-in disponível apenas a partir de 2h antes da missa.", "error");
+    } finally {
+      setCheckInLoading(null);
+    }
+  }
+
   // Helpers de Data
   const currentMonthName = selectedDate.toLocaleDateString("pt-BR", { month: "long" });
   const currentYear = selectedDate.getFullYear();
@@ -228,8 +334,8 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
     setSelectedDate(d => new Date(d.getFullYear(), d.getMonth() + 1, 1));
   };
 
-  // --- FILTRO PRINCIPAL (Ordenado por data) ---
-  const filteredMasses = useMemo(() => {
+  // --- FILTRO MENSAL BASE ---
+  const monthMasses = useMemo(() => {
     const filtered = masses.filter(mass => {
       const mDate = new Date(mass.date);
       const brDate = new Date(mDate.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
@@ -244,6 +350,16 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
       .filter(m => !m.name?.includes("Ajuste de Pontos"))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [masses, selectedDate]);
+
+  const myMonthMassesCount = useMemo(() => {
+    return monthMasses.filter(m => m.signups.some(s => s.userId === user.id)).length;
+  }, [monthMasses, user.id]);
+
+  // --- FILTRO PRINCIPAL (Ordenado por data + Filtro "Minhas Escalas") ---
+  const filteredMasses = useMemo(() => {
+    if (!onlyMyMasses) return monthMasses;
+    return monthMasses.filter(m => m.signups.some(s => s.userId === user.id));
+  }, [monthMasses, onlyMyMasses, user.id]);
 
   // --- VIRTUALIZADOR ---
   const rowVirtualizer = useVirtualizer({
@@ -316,6 +432,229 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
         />
       )}
 
+      {/* MODAL DE EXPORTAÇÃO PARA AGENDA DO CELULAR */}
+      {calendarModalMass && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.6)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+            backdropFilter: "blur(3px)",
+          }}
+          onClick={() => setCalendarModalMass(null)}
+        >
+          <div
+            style={{
+              background: "white",
+              width: "100%",
+              maxWidth: "360px",
+              borderRadius: "14px",
+              padding: "24px",
+              boxShadow: "0 12px 30px rgba(0,0,0,0.25)",
+              border: `1px solid ${theme.colors.borderLight}`,
+              textAlign: "center",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: "0 0 8px 0", color: theme.colors.primary, fontSize: "1.1rem" }}>
+              Adicionar à Agenda
+            </h3>
+            <p style={{ margin: "0 0 18px 0", fontSize: "0.85rem", color: theme.colors.textSecondary }}>
+              Escolha como deseja salvar o lembrete desta missa no seu celular (com alarme 1h antes):
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <a
+                href={getGoogleCalendarUrl(calendarModalMass.mass, calendarModalMass.roleLabel)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setCalendarModalMass(null)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  padding: "12px",
+                  borderRadius: "8px",
+                  background: theme.colors.primaryGradient,
+                  color: "white",
+                  textDecoration: "none",
+                  fontWeight: "bold",
+                  fontSize: "0.85rem",
+                }}
+              >
+                <CalendarPlus size={16} /> Abrir no Google Agenda
+              </a>
+              <button
+                onClick={() => {
+                  downloadMassICS(calendarModalMass.mass, calendarModalMass.roleLabel);
+                  setCalendarModalMass(null);
+                  show("Arquivo da agenda baixado! Abra-o para salvar o alarme.", "success");
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  padding: "12px",
+                  borderRadius: "8px",
+                  background: theme.colors.backgroundLight,
+                  color: theme.colors.primary,
+                  border: `1px solid ${theme.colors.border}`,
+                  fontWeight: "bold",
+                  fontSize: "0.85rem",
+                  cursor: "pointer",
+                }}
+              >
+                <Calendar size={16} /> Baixar para iPhone / Calendário (.ics)
+              </button>
+              <button
+                onClick={() => setCalendarModalMass(null)}
+                style={{
+                  marginTop: "4px",
+                  padding: "8px",
+                  background: "transparent",
+                  border: "none",
+                  color: theme.colors.textMuted,
+                  cursor: "pointer",
+                  fontSize: "0.8rem",
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE INDISPONIBILIDADE PROGRAMADA / JUSTIFICATIVA DE AUSÊNCIA */}
+      {showUnavailabilityModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.6)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+            backdropFilter: "blur(3px)",
+          }}
+          onClick={() => setShowUnavailabilityModal(false)}
+        >
+          <div
+            style={{
+              background: "white",
+              width: "100%",
+              maxWidth: "400px",
+              borderRadius: "14px",
+              padding: "24px",
+              boxShadow: "0 12px 30px rgba(0,0,0,0.25)",
+              border: `1px solid ${theme.colors.borderLight}`,
+              maxHeight: "85vh",
+              display: "flex",
+              flexDirection: "column",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+              <h3 style={{ margin: 0, color: theme.colors.primary, fontSize: "1.05rem", display: "flex", alignItems: "center", gap: "8px" }}>
+                <CalendarOff size={20} /> Indisponibilidade Programada
+              </h3>
+              <button onClick={() => setShowUnavailabilityModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: theme.colors.textSecondary, fontSize: "1.1rem" }}>✕</button>
+            </div>
+            <p style={{ margin: "0 0 14px 0", fontSize: "0.83rem", color: theme.colors.textSecondary, lineHeight: 1.4 }}>
+              Informe os dias em que você não poderá servir (viagem, provas, compromisso). O sorteio automático de escalas não escalará você nessas datas.
+            </p>
+
+            <form onSubmit={handleAddUnavailability} style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "16px" }}>
+              <div>
+                <label style={{ fontSize: "0.78rem", fontWeight: "bold", color: theme.colors.textSecondary, display: "block", marginBottom: "4px" }}>Data da Ausência *</label>
+                <input
+                  type="date"
+                  value={unavDate}
+                  min={new Date().toISOString().split("T")[0]}
+                  onChange={(e) => setUnavDate(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: "0.78rem", fontWeight: "bold", color: theme.colors.textSecondary, display: "block", marginBottom: "4px" }}>Motivo / Justificativa (Opcional)</label>
+                <input
+                  type="text"
+                  value={unavReason}
+                  onChange={(e) => setUnavReason(e.target.value)}
+                  placeholder="Ex: Viagem, Provas, Trabalho..."
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={unavLoading}
+                style={{
+                  padding: "12px",
+                  background: theme.colors.primaryGradient,
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                }}
+              >
+                {unavLoading ? "Salvando..." : "+ Registrar Indisponibilidade"}
+              </button>
+            </form>
+
+            <div style={{ flex: 1, overflowY: "auto", borderTop: `1px solid ${theme.colors.borderLight}`, paddingTop: "12px" }}>
+              <strong style={{ fontSize: "0.8rem", color: theme.colors.textSecondary, display: "block", marginBottom: "8px" }}>
+                Datas Registradas ({myUnavailabilities.length})
+              </strong>
+              {myUnavailabilities.length === 0 ? (
+                <p style={{ fontSize: "0.82rem", color: theme.colors.textMuted, textAlign: "center", padding: "12px 0", margin: 0 }}>
+                  Nenhuma indisponibilidade programada.
+                </p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {myUnavailabilities.map((item) => (
+                    <div
+                      key={item.date}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "8px 12px",
+                        background: theme.colors.backgroundLight,
+                        borderRadius: "8px",
+                        border: `1px solid ${theme.colors.border}`,
+                      }}
+                    >
+                      <div>
+                        <strong style={{ fontSize: "0.88rem", color: theme.colors.textMain, display: "block" }}>
+                          {new Date(item.date + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" })}
+                        </strong>
+                        {item.reason && <span style={{ fontSize: "0.78rem", color: theme.colors.textSecondary }}>{item.reason}</span>}
+                      </div>
+                      <button
+                        onClick={() => handleRemoveUnavailability(item.date)}
+                        disabled={unavLoading}
+                        style={{ background: "none", border: "none", color: theme.colors.danger, cursor: "pointer", padding: "4px" }}
+                        title="Remover data"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* HEADER HERO */}
       <div className="header-hero no-print" style={{ width: "100%", boxSizing: "border-box", paddingBottom: "34px" }}>
         <div className="header-icon-wrapper">
@@ -380,6 +719,19 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
           </button>
           <button onClick={() => setShowBadges(true)} className="tab-btn" style={{ flex: 1, color: theme.colors.warning, display: "flex", justifyContent: "center" }} title="Minhas Conquistas">
             <Trophy size={18} />
+          </button>
+          <button
+            onClick={() => setShowUnavailabilityModal(true)}
+            className="tab-btn"
+            style={{ flex: 1, color: myUnavailabilities.length > 0 ? theme.colors.primary : theme.colors.textSecondary, display: "flex", justifyContent: "center", position: "relative" }}
+            title="Indisponibilidade Programada / Justificar Ausência"
+          >
+            <CalendarOff size={18} />
+            {myUnavailabilities.length > 0 && (
+              <span style={{ position: "absolute", top: 4, right: 6, background: theme.colors.primary, color: "white", fontSize: "0.58rem", fontWeight: "bold", padding: "1px 4px", borderRadius: "8px" }}>
+                {myUnavailabilities.length}
+              </span>
+            )}
           </button>
           <div style={{ position: "relative", flex: 1 }}>
             <button
@@ -449,6 +801,60 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
               </button>
             </div>
 
+            {/* BARRA DE FILTRO RÁPIDO: TODAS X MINHAS ESCALAS */}
+            <div
+              className="no-print"
+              style={{
+                display: "flex",
+                gap: "8px",
+                padding: "0 16px 10px 16px",
+                justifyContent: "center",
+              }}
+            >
+              <button
+                onClick={() => setOnlyMyMasses(false)}
+                style={{
+                  flex: 1,
+                  maxWidth: "220px",
+                  padding: "8px 12px",
+                  borderRadius: "8px",
+                  border: `1px solid ${!onlyMyMasses ? theme.colors.primary : theme.colors.border}`,
+                  background: !onlyMyMasses ? theme.colors.primary : "white",
+                  color: !onlyMyMasses ? "white" : theme.colors.textSecondary,
+                  fontWeight: "bold",
+                  fontSize: "0.78rem",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                }}
+              >
+                <Calendar size={14} /> Todas do Mês ({monthMasses.length})
+              </button>
+              <button
+                onClick={() => setOnlyMyMasses(true)}
+                style={{
+                  flex: 1,
+                  maxWidth: "220px",
+                  padding: "8px 12px",
+                  borderRadius: "8px",
+                  border: `1px solid ${onlyMyMasses ? theme.colors.primary : theme.colors.border}`,
+                  background: onlyMyMasses ? theme.colors.primary : "white",
+                  color: onlyMyMasses ? "white" : theme.colors.textSecondary,
+                  fontWeight: "bold",
+                  fontSize: "0.78rem",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                }}
+              >
+                <Filter size={14} /> Minhas Escalas ({myMonthMassesCount})
+              </button>
+            </div>
+
             {/* BANNER DE SUBSTITUIÇÕES ABERTAS */}
             {swapRequests.length > 0 && (
               <div className="no-print" style={{ margin: "10px 15px", borderRadius: "12px", overflow: "hidden", border: `1px solid ${theme.colors.warning}`, background: theme.colors.warningLight }}>
@@ -505,7 +911,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                 style={{
                   display: "block",
                   position: "relative",
-                  height: isMobile ? "370px" : "calc(100vh - 250px)",
+                  height: isMobile ? "420px" : "calc(100vh - 250px)",
                   width: "100%",
                   overflowX: isMobile ? "auto" : "hidden",
                   overflowY: isMobile ? "hidden" : "auto",
@@ -528,7 +934,11 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                     const meuSignup = mass.signups.find((s) => s.userId === user.id);
                     const jaEstouInscrita = !!meuSignup;
                     const souReserva = (meuSignup as any)?.status === "RESERVA";
-                    const minhaFuncao = formatRole(meuSignup?.role);
+                    const minhaFuncao = formatRole(meuSignup?.role, user.name, user.id);
+
+                    // Verifica se a missa está na janela de check-in (de 2h antes até 4h depois do início)
+                    const diffMinutesNow = (Date.now() - new Date(mass.date).getTime()) / 60000;
+                    const canSelfCheckIn = jaEstouInscrita && !souReserva && diffMinutesNow >= -120 && diffMinutesNow <= 240;
 
                     const liturgical = getLiturgicalData(new Date(mass.date));
                     const isSundayDay = isSunday(new Date(mass.date));
@@ -686,30 +1096,103 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout }: UserPanelP
                               {btnText}
                             </button>
 
-                            {/* BOTÃO PEDIR SUBSTITUIÇÃO — só para quem está confirmada e a missa não passou */}
+                            {/* CHECK-IN DE PRESENÇA NA SACRISTIA (Disponível na janela da missa) */}
+                            {jaEstouInscrita && !souReserva && (meuSignup?.present || canSelfCheckIn) && (
+                              meuSignup?.present ? (
+                                <div
+                                  style={{
+                                    marginTop: "8px",
+                                    padding: "8px 10px",
+                                    borderRadius: "8px",
+                                    background: "#E8F5E9",
+                                    border: "1px solid #A5D6A7",
+                                    color: "#1B5E20",
+                                    fontWeight: "bold",
+                                    fontSize: "0.8rem",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    gap: "6px",
+                                  }}
+                                >
+                                  <CheckCircle2 size={15} /> Presença Confirmada no Altar
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => meuSignup && handleSelfCheckIn(meuSignup.id)}
+                                  disabled={checkInLoading === meuSignup?.id}
+                                  style={{
+                                    width: "100%",
+                                    marginTop: "8px",
+                                    padding: "9px",
+                                    borderRadius: "8px",
+                                    border: "none",
+                                    background: "#2E7D32",
+                                    color: "white",
+                                    fontWeight: "bold",
+                                    cursor: "pointer",
+                                    fontSize: "0.82rem",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    gap: "6px",
+                                    boxShadow: "0 4px 10px rgba(46, 125, 50, 0.25)",
+                                  }}
+                                >
+                                  <MapPin size={15} />
+                                  {checkInLoading === meuSignup?.id ? "Confirmando..." : "Confirmar Presença (Check-in)"}
+                                </button>
+                              )
+                            )}
+
+                            {/* AÇÕES RÁPIDAS DO INSCRITO: AGENDA + PEDIR SUBSTITUIÇÃO */}
                             {jaEstouInscrita && !souReserva && !prazoEncerrado && (
                               (() => {
                                 const mySignup = mass.signups.find(s => s.userId === user.id);
                                 const hasOpenRequest = swapRequests.some(sr => sr.signupId === mySignup?.id);
                                 return (
-                                  <button
-                                    onClick={() => mySignup && handleRequestSwap(mySignup.id)}
-                                    disabled={hasOpenRequest || swapLoading === mySignup?.id}
-                                    style={{
-                                      width: "100%",
-                                      marginTop: "8px",
-                                      padding: "8px",
-                                      borderRadius: "8px",
-                                      border: `1px dashed ${theme.colors.warning}`,
-                                      background: hasOpenRequest ? theme.colors.warningLight : "transparent",
-                                      color: hasOpenRequest ? theme.colors.warningDark : theme.colors.warning,
-                                      fontWeight: "bold",
-                                      cursor: hasOpenRequest ? "default" : "pointer",
-                                      fontSize: "0.82rem"
-                                    }}
-                                  >
-                                    {hasOpenRequest ? "⏳ Aguardando substituto(a)..." : "↔ Pedir Substituição"}
-                                  </button>
+                                  <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => setCalendarModalMass({ mass, roleLabel: minhaFuncao })}
+                                      style={{
+                                        flex: 1,
+                                        padding: "8px 6px",
+                                        borderRadius: "8px",
+                                        border: `1px solid ${theme.colors.border}`,
+                                        background: theme.colors.backgroundLight,
+                                        color: theme.colors.primary,
+                                        fontWeight: "bold",
+                                        cursor: "pointer",
+                                        fontSize: "0.76rem",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        gap: "4px",
+                                      }}
+                                      title="Salvar na agenda do celular com alarme"
+                                    >
+                                      <CalendarPlus size={14} /> Agenda
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => mySignup && handleRequestSwap(mySignup.id)}
+                                      disabled={hasOpenRequest || swapLoading === mySignup?.id}
+                                      style={{
+                                        flex: 1.3,
+                                        padding: "8px 6px",
+                                        borderRadius: "8px",
+                                        border: `1px dashed ${theme.colors.warning}`,
+                                        background: hasOpenRequest ? theme.colors.warningLight : "transparent",
+                                        color: hasOpenRequest ? theme.colors.warningDark : theme.colors.warning,
+                                        fontWeight: "bold",
+                                        cursor: hasOpenRequest ? "default" : "pointer",
+                                        fontSize: "0.76rem",
+                                      }}
+                                    >
+                                      {hasOpenRequest ? "⏳ Aguardando..." : "↔ Substituição"}
+                                    </button>
+                                  </div>
                                 );
                               })()
                             )}

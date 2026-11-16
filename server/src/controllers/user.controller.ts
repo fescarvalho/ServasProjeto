@@ -4,7 +4,7 @@ import { success, error, badRequest } from "../utils/response.utils";
 import { HTTP_STATUS } from "../constants";
 
 /**
- * Get users list (id + name only)
+ * Get users list (id + name + gender + unavailabilities)
  */
 export async function getUsersList(req: Request, res: Response) {
     try {
@@ -17,6 +17,57 @@ export async function getUsersList(req: Request, res: Response) {
 }
 
 /**
+ * Get system user metadata (genders + unavailabilities)
+ */
+export async function getUserMeta(req: Request, res: Response) {
+    try {
+        const meta = await userService.getSystemUserMeta();
+        return success(res, meta);
+    } catch (err) {
+        console.error("Get user meta error:", err);
+        return error(res, "Erro ao buscar metadados");
+    }
+}
+
+/**
+ * Add unavailability for the authenticated user
+ */
+export async function addUnavailability(req: Request, res: Response) {
+    try {
+        const userId = req.userId;
+        if (!userId) return badRequest(res, "Usuário não autenticado");
+
+        const { date, reason } = req.body;
+        if (!date) return badRequest(res, "A data é obrigatória");
+
+        const list = await userService.addUserUnavailability(userId, date, reason);
+        return success(res, list);
+    } catch (err) {
+        console.error("Add unavailability error:", err);
+        return error(res, "Erro ao registrar indisponibilidade");
+    }
+}
+
+/**
+ * Remove unavailability for the authenticated user
+ */
+export async function removeUnavailability(req: Request, res: Response) {
+    try {
+        const userId = req.userId;
+        if (!userId) return badRequest(res, "Usuário não autenticado");
+
+        const date = req.params.date as string;
+        if (!date) return badRequest(res, "A data é obrigatória");
+
+        const list = await userService.removeUserUnavailability(userId, date);
+        return success(res, list);
+    } catch (err) {
+        console.error("Remove unavailability error:", err);
+        return error(res, "Erro ao remover indisponibilidade");
+    }
+}
+
+/**
  * Get users list with full details (admin only)
  */
 export async function getUsersListFull(req: Request, res: Response) {
@@ -25,61 +76,61 @@ export async function getUsersListFull(req: Request, res: Response) {
         return success(res, users);
     } catch (err) {
         console.error("Get users full error:", err);
-        return error(res, "Erro ao buscar lista de servas");
+        return error(res, "Erro ao buscar lista de servos");
     }
 }
 
 /**
- * Create a new serva
+ * Create a new servo(a)
  */
 export async function createUser(req: Request, res: Response) {
     try {
-        const { name, email, password, birthDate, role } = req.body;
+        const { name, email, password, birthDate, role, gender } = req.body;
 
         if (!name || !email || !password) {
             return badRequest(res, "Nome, email e senha são obrigatórios");
         }
 
-        const user = await userService.createUser({ name, email, password, birthDate, role });
+        const user = await userService.createUser({ name, email, password, birthDate, role, gender });
         return success(res, user, HTTP_STATUS.CREATED);
     } catch (err: any) {
         if (err.message === "EMAIL_EXISTS") {
             return badRequest(res, "Este email já está cadastrado");
         }
         console.error("Create user error:", err);
-        return error(res, "Erro ao criar serva");
+        return error(res, "Erro ao criar cadastro");
     }
 }
 
 /**
- * Update an existing serva
+ * Update an existing servo(a)
  */
 export async function updateUser(req: Request, res: Response) {
     try {
         const id = req.params.id as string;
-        const { name, email, birthDate, role } = req.body;
+        const { name, email, birthDate, role, gender } = req.body;
 
-        const user = await userService.updateUser(id, { name, email, birthDate, role });
+        const user = await userService.updateUser(id, { name, email, birthDate, role, gender });
         return success(res, user);
-    } catch (err: any) {
-        if (err.message === "EMAIL_EXISTS") {
-            return badRequest(res, "Este email já está cadastrado por outra serva");
+    } catch (err) {
+        if ((err as any).message === "EMAIL_EXISTS") {
+            return badRequest(res, "Este email já está cadastrado por outro membro");
         }
         console.error("Update user error:", err);
-        return error(res, "Erro ao atualizar serva");
+        return error(res, "Erro ao atualizar cadastro");
     }
 }
 
 /**
- * Delete a serva and all related data
+ * Delete a servo(a) and all related data
  */
 export async function deleteUser(req: Request, res: Response) {
     try {
         const id = req.params.id as string;
         await userService.deleteUser(id);
-        return success(res, { message: "Serva removida com sucesso" });
+        return success(res, { message: "Cadastro removido com sucesso" });
     } catch (err) {
         console.error("Delete user error:", err);
-        return error(res, "Erro ao remover serva");
+        return error(res, "Erro ao remover cadastro");
     }
 }

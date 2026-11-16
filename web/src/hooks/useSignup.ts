@@ -5,6 +5,7 @@ interface UseSignupReturn {
     toggleSignup: (userId: string, massId: string) => Promise<void>;
     changeRole: (signupId: string, role: string) => Promise<void>;
     togglePresence: (signupId: string) => Promise<void>;
+    selfCheckIn: (signupId: string) => Promise<void>;
     promoteSignup: (signupId: string) => Promise<void>;
     removeSignup: (signupId: string) => Promise<void>;
     swapSignup: (oldSignupId: string, newUserId: string) => Promise<void>;
@@ -44,6 +45,16 @@ export function useSignup(onUpdate?: () => void): UseSignupReturn {
         }
     }, [onUpdate]);
 
+    const selfCheckIn = useCallback(async (signupId: string) => {
+        try {
+            await signupService.selfCheckIn(signupId);
+            onUpdate?.();
+        } catch (error) {
+            console.error("Erro ao fazer check-in:", error);
+            throw error;
+        }
+    }, [onUpdate]);
+
     const promoteSignup = useCallback(async (signupId: string) => {
         try {
             await signupService.promoteSignup(signupId);
@@ -78,6 +89,7 @@ export function useSignup(onUpdate?: () => void): UseSignupReturn {
         toggleSignup,
         changeRole,
         togglePresence,
+        selfCheckIn,
         promoteSignup,
         removeSignup,
         swapSignup,

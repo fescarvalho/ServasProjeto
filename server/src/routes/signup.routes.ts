@@ -9,6 +9,7 @@ router.use(authMiddleware);
 router.post("/toggle-signup", signupController.toggleSignup);
 router.patch("/:id/role", signupController.changeRole);
 router.patch("/:id/toggle-presence", signupController.togglePresence);
+router.post("/:id/checkin", signupController.selfCheckIn);
 router.patch("/:id/promote", signupController.promoteSignup);
 router.delete("/:id", signupController.removeSignup);
 router.post("/swap", signupController.swapSignup);

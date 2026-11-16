@@ -49,6 +49,8 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
 
     if (normalized.includes("cerimonia")) return 1;
     if (normalized.includes("librifer")) return 2;
+    if (normalized.includes("turifer")) return 3;
+    if (normalized.includes("navet")) return 4;
     // Auxiliar e qualquer outra coisa ficam por último
     return 99;
   };
@@ -232,9 +234,10 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
                 (s: any) => s.status !== "RESERVA",
               );
 
-              // Agrupa os(as) servos(as)
+              // Agrupa os(as) servos(as) flexionando o cargo conforme o sexo/nome quando individual,
+              // ou mantendo agrupado por função base
               servasConfirmadas.forEach((s) => {
-                const role = formatRole(s.role);
+                const role = formatRole(s.role, s.user?.name, s.userId);
                 if (!funcoes[role]) funcoes[role] = [];
 
                 // Adiciona o ícone se for substituição

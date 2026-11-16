@@ -1,21 +1,23 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, lazy, Suspense } from "react";
 import { Cross, RefreshCw } from "lucide-react";
 import { useAuth } from "./hooks/useAuth";
 import { useMasses } from "./hooks/useMasses";
 import { useSignup } from "./hooks/useSignup";
-import { AdminPanel } from "./components/AdminPanel";
-import { UserPanel } from "./components/UserPanel";
 import { ProtectedRoute } from "./components/ProtectedRoute";
-import { FormacaoPage } from "./pages/FormacaoPage";
-import { ManualViewer } from "./components/ManualViewer";
-import { ModuleViewer } from "./pages/ModuleViewer";
-import { QuizListPage } from "./pages/QuizListPage";
-import { QuizTakingPage } from "./pages/QuizTakingPage";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { theme } from "./theme/theme";
 import { subscribeToPushNotifications } from "./services/push";
 import { getLastOnline, setLastOnline } from "./services/storage/localStorage.service";
+
+// Code-Splitting (Lazy Loading) para reduzir drasticamente o bundle inicial no celular
+const AdminPanel = lazy(() => import("./components/AdminPanel").then((m) => ({ default: m.AdminPanel })));
+const UserPanel = lazy(() => import("./components/UserPanel").then((m) => ({ default: m.UserPanel })));
+const FormacaoPage = lazy(() => import("./pages/FormacaoPage").then((m) => ({ default: m.FormacaoPage })));
+const ManualViewer = lazy(() => import("./components/ManualViewer").then((m) => ({ default: m.ManualViewer })));
+const ModuleViewer = lazy(() => import("./pages/ModuleViewer").then((m) => ({ default: m.ModuleViewer })));
+const QuizListPage = lazy(() => import("./pages/QuizListPage").then((m) => ({ default: m.QuizListPage })));
+const QuizTakingPage = lazy(() => import("./pages/QuizTakingPage").then((m) => ({ default: m.QuizTakingPage })));
 
 // Tempo máximo offline antes de forçar logout (2 minutos em ms)
 const OFFLINE_TIMEOUT_MS = 2 * 60 * 1000;
@@ -154,6 +156,15 @@ function App() {
 
   return (
     <>
+      <Suspense
+        fallback={
+          <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", height: "100vh", background: theme.colors.background }}>
+            <div className="loader" style={{ border: `4px solid #f3f3f3`, borderTop: `4px solid ${theme.colors.primary}`, borderRadius: "50%", width: "40px", height: "40px", animation: "spin 1s linear infinite" }}></div>
+            <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+            <p style={{ color: theme.colors.textSecondary, fontWeight: "500", marginTop: "15px" }}>Carregando...</p>
+          </div>
+        }
+      >
       <Routes>
         <Route path="/login" element={
           user ? (
@@ -216,7 +227,7 @@ function App() {
                 user?.role === "ADMIN" ? (
                   <Navigate to="/admin" replace />
                 ) : (
-                  <UserPanel masses={masses} user={user!} onToggleSignup={handleToggleSignup} onLogout={handleLogout} />
+                  <UserPanel masses={masses} user={user!} onToggleSignup={handleToggleSignup} onLogout={handleLogout} onUpdate={fetchMasses} />
                 )
               )
             } />
@@ -240,6 +251,7 @@ function App() {
 
         <Route path="*" element={<Navigate to={user ? (user.role === 'ADMIN' ? '/admin' : user.role === 'em_formacao' ? '/formacao' : '/escalas') : '/login'} replace />} />
       </Routes>
+      </Suspense>
 
       {needRefresh && <UpdateToast onUpdate={() => updateServiceWorker(true)} />}
     </>

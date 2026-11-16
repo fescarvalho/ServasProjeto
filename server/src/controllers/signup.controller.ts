@@ -60,6 +60,26 @@ export async function togglePresence(req: Request, res: Response) {
 }
 
 /**
+ * Self check-in by the server on the day/window of the mass
+ */
+export async function selfCheckIn(req: Request, res: Response) {
+    try {
+        const { id } = req.params;
+        let isAdmin = false;
+        if (req.userId) {
+            const reqUser = await prisma.user.findUnique({ where: { id: req.userId } });
+            isAdmin = reqUser?.role === "ADMIN";
+        }
+
+        const signup = await signupService.selfCheckIn(String(id), String(req.userId), isAdmin);
+        return success(res, signup);
+    } catch (err: any) {
+        console.error("Self check-in error:", err);
+        return error(res, err.message || "Erro ao realizar check-in de presença.");
+    }
+}
+
+/**
  * Promote signup from reserve to confirmed
  */
 export async function promoteSignup(req: Request, res: Response) {

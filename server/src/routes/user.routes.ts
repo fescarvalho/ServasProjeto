@@ -5,8 +5,13 @@ import { adminMiddleware } from "../middleware/admin.middleware";
 
 const router = Router();
 
-// Rota pública (usada para selects de inscrição)
+// Rotas públicas/autenticadas para listagem e metadados
 router.get("/list", userController.getUsersList);
+router.get("/metadata", userController.getUserMeta);
+
+// Rotas autenticadas para indisponibilidade programada do próprio servo(a)
+router.post("/unavailability", authMiddleware, userController.addUnavailability);
+router.delete("/unavailability/:date", authMiddleware, userController.removeUnavailability);
 
 // Rotas protegidas — apenas Admin
 router.get("/list-full", authMiddleware, adminMiddleware, userController.getUsersListFull);

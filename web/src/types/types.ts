@@ -1,4 +1,13 @@
-export const FUNCOES = ["Cerimoniária", "Librífera", "Auxiliar", "Lava-pés", "Leituras", "Matraca"];
+export const FUNCOES = [
+  "Cerimoniária",
+  "Librífera",
+  "Turiferário",
+  "Naveteiro",
+  "Auxiliar",
+  "Lava-pés",
+  "Leituras",
+  "Matraca",
+];
 
 export interface Signup {
   id: string;
