@@ -29,7 +29,9 @@ import {
   LogOut,
   Clock,
   MapPin,
-  UserPlus
+  UserPlus,
+  UserX,
+  UserCheck
 } from "lucide-react";
 import { Mass, User, Signup } from "../types/types";
 import { formatRole, setGlobalUserGenders, getUserGender } from "../constants/roles";
@@ -354,7 +356,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   // ── CRUD DE SERVOS ──
   const [servasList, setServasList] = useState<ServaData[]>([]);
   const [servaSearch, setServaSearch] = useState("");
-  const [servaFilter, setServaFilter] = useState<"ALL" | "ACTIVE" | "FORMACAO" | "M" | "F">("ALL");
+  const [servaFilter, setServaFilter] = useState<"ALL" | "ACTIVE" | "FORMACAO" | "INATIVO" | "M" | "F">("ALL");
   const [showServaModal, setShowServaModal] = useState(false);
   const [editingServa, setEditingServa] = useState<ServaData | null>(null);
   const [servaForm, setServaForm] = useState<{ name: string; email: string; password: string; birthDate: string; role: string; gender: "M" | "F" | "" }>({
@@ -469,6 +471,28 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     } catch (err: any) {
       const msg = err.response?.data?.error || "Erro ao salvar cadastro";
       setServaError(msg);
+    } finally {
+      setServaLoading(false);
+    }
+  }
+
+  async function handleToggleActiveServa(serva: ServaData) {
+    const isCurrentlyInactive = serva.role === "INATIVO";
+    const nextRole = isCurrentlyInactive ? "USER" : "INATIVO";
+    const actionLabel = isCurrentlyInactive
+      ? `Reativar o acesso de "${serva.name}" ao aplicativo?`
+      : `Inativar "${serva.name}"?\n\nO cadastro e o histórico de presenças serão mantidos, mas esta pessoa não poderá acessar o aplicativo até ser reativada.`;
+
+    if (!confirm(actionLabel)) return;
+
+    try {
+      setServaLoading(true);
+      await updateServa(serva.id, { role: nextRole });
+      await loadServas();
+      getUsersList().then(setAllUsers).catch(console.error);
+    } catch (err) {
+      console.error("Erro ao alterar status:", err);
+      alert("Erro ao alterar status do membro.");
     } finally {
       setServaLoading(false);
     }
@@ -799,10 +823,11 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     if (!matchesSearch) return false;
 
     const g = s.gender || getUserGender(s.id, s.name);
-    if (servaFilter === "ACTIVE") return s.role !== "em_formacao";
+    if (servaFilter === "ACTIVE") return s.role === "USER" || (!s.role);
     if (servaFilter === "FORMACAO") return s.role === "em_formacao";
-    if (servaFilter === "M") return g === "M";
-    if (servaFilter === "F") return g === "F";
+    if (servaFilter === "INATIVO") return s.role === "INATIVO";
+    if (servaFilter === "M") return g === "M" && s.role !== "INATIVO";
+    if (servaFilter === "F") return g === "F" && s.role !== "INATIVO";
     return true;
   });
 
@@ -1697,6 +1722,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                     <select className="form-input" value={servaForm.role} onChange={(e) => setServaForm(p => ({ ...p, role: e.target.value }))}>
                       <option value="USER">Servo(a) Ativo(a)</option>
                       <option value="em_formacao">Em Formação (Acesso ao AVA)</option>
+                      <option value="INATIVO">Inativo(a) (Sem acesso ao app)</option>
                     </select>
                   </div>
                   <div style={{ display: "flex", gap: "8px", marginTop: "6px" }}>
@@ -1739,8 +1765,9 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
           <div style={{ display: "flex", gap: "6px", overflowX: "auto", paddingBottom: "8px", marginBottom: "10px", scrollbarWidth: "none" }}>
             {[
               { id: "ALL", label: `Todos (${servasList.length})` },
-              { id: "ACTIVE", label: "Ativos" },
-              { id: "FORMACAO", label: "Formação" },
+              { id: "ACTIVE", label: `Ativos (${servasList.filter(s => s.role !== "em_formacao" && s.role !== "INATIVO").length})` },
+              { id: "FORMACAO", label: `Formação (${servasList.filter(s => s.role === "em_formacao").length})` },
+              { id: "INATIVO", label: `Inativos (${servasList.filter(s => s.role === "INATIVO").length})` },
               { id: "M", label: "Servos (M)" },
               { id: "F", label: "Servas (F)" },
             ].map((f) => (
@@ -1788,12 +1815,20 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                   .map(p => p[0]?.toUpperCase() || "")
                   .join("");
 
+                const isInactive = serva.role === "INATIVO";
+
                 return (
-                  <div key={serva.id} className="servo-member-card">
+                  <div
+                    key={serva.id}
+                    className="servo-member-card"
+                    style={isInactive ? { opacity: 0.72, background: "#FAF8F5", borderStyle: "dashed" } : {}}
+                  >
                     <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", minWidth: 0, flex: 1 }}>
-                      <div className="servo-avatar">{initials}</div>
+                      <div className="servo-avatar" style={isInactive ? { background: "#E5E7EB", color: "#6B7280", borderColor: "#D1D5DB" } : {}}>
+                        {initials}
+                      </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontWeight: 800, fontSize: "0.92rem", color: "#23170F", marginBottom: "2px", wordBreak: "break-word" }}>
+                        <div style={{ fontWeight: 800, fontSize: "0.92rem", color: isInactive ? "#6B7280" : "#23170F", marginBottom: "2px", wordBreak: "break-word" }}>
                           {serva.name}
                         </div>
                         <div style={{ fontSize: "0.76rem", color: "#6B7280", wordBreak: "break-all", marginBottom: "6px" }}>
@@ -1803,7 +1838,11 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                           <span style={{ background: "#F7F5F0", color: theme.colors.primary, border: `1px solid ${theme.colors.border}`, padding: "2px 7px", borderRadius: "6px", fontWeight: 700, fontSize: "0.68rem" }}>
                             {resolvedGender === "M" ? "Servo" : "Serva"}
                           </span>
-                          {serva.role === "em_formacao" ? (
+                          {isInactive ? (
+                            <span style={{ background: "#FEE2E2", color: "#991B1B", padding: "2px 7px", borderRadius: "6px", fontSize: "0.68rem", fontWeight: 800 }}>
+                              Inativo(a) • Sem Acesso
+                            </span>
+                          ) : serva.role === "em_formacao" ? (
                             <span style={{ background: "#E0F2FE", color: "#0369A1", padding: "2px 7px", borderRadius: "6px", fontSize: "0.68rem", fontWeight: 700 }}>
                               Em Formação
                             </span>
@@ -1815,6 +1854,11 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                           {serva.birthDate && (
                             <span style={{ fontSize: "0.7rem", color: "#6B7280" }}>
                               🎂 {new Date(serva.birthDate.split("T")[0] + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                            </span>
+                          )}
+                          {serva.lastMassDate && (
+                            <span style={{ fontSize: "0.68rem", color: isInactive ? "#991B1B" : "#5A4332", background: "#FAF8F5", border: "1px solid #E5DEC9", padding: "1px 6px", borderRadius: "6px" }}>
+                              ⛪ Última: {new Date(serva.lastMassDate).toLocaleDateString("pt-BR")}
                             </span>
                           )}
                           {unavList.length > 0 && (
@@ -1829,6 +1873,19 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                     <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
                       <button
                         type="button"
+                        onClick={() => handleToggleActiveServa(serva)}
+                        className="btn-card-icon"
+                        style={
+                          isInactive
+                            ? { background: "#DCFCE7", color: "#166534", borderColor: "#BBF7D0" }
+                            : { background: "#FEF3C7", color: "#B45309", borderColor: "#FDE68A" }
+                        }
+                        title={isInactive ? "Reativar acesso ao app" : "Inativar acesso ao app (sem excluir cadastro)"}
+                      >
+                        {isInactive ? <UserCheck size={15} /> : <UserX size={15} />}
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => handleOpenServaModal(serva)}
                         className="btn-card-icon"
                         title="Editar cadastro"
@@ -1839,7 +1896,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                         type="button"
                         onClick={() => handleDeleteServa(serva)}
                         className="btn-card-icon danger"
-                        title="Excluir cadastro"
+                        title="Excluir cadastro permanentemente"
                       >
                         <Trash2 size={15} />
                       </button>

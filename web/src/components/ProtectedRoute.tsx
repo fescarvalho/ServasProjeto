@@ -9,7 +9,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ user, allowedRoles, disallowedRoles, redirectPath = "/" }: ProtectedRouteProps) {
-  if (!user) {
+  if (!user || user.role === "INATIVO") {
     return <Navigate to="/login" replace />;
   }
 

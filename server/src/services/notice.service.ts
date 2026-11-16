@@ -15,7 +15,7 @@ export async function getActiveNotices() {
     const currentDay = today.getDate();
 
     const usersWithBirthday = await prisma.user.findMany({
-        where: { birthDate: { not: null } }
+        where: { birthDate: { not: null }, role: { not: "INATIVO" } }
     });
 
     const birthdayGirls = usersWithBirthday.filter((u) => {

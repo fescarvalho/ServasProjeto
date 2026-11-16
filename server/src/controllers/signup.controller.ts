@@ -14,6 +14,9 @@ export async function toggleSignup(req: Request, res: Response) {
         let isAdmin = false;
         if (req.userId) {
             const reqUser = await prisma.user.findUnique({ where: { id: req.userId } });
+            if (reqUser?.role === "INATIVO") {
+                return res.status(403).json({ error: "Seu cadastro está inativo. Procure a coordenação." });
+            }
             isAdmin = reqUser?.role === "ADMIN";
         }
 

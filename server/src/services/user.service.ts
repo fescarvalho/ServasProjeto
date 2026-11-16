@@ -10,10 +10,26 @@ export interface UnavailabilityItem {
 export interface SystemUserMeta {
     genders: Record<string, "M" | "F">;
     unavailabilities: Record<string, UnavailabilityItem[]>;
+    reactivatedAt?: Record<string, string>;
+}
+
+const INACTIVITY_DAYS = 90; // 3 meses sem escalas
+
+// E-mails isentos do bloqueio automático de 3 meses sem escalas
+const EXEMPT_AUTO_INACTIVE_EMAILS = new Set([
+    "alice@serva.com",
+    "camilla@serva.com",
+    "camila@serva.com",
+    "eduarda@serva.com",
+]);
+
+export function isExemptFromAutoInactivation(email?: string | null): boolean {
+    if (!email) return false;
+    return EXEMPT_AUTO_INACTIVE_EMAILS.has(email.trim().toLowerCase());
 }
 
 /**
- * Lê os metadados persistidos (gênero e indisponibilidades) sem exigir migração destrutiva no banco
+ * Lê os metadados persistidos (gênero, indisponibilidades e data de reativação)
  */
 export async function getSystemUserMeta(): Promise<SystemUserMeta> {
     try {
@@ -26,7 +42,7 @@ export async function getSystemUserMeta(): Promise<SystemUserMeta> {
         });
 
         if (!record) {
-            return { genders: {}, unavailabilities: {} };
+            return { genders: {}, unavailabilities: {}, reactivatedAt: {} };
         }
 
         const jsonStr = record.text.slice(META_PREFIX.length);
@@ -34,10 +50,11 @@ export async function getSystemUserMeta(): Promise<SystemUserMeta> {
         return {
             genders: parsed.genders || {},
             unavailabilities: parsed.unavailabilities || {},
+            reactivatedAt: parsed.reactivatedAt || {},
         };
     } catch (err) {
         console.error("[UserMeta] Erro ao ler metadados:", err);
-        return { genders: {}, unavailabilities: {} };
+        return { genders: {}, unavailabilities: {}, reactivatedAt: {} };
     }
 }
 
@@ -69,6 +86,7 @@ async function saveSystemUserMeta(meta: SystemUserMeta): Promise<void> {
 export async function getUsersList() {
     const [users, meta] = await Promise.all([
         prisma.user.findMany({
+            where: { role: { not: "INATIVO" } },
             select: { id: true, name: true },
             orderBy: { name: "asc" },
         }),
@@ -83,6 +101,61 @@ export async function getUsersList() {
 }
 
 /**
+ * Verifica se o usuário ativo está há mais de 3 meses (90 dias) sem nenhuma escala.
+ * Caso esteja (e não tenha sido cadastrado/reativado nos últimos 90 dias), altera seu role para INATIVO.
+ */
+export async function checkAndAutoInactivateUser(
+    userId: string,
+    currentRole: string,
+    userEmail?: string | null,
+    existingMeta?: SystemUserMeta
+): Promise<boolean> {
+    if (currentRole !== "USER") return false;
+    if (isExemptFromAutoInactivation(userEmail)) return false;
+
+    const cutoff = new Date(Date.now() - INACTIVITY_DAYS * 24 * 60 * 60 * 1000);
+    const meta = existingMeta || (await getSystemUserMeta());
+
+    const graceIso = meta.reactivatedAt?.[userId];
+    if (graceIso && new Date(graceIso) >= cutoff) {
+        return false;
+    }
+
+    const latestSignup = await prisma.signup.findFirst({
+        where: { userId },
+        include: { mass: { select: { date: true } } },
+        orderBy: { mass: { date: "desc" } },
+    });
+
+    if (latestSignup) {
+        if (new Date(latestSignup.mass.date) < cutoff) {
+            await prisma.user.update({
+                where: { id: userId },
+                data: { role: "INATIVO" },
+            });
+            return true;
+        }
+        return false;
+    }
+
+    // Se nunca teve inscrição em missa, verifica se o primeiro acesso já tem mais de 90 dias
+    const firstLogin = await prisma.loginLog.findFirst({
+        where: { userId },
+        orderBy: { timestamp: "asc" },
+    });
+
+    if (firstLogin && new Date(firstLogin.timestamp) < cutoff) {
+        await prisma.user.update({
+            where: { id: userId },
+            data: { role: "INATIVO" },
+        });
+        return true;
+    }
+
+    return false;
+}
+
+/**
  * Get all users with full details (for Servos management tab)
  */
 export async function getUsersListFull() {
@@ -94,17 +167,63 @@ export async function getUsersListFull() {
                 email: true,
                 role: true,
                 birthDate: true,
+                signups: {
+                    select: { mass: { select: { date: true } } },
+                    orderBy: { mass: { date: "desc" } },
+                    take: 1,
+                },
+                loginLogs: {
+                    select: { timestamp: true },
+                    orderBy: { timestamp: "asc" },
+                    take: 1,
+                },
             },
             orderBy: { name: "asc" },
         }),
         getSystemUserMeta(),
     ]);
 
-    return users.map((u) => ({
-        ...u,
-        gender: meta.genders[u.id] || null,
-        unavailabilities: meta.unavailabilities[u.id] || [],
-    }));
+    const cutoff = new Date(Date.now() - INACTIVITY_DAYS * 24 * 60 * 60 * 1000);
+    const autoInactivateIds: string[] = [];
+
+    const mapped = users.map((u) => {
+        const lastMassDate = u.signups[0]?.mass?.date ? u.signups[0].mass.date.toISOString() : null;
+        const firstLoginDate = u.loginLogs[0]?.timestamp ? u.loginLogs[0].timestamp.toISOString() : null;
+        const graceIso = meta.reactivatedAt?.[u.id];
+        const hasGrace = Boolean(graceIso && new Date(graceIso) >= cutoff);
+
+        let effectiveRole = u.role;
+        const isExempt = isExemptFromAutoInactivation(u.email);
+        if (u.role === "USER" && !hasGrace && !isExempt) {
+            if (lastMassDate && new Date(lastMassDate) < cutoff) {
+                effectiveRole = "INATIVO";
+                autoInactivateIds.push(u.id);
+            } else if (!lastMassDate && firstLoginDate && new Date(firstLoginDate) < cutoff) {
+                effectiveRole = "INATIVO";
+                autoInactivateIds.push(u.id);
+            }
+        }
+
+        return {
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            role: effectiveRole,
+            birthDate: u.birthDate,
+            gender: meta.genders[u.id] || null,
+            unavailabilities: meta.unavailabilities[u.id] || [],
+            lastMassDate,
+        };
+    });
+
+    if (autoInactivateIds.length > 0) {
+        await prisma.user.updateMany({
+            where: { id: { in: autoInactivateIds } },
+            data: { role: "INATIVO" },
+        });
+    }
+
+    return mapped;
 }
 
 /**
@@ -144,11 +263,13 @@ export async function createUser(data: {
         },
     });
 
+    const meta = await getSystemUserMeta();
+    meta.reactivatedAt = meta.reactivatedAt || {};
+    meta.reactivatedAt[created.id] = new Date().toISOString();
     if (data.gender === "M" || data.gender === "F") {
-        const meta = await getSystemUserMeta();
         meta.genders[created.id] = data.gender;
-        await saveSystemUserMeta(meta);
     }
+    await saveSystemUserMeta(meta);
 
     return {
         ...created,
@@ -198,12 +319,21 @@ export async function updateUser(
     });
 
     const meta = await getSystemUserMeta();
+    let metaChanged = false;
+    if (data.role === "USER") {
+        meta.reactivatedAt = meta.reactivatedAt || {};
+        meta.reactivatedAt[id] = new Date().toISOString();
+        metaChanged = true;
+    }
     if (data.gender !== undefined) {
         if (data.gender === "M" || data.gender === "F") {
             meta.genders[id] = data.gender;
         } else {
             delete meta.genders[id];
         }
+        metaChanged = true;
+    }
+    if (metaChanged) {
         await saveSystemUserMeta(meta);
     }
 

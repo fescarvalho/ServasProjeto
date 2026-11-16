@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import { prisma } from "../config/database";
 import { env } from "../config/env";
+import { checkAndAutoInactivateUser } from "./user.service";
 
 interface LoginData {
     email: string;
@@ -30,6 +31,16 @@ export async function login(data: LoginData): Promise<UserResponse | null> {
     // TODO: Use bcrypt for password hashing in production
     if (user.password !== password) {
         return null;
+    }
+
+    if (user.role === "INATIVO") {
+        throw new Error("USER_INATIVO");
+    }
+
+    // Verifica se passou de 3 meses (90 dias) sem nenhuma escala e inativa automaticamente
+    const wasAutoInactivated = await checkAndAutoInactivateUser(user.id, user.role, user.email);
+    if (wasAutoInactivated) {
+        throw new Error("USER_INATIVO_3_MESES");
     }
 
     // Registrar log de acesso apenas para Servas (não Admin e não em_formacao)

@@ -13,6 +13,7 @@ export interface ServaData {
     birthDate: string | null;
     gender?: "M" | "F" | null;
     unavailabilities?: UnavailabilityItem[];
+    lastMassDate?: string | null;
 }
 
 export interface UserMetadataResponse {
