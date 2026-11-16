@@ -22,10 +22,10 @@ export async function togglePresence(signupId: string): Promise<void> {
 }
 
 /**
- * Realiza check-in de presença pelo próprio servo(a) no dia/horário da missa
+ * Realiza check-in de presença pelo próprio servo(a) no dia/horário da missa via QR Code da Sacristia
  */
-export async function selfCheckIn(signupId: string): Promise<void> {
-    await apiClient.post(`/signup/${signupId}/checkin`);
+export async function selfCheckIn(signupId: string, token: string = "SACRISTIA_ST_2026"): Promise<void> {
+    await apiClient.post(`/signup/${signupId}/checkin`, { token });
 }
 
 /**

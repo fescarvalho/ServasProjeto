@@ -20,7 +20,6 @@ import {
   BookMarked,
   CalendarPlus,
   CalendarOff,
-  MapPin,
   CheckCircle2,
   Trash2,
   Filter
@@ -70,7 +69,6 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
   const [unavReason, setUnavReason] = useState("");
   const [unavLoading, setUnavLoading] = useState(false);
   const [calendarModalMass, setCalendarModalMass] = useState<{ mass: Mass; roleLabel: string } | null>(null);
-  const [checkInLoading, setCheckInLoading] = useState<string | null>(null);
   const [notices, setNotices] = useState<Notice[]>(() => {
     try {
       const cached = localStorage.getItem("servas_notices_cache_v1");
@@ -140,35 +138,49 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
       .catch(() => {});
   }, [user?.id]);
 
-  // --- CHECK-IN AUTOMÁTICO VIA QR CODE DA SACRISTIA (?checkin=1) ---
+  // --- CHECK-IN AUTOMÁTICO VIA QR CODE DA SACRISTIA (persiste mesmo se pediu login antes) ---
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("checkin") === "1" && masses.length > 0 && user) {
+    const urlToken = params.get("checkin");
+    const storedToken = sessionStorage.getItem("pending_qr_checkin_token");
+    const qrToken = urlToken || storedToken;
+
+    if (qrToken && masses.length > 0 && user) {
+      sessionStorage.removeItem("pending_qr_checkin_token");
+      if (urlToken) {
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+
       const now = new Date();
-      const myTodaySignup = masses
+      const myWindowEntry = masses
         .map((m) => ({
           mass: m,
           signup: m.signups.find((s) => s.userId === user.id && s.status !== "RESERVA"),
         }))
         .find(({ mass, signup }) => {
-          if (!signup || signup.present) return false;
+          if (!signup) return false;
           const diffMin = (now.getTime() - new Date(mass.date).getTime()) / 60000;
           return diffMin >= -120 && diffMin <= 240;
         });
 
-      if (myTodaySignup?.signup) {
-        selfCheckIn(myTodaySignup.signup.id)
-          .then(() => {
-            show("Check-in na Sacristia confirmado com sucesso! Bom serviço no Altar!", "success", 6000);
-            onUpdate?.();
-          })
-          .catch((err: any) => {
-            show(err?.response?.data?.error || "Não foi possível confirmar o check-in agora.", "error");
-          })
-          .finally(() => {
-            window.history.replaceState({}, "", window.location.pathname);
-          });
+      if (!myWindowEntry?.signup) {
+        show("Nenhuma escala sua encontrada para o horário de agora (o check-in abre 2h antes da missa).", "info", 7000);
+        return;
       }
+
+      if (myWindowEntry.signup.present) {
+        show("Sua presença na missa de hoje já está confirmada! Bom serviço no Altar!", "success", 6000);
+        return;
+      }
+
+      selfCheckIn(myWindowEntry.signup.id, qrToken)
+        .then(() => {
+          show("Check-in na Sacristia confirmado com sucesso! Bom serviço no Altar!", "success", 6000);
+          onUpdate?.();
+        })
+        .catch((err: any) => {
+          show(err?.response?.data?.error || "Não foi possível confirmar o check-in agora.", "error");
+        });
     }
   }, [masses, user]);
 
@@ -340,19 +352,6 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
       show("Erro ao remover data.", "error");
     } finally {
       setUnavLoading(false);
-    }
-  }
-
-  async function handleSelfCheckIn(signupId: string) {
-    try {
-      setCheckInLoading(signupId);
-      await selfCheckIn(signupId);
-      show("Presença confirmada com sucesso! Bom serviço no Altar!", "success");
-      onUpdate?.();
-    } catch (err: any) {
-      show(err?.response?.data?.error || "Check-in disponível apenas a partir de 2h antes da missa.", "error");
-    } finally {
-      setCheckInLoading(null);
     }
   }
 
@@ -972,10 +971,6 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                     const souReserva = (meuSignup as any)?.status === "RESERVA";
                     const minhaFuncao = formatRole(meuSignup?.role, user.name, user.id);
 
-                    // Verifica se a missa está na janela de check-in (de 2h antes até 4h depois do início)
-                    const diffMinutesNow = (Date.now() - new Date(mass.date).getTime()) / 60000;
-                    const canSelfCheckIn = jaEstouInscrita && !souReserva && diffMinutesNow >= -120 && diffMinutesNow <= 240;
-
                     const isSundayDay = new Date(mass.date).getDay() === 0;
 
                     const estaAberto = mass.open;
@@ -1129,53 +1124,26 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                               {btnText}
                             </button>
 
-                            {/* CHECK-IN DE PRESENÇA NA SACRISTIA (Disponível na janela da missa) */}
-                            {jaEstouInscrita && !souReserva && (meuSignup?.present || canSelfCheckIn) && (
-                              meuSignup?.present ? (
-                                <div
-                                  style={{
-                                    marginTop: "8px",
-                                    padding: "8px 10px",
-                                    borderRadius: "8px",
-                                    background: "#E8F5E9",
-                                    border: "1px solid #A5D6A7",
-                                    color: "#1B5E20",
-                                    fontWeight: "bold",
-                                    fontSize: "0.8rem",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    gap: "6px",
-                                  }}
-                                >
-                                  <CheckCircle2 size={15} /> Presença Confirmada no Altar
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={() => meuSignup && handleSelfCheckIn(meuSignup.id)}
-                                  disabled={checkInLoading === meuSignup?.id}
-                                  style={{
-                                    width: "100%",
-                                    marginTop: "8px",
-                                    padding: "9px",
-                                    borderRadius: "8px",
-                                    border: "none",
-                                    background: "#2E7D32",
-                                    color: "white",
-                                    fontWeight: "bold",
-                                    cursor: "pointer",
-                                    fontSize: "0.82rem",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    gap: "6px",
-                                    boxShadow: "0 4px 10px rgba(46, 125, 50, 0.25)",
-                                  }}
-                                >
-                                  <MapPin size={15} />
-                                  {checkInLoading === meuSignup?.id ? "Confirmando..." : "Confirmar Presença (Check-in)"}
-                                </button>
-                              )
+                            {/* SELO DE PRESENÇA CONFIRMADA (Check-in realizado via QR Code da Sacristia ou pelo Admin) */}
+                            {jaEstouInscrita && !souReserva && meuSignup?.present && (
+                              <div
+                                style={{
+                                  marginTop: "8px",
+                                  padding: "8px 10px",
+                                  borderRadius: "8px",
+                                  background: "#E8F5E9",
+                                  border: "1px solid #A5D6A7",
+                                  color: "#1B5E20",
+                                  fontWeight: "bold",
+                                  fontSize: "0.8rem",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: "6px",
+                                }}
+                              >
+                                <CheckCircle2 size={15} /> Presença Confirmada no Altar
+                              </div>
                             )}
 
                             {/* AÇÕES RÁPIDAS DO INSCRITO: AGENDA + PEDIR SUBSTITUIÇÃO */}

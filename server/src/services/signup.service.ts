@@ -116,10 +116,16 @@ export async function togglePresence(signupId: string) {
     });
 }
 
+const VALID_QR_TOKENS = new Set(["SACRISTIA_ST_2026", "1"]);
+
 /**
- * Self check-in by the server on the day/time window of the mass
+ * Self check-in by the server on the day/time window of the mass via Sacristy QR Code
  */
-export async function selfCheckIn(signupId: string, userId: string, isAdmin: boolean = false) {
+export async function selfCheckIn(signupId: string, userId: string, isAdmin: boolean = false, qrToken?: string) {
+    if (!isAdmin && (!qrToken || !VALID_QR_TOKENS.has(String(qrToken)))) {
+        throw new Error("Check-in permitido apenas escaneando o QR Code oficial na sacristia.");
+    }
+
     const existing = await prisma.signup.findUnique({
         where: { id: signupId },
         include: { mass: true },

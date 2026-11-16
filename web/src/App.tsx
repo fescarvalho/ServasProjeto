@@ -22,6 +22,15 @@ const QuizTakingPage = lazy(() => import("./pages/QuizTakingPage").then((m) => (
 // Tempo máximo offline antes de forçar logout (2 minutos em ms)
 const OFFLINE_TIMEOUT_MS = 2 * 60 * 1000;
 
+// Captura imediatamente o parâmetro ?checkin=... do QR Code antes de qualquer redirecionamento para /login
+if (typeof window !== "undefined") {
+  const params = new URLSearchParams(window.location.search);
+  const checkinParam = params.get("checkin");
+  if (checkinParam) {
+    sessionStorage.setItem("pending_qr_checkin_token", checkinParam);
+  }
+}
+
 function App() {
   // PWA Hook
   const {

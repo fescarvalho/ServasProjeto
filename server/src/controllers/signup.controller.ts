@@ -68,13 +68,14 @@ export async function togglePresence(req: Request, res: Response) {
 export async function selfCheckIn(req: Request, res: Response) {
     try {
         const { id } = req.params;
+        const { token } = req.body || {};
         let isAdmin = false;
         if (req.userId) {
             const reqUser = await prisma.user.findUnique({ where: { id: req.userId } });
             isAdmin = reqUser?.role === "ADMIN";
         }
 
-        const signup = await signupService.selfCheckIn(String(id), String(req.userId), isAdmin);
+        const signup = await signupService.selfCheckIn(String(id), String(req.userId), isAdmin, token);
         return success(res, signup);
     } catch (err: any) {
         console.error("Self check-in error:", err);

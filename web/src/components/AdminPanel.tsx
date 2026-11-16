@@ -889,7 +889,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
 
             <div style={{ padding: "16px", background: "#fff", border: `2px solid ${theme.colors.primary}`, borderRadius: "14px", display: "inline-block", marginBottom: "16px" }}>
               <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent("https://servasdoaltar.vercel.app/escalas?checkin=1")}`}
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent("https://servasdoaltar.vercel.app/escalas?checkin=SACRISTIA_ST_2026")}`}
                 alt="QR Code Check-in de Presença"
                 width={220}
                 height={220}
