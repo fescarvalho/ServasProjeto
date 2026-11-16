@@ -437,7 +437,7 @@ export function ModuleViewer() {
       case 'image':
         return (
           <figure key={index} className="mv-image-block">
-            <img src={block.src} alt={block.alt} className="mv-image" />
+            <img src={block.src} alt={block.alt} className="mv-image" loading="lazy" decoding="async" />
             {block.caption && <figcaption className="mv-image-caption">{block.caption}</figcaption>}
           </figure>
         );
@@ -473,6 +473,8 @@ export function ModuleViewer() {
                       src={item.image}
                       alt={item.title}
                       className="mv-step-image"
+                      loading="lazy"
+                      decoding="async"
                     />
                   )}
                   <p>{item.text}</p>

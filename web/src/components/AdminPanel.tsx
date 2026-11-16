@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import {
   Shield,
   FileText,
@@ -44,16 +44,17 @@ import {
   UnavailabilityItem
 } from "../services/api/user.service";
 import { autoAssign } from "../utils/autoAssign";
-import { ScaleModal } from "./ScaleModal";
-import { OfficialDocument } from "./OfficialDocument";
-import { StatisticsModal } from "./StatisticsModal";
-import { RankingModal } from "./RankingModal";
 import { NoticeBoard } from "./NoticeBoard";
-import { LoginLogs } from "./LoginLogs";
-import { ReminderModal } from "./ReminderModal";
-import { AdminQuizManager } from "./AdminQuizManager";
 import { theme } from "../theme/theme";
 import "./css/AdminPanel.css";
+
+const ScaleModal = lazy(() => import("./ScaleModal").then((m) => ({ default: m.ScaleModal })));
+const OfficialDocument = lazy(() => import("./OfficialDocument").then((m) => ({ default: m.OfficialDocument })));
+const StatisticsModal = lazy(() => import("./StatisticsModal").then((m) => ({ default: m.StatisticsModal })));
+const RankingModal = lazy(() => import("./RankingModal").then((m) => ({ default: m.RankingModal })));
+const LoginLogs = lazy(() => import("./LoginLogs").then((m) => ({ default: m.LoginLogs })));
+const ReminderModal = lazy(() => import("./ReminderModal").then((m) => ({ default: m.ReminderModal })));
+const AdminQuizManager = lazy(() => import("./AdminQuizManager").then((m) => ({ default: m.AdminQuizManager })));
 
 // ── MassForm extracted OUTSIDE AdminPanel to prevent unmount on every keystroke ──
 interface MassFormProps {
@@ -506,7 +507,9 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
 
   if (viewMode === "pdf" && isAdmin)
     return (
-      <OfficialDocument masses={filteredMasses} onBack={() => setViewMode("dashboard")} />
+      <Suspense fallback={<div style={{ padding: 40, textAlign: "center" }}>Carregando PDF...</div>}>
+        <OfficialDocument masses={filteredMasses} onBack={() => setViewMode("dashboard")} />
+      </Suspense>
     );
 
   // --- Funções Administrativas ---
@@ -791,10 +794,12 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   return (
     <div className="admin-container">
       {/* MODAIS */}
-      {showTextModal && isAdmin && <ScaleModal masses={filteredMasses} onClose={() => setShowTextModal(false)} />}
-      {showRankingModal && isAdmin && <RankingModal masses={masses} onClose={() => setShowRankingModal(false)} />}
-      {showStatsModal && isAdmin && <StatisticsModal masses={masses} onClose={() => setShowStatsModal(false)} />}
-      {showReminderModal && isAdmin && <ReminderModal masses={masses} onClose={() => setShowReminderModal(false)} />}
+      <Suspense fallback={null}>
+        {showTextModal && isAdmin && <ScaleModal masses={filteredMasses} onClose={() => setShowTextModal(false)} />}
+        {showRankingModal && isAdmin && <RankingModal masses={masses} onClose={() => setShowRankingModal(false)} />}
+        {showStatsModal && isAdmin && <StatisticsModal masses={masses} onClose={() => setShowStatsModal(false)} />}
+        {showReminderModal && isAdmin && <ReminderModal masses={masses} onClose={() => setShowReminderModal(false)} />}
+      </Suspense>
       {showQrModal && isAdmin && (
         <div
           style={{
@@ -1471,7 +1476,9 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
 
       {/* ═══════════════════ ABA: QUIZZES ═══════════════════ */}
       {isAdmin && activeTab === "quizzes" && (
-        <AdminQuizManager />
+        <Suspense fallback={<div style={{ padding: 30, textAlign: "center" }}>Carregando AVA...</div>}>
+          <AdminQuizManager />
+        </Suspense>
       )}
 
       {/* ═══════════════════ ABA: LOGS ═══════════════════ */}
@@ -1485,7 +1492,9 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
               boxShadow: `0 2px 12px ${theme.colors.shadowBase}`,
             }}
           >
-            <LoginLogs />
+            <Suspense fallback={<div style={{ padding: 20, textAlign: "center" }}>Carregando logs...</div>}>
+              <LoginLogs />
+            </Suspense>
           </div>
         </div>
       )}

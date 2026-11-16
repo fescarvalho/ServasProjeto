@@ -11,6 +11,65 @@ clientsClaim();
 precacheAndRoute(self.__WB_MANIFEST || []);
 cleanupOutdatedCaches();
 
+const RUNTIME_CACHE = 'servos-runtime-v2';
+
+// Cache inteligente para economizar dados móveis (Fontes, Imagens de Formação e Ícones)
+self.addEventListener('fetch', (event: FetchEvent) => {
+    const req = event.request;
+    if (req.method !== 'GET') return;
+
+    const url = new URL(req.url);
+
+    // 1. Cache-First para Fontes do Google e Imagens estáticas (/formacao/, ícones, etc.)
+    const isFont = url.origin.includes('fonts.googleapis.com') || url.origin.includes('fonts.gstatic.com');
+    const isStaticImage =
+        url.origin === self.location.origin &&
+        (/\.(png|jpg|jpeg|webp|svg|ico)$/i.test(url.pathname) || url.pathname.startsWith('/formacao/'));
+
+    if (isFont || isStaticImage) {
+        event.respondWith(
+            caches.open(RUNTIME_CACHE).then(async (cache) => {
+                const cached = await cache.match(req);
+                if (cached) return cached;
+                try {
+                    const netRes = await fetch(req);
+                    if (netRes && netRes.status === 200) {
+                        cache.put(req, netRes.clone());
+                    }
+                    return netRes;
+                } catch (err) {
+                    return cached || Response.error();
+                }
+            })
+        );
+        return;
+    }
+
+    // 2. Stale-While-Revalidate para pacotes JS/CSS da aplicação
+    const isAppAsset =
+        url.origin === self.location.origin &&
+        url.pathname.startsWith('/assets/') &&
+        /\.(js|css)$/i.test(url.pathname);
+
+    if (isAppAsset) {
+        event.respondWith(
+            caches.open(RUNTIME_CACHE).then(async (cache) => {
+                const cached = await cache.match(req);
+                const fetchPromise = fetch(req)
+                    .then((netRes) => {
+                        if (netRes && netRes.status === 200) {
+                            cache.put(req, netRes.clone());
+                        }
+                        return netRes;
+                    })
+                    .catch(() => cached || Response.error());
+
+                return cached || fetchPromise;
+            })
+        );
+    }
+});
+
 // Listen for Web Push Notifications
 self.addEventListener('push', (event) => {
     if (event.data) {

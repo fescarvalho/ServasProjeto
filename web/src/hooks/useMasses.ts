@@ -2,6 +2,27 @@ import { useState, useCallback } from "react";
 import { Mass } from "../types/types";
 import * as massService from "../services/api/mass.service";
 
+const MASSES_CACHE_KEY = "servas_masses_cache_v1";
+
+function loadCachedMasses(): Mass[] {
+    try {
+        const raw = localStorage.getItem(MASSES_CACHE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveCachedMasses(data: Mass[]): void {
+    try {
+        localStorage.setItem(MASSES_CACHE_KEY, JSON.stringify(data));
+    } catch {
+        // Ignore quota errors on older devices
+    }
+}
+
 interface UseMassesReturn {
     masses: Mass[];
     isLoading: boolean;
@@ -16,10 +37,11 @@ interface UseMassesReturn {
 }
 
 /**
- * Hook para gerenciar missas
+ * Hook para gerenciar missas com suporte a cache local instantâneo (Stale-While-Revalidate)
+ * para carregamento imediato em redes móveis (3G/4G).
  */
 export function useMasses(): UseMassesReturn {
-    const [masses, setMasses] = useState<Mass[]>([]);
+    const [masses, setMasses] = useState<Mass[]>(() => loadCachedMasses());
     const [isLoading, setIsLoading] = useState(false);
 
     const fetchMasses = useCallback(async () => {
@@ -27,6 +49,7 @@ export function useMasses(): UseMassesReturn {
             setIsLoading(true);
             const data = await massService.getMasses();
             setMasses(data);
+            saveCachedMasses(data);
         } catch (error) {
             console.error("Erro ao buscar missas:", error);
         } finally {

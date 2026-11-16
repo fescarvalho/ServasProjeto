@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, lazy, Suspense } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   Cross,
@@ -35,20 +35,22 @@ import {
   UnavailabilityItem
 } from "../services/api/user.service";
 import { selfCheckIn } from "../services/api/signup.service";
-import { OfficialDocument } from "./OfficialDocument";
 import { api } from "../services/api";
 import * as swapRequestService from "../services/api/swap-request.service";
-import { RankingModal } from "./RankingModal";
-import { BadgesModal } from "./BadgesModal";
 import { CountdownTimer } from "./CountdownTimer";
 import { ToastContainer, ConfirmModal, useToast } from "./Toast";
-import { WinnerModal } from "./WinnerModal";
 import { theme } from "../theme/theme";
 import { calculateRanking } from "../utils/ranking.utils";
-import { LiturgicalCalendar } from "./LiturgicalCalendar";
-import { Prayers } from "./Prayers";
-import { getLiturgicalData, isSunday } from "../utils/liturgical.utils";
+import { getLiturgicalColor, isSunday } from "../utils/liturgicalColors.utils";
 import "./css/UserPanel.css"; // CSS Importado aqui
+
+// Lazy loading de abas secundárias e modais pesados (ex: html2canvas no RankingModal)
+const OfficialDocument = lazy(() => import("./OfficialDocument").then((m) => ({ default: m.OfficialDocument })));
+const RankingModal = lazy(() => import("./RankingModal").then((m) => ({ default: m.RankingModal })));
+const BadgesModal = lazy(() => import("./BadgesModal").then((m) => ({ default: m.BadgesModal })));
+const WinnerModal = lazy(() => import("./WinnerModal").then((m) => ({ default: m.WinnerModal })));
+const LiturgicalCalendar = lazy(() => import("./LiturgicalCalendar").then((m) => ({ default: m.LiturgicalCalendar })));
+const Prayers = lazy(() => import("./Prayers").then((m) => ({ default: m.Prayers })));
 
 interface UserPanelProps {
   masses: Mass[];
@@ -70,7 +72,14 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
   const [unavLoading, setUnavLoading] = useState(false);
   const [calendarModalMass, setCalendarModalMass] = useState<{ mass: Mass; roleLabel: string } | null>(null);
   const [checkInLoading, setCheckInLoading] = useState<string | null>(null);
-  const [notices, setNotices] = useState<Notice[]>([]);
+  const [notices, setNotices] = useState<Notice[]>(() => {
+    try {
+      const cached = localStorage.getItem("servas_notices_cache_v1");
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [swapRequests, setSwapRequests] = useState<SwapRequest[]>([]);
   const [swapLoading, setSwapLoading] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState<number>(0);
@@ -114,7 +123,12 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
   });
 
   useEffect(() => {
-    api.get("/notices").then((res) => setNotices(res.data));
+    api.get("/notices").then((res) => {
+      setNotices(res.data);
+      try {
+        localStorage.setItem("servas_notices_cache_v1", JSON.stringify(res.data));
+      } catch {}
+    });
     loadSwapRequests();
     loadUnreadNotifications();
     getUserMetadata()
@@ -174,10 +188,31 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
     }
   }
 
-  // Poll for notifications every 10 seconds
+  // Polling inteligente para economizar dados móveis e bateria:
+  // Só consulta quando a aba está visível e online, aumentando o intervalo em redes 2G/3G ou Economia de Dados
   useEffect(() => {
-    const p = setInterval(loadUnreadNotifications, 10000);
-    return () => clearInterval(p);
+    const conn = (navigator as any).connection;
+    const isSlowOrDataSaver =
+      conn?.saveData === true || conn?.effectiveType === "2g" || conn?.effectiveType === "3g";
+    const intervalMs = isSlowOrDataSaver ? 120000 : 60000;
+
+    const p = setInterval(() => {
+      if (document.visibilityState === "visible" && navigator.onLine) {
+        loadUnreadNotifications();
+      }
+    }, intervalMs);
+
+    const handleVis = () => {
+      if (document.visibilityState === "visible" && navigator.onLine) {
+        loadUnreadNotifications();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVis);
+
+    return () => {
+      clearInterval(p);
+      document.removeEventListener("visibilitychange", handleVis);
+    };
   }, []);
 
   // --- Lógica da Serva Campeã ---
@@ -416,21 +451,23 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
         backgroundColor: theme.colors.background
       }}
     >
-      {showBadges && (
-        <BadgesModal count={confirmedScore} onClose={() => setShowBadges(false)} />
-      )}
-      {showRanking && (
-        <RankingModal masses={masses} onClose={() => setShowRanking(false)} />
-      )}
-      {showWinnerModal && winnerDetails && (
-        <WinnerModal
-          score={winnerDetails.score}
-          month={winnerDetails.month}
-          year={winnerDetails.year}
-          userName={user.name}
-          onClose={handleCloseWinnerModal}
-        />
-      )}
+      <Suspense fallback={null}>
+        {showBadges && (
+          <BadgesModal count={confirmedScore} onClose={() => setShowBadges(false)} />
+        )}
+        {showRanking && (
+          <RankingModal masses={masses} onClose={() => setShowRanking(false)} />
+        )}
+        {showWinnerModal && winnerDetails && (
+          <WinnerModal
+            score={winnerDetails.score}
+            month={winnerDetails.month}
+            year={winnerDetails.year}
+            userName={user.name}
+            onClose={handleCloseWinnerModal}
+          />
+        )}
+      </Suspense>
 
       {/* MODAL DE EXPORTAÇÃO PARA AGENDA DO CELULAR */}
       {calendarModalMass && (
@@ -940,7 +977,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                     const diffMinutesNow = (Date.now() - new Date(mass.date).getTime()) / 60000;
                     const canSelfCheckIn = jaEstouInscrita && !souReserva && diffMinutesNow >= -120 && diffMinutesNow <= 240;
 
-                    const liturgical = getLiturgicalData(new Date(mass.date));
+                    const liturgicalColor = getLiturgicalColor(new Date(mass.date));
                     const isSundayDay = isSunday(new Date(mass.date));
 
                     const estaAberto = mass.open;
@@ -964,9 +1001,9 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                     if (mass.isSolemnity) {
                       highlightClass = "solemnity-card";
                     } else if (isSundayDay) {
-                      highlightClass = `sunday-card ${liturgical.color}-card`;
+                      highlightClass = `sunday-card ${liturgicalColor}-card`;
                     } else {
-                      highlightClass = `${liturgical.color}-card`;
+                      highlightClass = `${liturgicalColor}-card`;
                     }
 
                     let btnClass = "btn-servir";
@@ -1205,12 +1242,22 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
               </div>
             )}
           </div>
-        ) : activeTab === "calendario" ? (
-          <LiturgicalCalendar />
-        ) : activeTab === "oracoes" ? (
-          <Prayers />
         ) : (
-          <OfficialDocument masses={masses.filter((m) => m.published)} />
+          <Suspense
+            fallback={
+              <div style={{ textAlign: "center", padding: "40px 20px", color: theme.colors.textSecondary }}>
+                Carregando...
+              </div>
+            }
+          >
+            {activeTab === "calendario" ? (
+              <LiturgicalCalendar />
+            ) : activeTab === "oracoes" ? (
+              <Prayers />
+            ) : (
+              <OfficialDocument masses={masses.filter((m) => m.published)} />
+            )}
+          </Suspense>
         )}
       </div>
 
