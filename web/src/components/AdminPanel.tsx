@@ -818,6 +818,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
 
       {showQrModal && isAdmin && (
         <div
+          className="qr-print-overlay"
           style={{
             position: "fixed",
             inset: 0,
@@ -826,52 +827,111 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "20px",
+            padding: "16px",
+            overflowY: "auto",
           }}
           onClick={() => setShowQrModal(false)}
         >
           <div
+            className="qr-print-card"
             style={{
               background: "white",
               width: "100%",
-              maxWidth: "380px",
-              borderRadius: "14px",
+              maxWidth: "420px",
+              borderRadius: "16px",
               padding: "28px 24px",
               textAlign: "center",
               boxShadow: "0 12px 30px rgba(0,0,0,0.3)",
-              border: `1px solid ${theme.colors.borderLight}`,
+              border: `2px solid ${theme.colors.primary}`,
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ margin: "0 0 6px 0", color: theme.colors.primary, fontSize: "1.15rem" }}>
-              QR Code de Check-in (Sacristia)
-            </h3>
-            <p style={{ margin: "0 0 16px 0", fontSize: "0.84rem", color: theme.colors.textSecondary }}>
-              Imprima e fixe na sacristia. Ao escanear com a câmera do celular no dia da missa, a presença do(a) servo(a) é confirmada automaticamente.
-            </p>
-            <div style={{ padding: "16px", background: "#fff", border: `2px solid ${theme.colors.border}`, borderRadius: "12px", display: "inline-block", marginBottom: "16px" }}>
+            <div style={{ fontSize: "0.72rem", fontWeight: 800, letterSpacing: "1px", textTransform: "uppercase", color: theme.colors.textSecondary, marginBottom: "4px" }}>
+              Santuário Diocesano N. Sra. da Natividade
+            </div>
+            <div style={{ fontSize: "0.82rem", fontWeight: 800, color: theme.colors.primary, fontFamily: "'Cinzel', Georgia, serif", marginBottom: "14px" }}>
+              GRUPO DE SERVOS E SERVAS SANTA TEREZINHA
+            </div>
+
+            <div style={{ background: "#F7F5F0", border: `1px solid ${theme.colors.border}`, borderRadius: "10px", padding: "12px 14px", marginBottom: "16px" }}>
+              <h2 style={{ margin: "0 0 4px 0", color: theme.colors.primary, fontSize: "1.25rem", fontFamily: "'Cinzel', Georgia, serif", letterSpacing: "0.5px" }}>
+                CONFIRME SUA PRESENÇA
+              </h2>
+              <p style={{ margin: 0, fontSize: "0.88rem", color: theme.colors.textMain, fontWeight: 600 }}>
+                Está escalado(a) para servir nesta Santa Missa? Realize seu check-in ao chegar na sacristia!
+              </p>
+            </div>
+
+            <div style={{ padding: "16px", background: "#fff", border: `2px solid ${theme.colors.primary}`, borderRadius: "14px", display: "inline-block", marginBottom: "16px" }}>
               <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent("https://servasdoaltar.vercel.app/escalas?checkin=1")}`}
-                alt="QR Code Check-in Sacristia"
-                width={200}
-                height={200}
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent("https://servasdoaltar.vercel.app/escalas?checkin=1")}`}
+                alt="QR Code Check-in de Presença"
+                width={220}
+                height={220}
                 style={{ display: "block" }}
               />
             </div>
-            <div style={{ display: "flex", gap: "10px" }}>
+
+            <div style={{ textAlign: "left", background: "#FAF8F5", border: `1px solid ${theme.colors.borderLight}`, borderRadius: "10px", padding: "12px 14px", marginBottom: "16px", fontSize: "0.83rem", color: theme.colors.textMain, lineHeight: 1.5 }}>
+              <strong style={{ display: "block", color: theme.colors.primary, marginBottom: "6px", fontSize: "0.84rem", textTransform: "uppercase" }}>
+                📱 Como confirmar sua presença:
+              </strong>
+              <div><strong>1.</strong> Abra a câmera do seu celular e aponte para o QR Code acima.</div>
+              <div><strong>2.</strong> Toque no link que aparecer na tela para abrir o aplicativo.</div>
+              <div><strong>3.</strong> Pronto! Sua presença na escala de hoje será registrada automaticamente.</div>
+            </div>
+
+            <p style={{ margin: "0 0 18px 0", fontSize: "0.78rem", fontStyle: "italic", color: theme.colors.textSecondary, fontWeight: 600 }}>
+              "Servir ao Altar com zelo, pontualidade e alegria."
+            </p>
+
+            <div className="no-print" style={{ display: "flex", gap: "10px" }}>
               <button
+                type="button"
                 onClick={() => window.print()}
-                style={{ flex: 1, padding: "11px", background: theme.colors.primaryGradient, color: "white", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}
+                style={{ flex: 1.3, padding: "12px", background: theme.colors.primaryGradient, color: "white", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}
               >
-                🖨️ Imprimir
+                🖨️ Imprimir Cartaz
               </button>
               <button
+                type="button"
                 onClick={() => setShowQrModal(false)}
-                style={{ flex: 1, padding: "11px", background: "#f5f5f5", color: "#555", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}
+                style={{ flex: 0.7, padding: "12px", background: "#EFECE6", color: "#4A3222", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}
               >
                 Fechar
               </button>
             </div>
+
+            <style>{`
+              @media print {
+                body * {
+                  visibility: hidden !important;
+                }
+                .qr-print-overlay,
+                .qr-print-overlay * {
+                  visibility: visible !important;
+                }
+                .qr-print-overlay {
+                  position: absolute !important;
+                  inset: 0 !important;
+                  background: #ffffff !important;
+                  padding: 0 !important;
+                  display: flex !important;
+                  align-items: center !important;
+                  justify-content: center !important;
+                }
+                .qr-print-card {
+                  box-shadow: none !important;
+                  max-width: 520px !important;
+                  width: 100% !important;
+                  padding: 36px !important;
+                  border: 3px solid #4A3222 !important;
+                }
+                .qr-print-card .no-print {
+                  display: none !important;
+                }
+              }
+            `}</style>
           </div>
         </div>
       )}
