@@ -41,7 +41,6 @@ import { CountdownTimer } from "./CountdownTimer";
 import { ToastContainer, ConfirmModal, useToast } from "./Toast";
 import { theme } from "../theme/theme";
 import { calculateRanking } from "../utils/ranking.utils";
-import { getLiturgicalColor, isSunday } from "../utils/liturgicalColors.utils";
 import "./css/UserPanel.css"; // CSS Importado aqui
 
 // Lazy loading de abas secundárias e modais pesados (ex: html2canvas no RankingModal)
@@ -977,8 +976,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                     const diffMinutesNow = (Date.now() - new Date(mass.date).getTime()) / 60000;
                     const canSelfCheckIn = jaEstouInscrita && !souReserva && diffMinutesNow >= -120 && diffMinutesNow <= 240;
 
-                    const liturgicalColor = getLiturgicalColor(new Date(mass.date));
-                    const isSundayDay = isSunday(new Date(mass.date));
+                    const isSundayDay = new Date(mass.date).getDay() === 0;
 
                     const estaAberto = mass.open;
                     const prazoEncerrado = checkStatus(mass.date, mass.deadline);
@@ -1001,9 +999,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                     if (mass.isSolemnity) {
                       highlightClass = "solemnity-card";
                     } else if (isSundayDay) {
-                      highlightClass = `sunday-card ${liturgicalColor}-card`;
-                    } else {
-                      highlightClass = `${liturgicalColor}-card`;
+                      highlightClass = "sunday-card";
                     }
 
                     let btnClass = "btn-servir";
