@@ -11,8 +11,20 @@ clientsClaim();
 precacheAndRoute(self.__WB_MANIFEST || []);
 cleanupOutdatedCaches();
 
-const RUNTIME_CACHE = 'servos-runtime-v3';
+const RUNTIME_CACHE = 'servos-runtime-v4';
 const SHELL_CACHE_KEY = '/__app_shell__';
+
+self.addEventListener('activate', (event: ExtendableEvent) => {
+    event.waitUntil(
+        caches.keys().then((keys) =>
+            Promise.all(
+                keys
+                    .filter((k) => k.startsWith('servos-runtime-') && k !== RUNTIME_CACHE)
+                    .map((k) => caches.delete(k))
+            )
+        )
+    );
+});
 
 // Cache inteligente para economizar dados móveis (Fontes, Imagens de Formação, Ícones e App Shell offline)
 self.addEventListener('fetch', (event: FetchEvent) => {
