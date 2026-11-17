@@ -72,7 +72,14 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
   const [showBadges, setShowBadges] = useState(false);
   const [showRanking, setShowRanking] = useState(false);
   const [showUnavailabilityModal, setShowUnavailabilityModal] = useState(false);
-  const [myUnavailabilities, setMyUnavailabilities] = useState<UnavailabilityItem[]>([]);
+  const [myUnavailabilities, setMyUnavailabilities] = useState<UnavailabilityItem[]>(() => {
+    try {
+      const raw = localStorage.getItem(`servas_unav_${user.id}`);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
   const [unavDate, setUnavDate] = useState("");
   const [unavReason, setUnavReason] = useState("");
   const [unavLoading, setUnavLoading] = useState(false);
@@ -140,7 +147,11 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
       .then((meta) => {
         if (meta?.genders) setGlobalUserGenders(meta.genders);
         if (meta?.unavailabilities && user?.id) {
-          setMyUnavailabilities(meta.unavailabilities[user.id] || []);
+          const list = meta.unavailabilities[user.id] || [];
+          setMyUnavailabilities(list);
+          try {
+            localStorage.setItem(`servas_unav_${user.id}`, JSON.stringify(list));
+          } catch {}
         }
       })
       .catch(() => {});
@@ -467,6 +478,9 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
       setUnavLoading(true);
       const updated = await addUnavailability(unavDate, unavReason);
       setMyUnavailabilities(updated);
+      try {
+        localStorage.setItem(`servas_unav_${user.id}`, JSON.stringify(updated));
+      } catch {}
       setUnavDate("");
       setUnavReason("");
       show("Indisponibilidade registrada! Os coordenadores não incluirão você nesta data.", "success");
@@ -482,6 +496,9 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
       setUnavLoading(true);
       const updated = await removeUnavailability(date);
       setMyUnavailabilities(updated);
+      try {
+        localStorage.setItem(`servas_unav_${user.id}`, JSON.stringify(updated));
+      } catch {}
       show("Data liberada novamente.", "info");
     } catch {
       show("Erro ao remover data.", "error");

@@ -358,6 +358,8 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [servaSearch, setServaSearch] = useState("");
   const [servaFilter, setServaFilter] = useState<"ALL" | "ACTIVE" | "FORMACAO" | "INATIVO" | "M" | "F">("ALL");
   const [servaSortByDays, setServaSortByDays] = useState(false);
+  const [unavModalServa, setUnavModalServa] = useState<{ name: string; items: UnavailabilityItem[] } | null>(null);
+  const [showAllUnavModal, setShowAllUnavModal] = useState(false);
   const [showServaModal, setShowServaModal] = useState(false);
   const [editingServa, setEditingServa] = useState<ServaData | null>(null);
   const [servaForm, setServaForm] = useState<{ name: string; email: string; password: string; birthDate: string; role: string; gender: "M" | "F" | "" }>({
@@ -1904,6 +1906,29 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
               <Clock size={13} />
               <span>Mais dias sem escala</span>
             </button>
+            <button
+              type="button"
+              onClick={() => setShowAllUnavModal(true)}
+              style={{
+                padding: "6px 12px",
+                borderRadius: "8px",
+                border: "1px solid #FDE68A",
+                background: "#FEF3C7",
+                color: "#92400E",
+                fontSize: "0.75rem",
+                fontWeight: 700,
+                whiteSpace: "nowrap",
+                cursor: "pointer",
+                textTransform: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+              }}
+              title="Ver todas as ausências registradas pelos membros"
+            >
+              <Calendar size={13} />
+              <span>Ausências ({Object.values(unavailabilitiesMap).reduce((sum, arr) => sum + arr.length, 0)})</span>
+            </button>
           </div>
 
           {/* LISTA DE MEMBROS EM CARDS RESPONSIVOS */}
@@ -1994,9 +2019,23 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                             <span>{daysInfo.label}</span>
                           </span>
                           {unavList.length > 0 && (
-                            <span style={{ fontSize: "0.68rem", background: "#FEF3C7", color: "#B45309", padding: "2px 6px", borderRadius: "6px", fontWeight: 700 }}>
+                            <button
+                              type="button"
+                              onClick={() => setUnavModalServa({ name: serva.name, items: unavList })}
+                              style={{
+                                fontSize: "0.68rem",
+                                background: "#FEF3C7",
+                                color: "#B45309",
+                                border: "1px solid #FDE68A",
+                                padding: "2px 7px",
+                                borderRadius: "6px",
+                                fontWeight: 700,
+                                cursor: "pointer",
+                              }}
+                              title="Clique para ver as datas e motivos"
+                            >
                               📅 {unavList.length} ausência(s)
-                            </span>
+                            </button>
                           )}
                         </div>
                       </div>
@@ -2063,6 +2102,156 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
             <Suspense fallback={<div style={{ padding: 20, textAlign: "center" }}>Carregando logs...</div>}>
               <LoginLogs />
             </Suspense>
+          </div>
+        </div>
+      )}
+      {/* MODAL DE AUSÊNCIAS REGISTRADAS */}
+      {(unavModalServa || showAllUnavModal) && (
+        <div
+          onClick={() => {
+            setUnavModalServa(null);
+            setShowAllUnavModal(false);
+          }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0,0,0,0.55)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+            backdropFilter: "blur(3px)",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: "#FAF8F5",
+              width: "100%",
+              maxWidth: "430px",
+              maxHeight: "80vh",
+              borderRadius: "16px",
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+              border: `1px solid ${theme.colors.border}`,
+              boxShadow: "0 20px 50px rgba(0,0,0,0.3)",
+            }}
+          >
+            <div
+              style={{
+                background: theme.colors.primaryGradient,
+                color: "#fff",
+                padding: "14px 16px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 800, fontSize: "1rem" }}>
+                  {unavModalServa ? `Ausências — ${unavModalServa.name}` : "Todas as Ausências Registradas"}
+                </div>
+                <div style={{ fontSize: "0.74rem", opacity: 0.9 }}>
+                  Indisponibilidades informadas pelos membros
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setUnavModalServa(null);
+                  setShowAllUnavModal(false);
+                }}
+                style={{
+                  background: "rgba(255,255,255,0.22)",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: 30,
+                  height: 30,
+                  color: "#fff",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div style={{ padding: "14px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "8px" }}>
+              {(() => {
+                const rows = unavModalServa
+                  ? unavModalServa.items.map((item) => ({
+                      userName: unavModalServa.name,
+                      date: item.date,
+                      reason: item.reason,
+                    }))
+                  : Object.entries(unavailabilitiesMap).flatMap(([uid, items]) => {
+                      const memberName =
+                        servasList.find((s) => s.id === uid)?.name ||
+                        allUsers.find((u) => u.id === uid)?.name ||
+                        "Membro";
+                      return (items || []).map((item) => ({
+                        userName: memberName,
+                        date: item.date,
+                        reason: item.reason,
+                      }));
+                    });
+
+                rows.sort((a, b) => a.date.localeCompare(b.date));
+
+                if (rows.length === 0) {
+                  return (
+                    <div style={{ textAlign: "center", padding: "24px 10px", color: "#888", fontSize: "0.86rem" }}>
+                      Nenhuma ausência registrada até o momento.
+                    </div>
+                  );
+                }
+
+                return rows.map((r, i) => (
+                  <div
+                    key={`${r.userName}-${r.date}-${i}`}
+                    style={{
+                      background: "#fff",
+                      border: "1px solid #E5DEC9",
+                      borderRadius: "10px",
+                      padding: "10px 12px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: "10px",
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      {!unavModalServa && (
+                        <div style={{ fontWeight: 800, fontSize: "0.86rem", color: "#23170F" }}>
+                          {r.userName}
+                        </div>
+                      )}
+                      <div style={{ fontSize: "0.78rem", color: "#5A4332", fontWeight: 600 }}>
+                        {r.reason || "Indisponível"}
+                      </div>
+                    </div>
+                    <span
+                      style={{
+                        background: "#FEF3C7",
+                        color: "#92400E",
+                        border: "1px solid #FDE68A",
+                        padding: "3px 8px",
+                        borderRadius: "8px",
+                        fontSize: "0.74rem",
+                        fontWeight: 800,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {new Date(r.date + "T12:00:00").toLocaleDateString("pt-BR")}
+                    </span>
+                  </div>
+                ));
+              })()}
+            </div>
           </div>
         </div>
       )}

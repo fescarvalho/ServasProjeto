@@ -40,6 +40,7 @@ export async function getUsersList(req: Request, res: Response) {
  */
 export async function getUserMeta(req: Request, res: Response) {
     try {
+        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
         const [meta, isAdmin] = await Promise.all([
             userService.getSystemUserMeta(),
             isRequestAdmin(req.userId),

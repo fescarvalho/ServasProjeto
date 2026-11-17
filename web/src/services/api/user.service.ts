@@ -26,7 +26,9 @@ export interface UserMetadataResponse {
  * Busca metadados de todos os usuários (gênero + indisponibilidades)
  */
 export async function getUserMetadata(): Promise<UserMetadataResponse> {
-    const response = await apiClient.get<UserMetadataResponse>("/users/metadata");
+    const response = await apiClient.get<UserMetadataResponse>("/users/metadata", {
+        params: { _t: Date.now() },
+    });
     return response.data;
 }
 
