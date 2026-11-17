@@ -22,16 +22,20 @@ import {
   CalendarOff,
   CheckCircle2,
   Trash2,
-  Filter
+  Filter,
+  WifiOff,
+  RefreshCw,
+  ArrowRight
 } from "lucide-react";
 import { Mass, UserData, Notice, SwapRequest } from "../types/types";
-import { formatRole, setGlobalUserGenders } from "../constants/roles";
+import { formatRole, getUserGender, setGlobalUserGenders } from "../constants/roles";
 import { getGoogleCalendarUrl, downloadMassICS } from "../utils/calendar.utils";
 import {
   isWithinSantuarioRadius,
   enqueueOfflineCheckin,
   syncOfflineCheckins,
   hasPendingOfflineCheckin,
+  getOfflineCheckinQueue,
 } from "../services/storage/offlineCheckin.service";
 import {
   getUserMetadata,
@@ -45,7 +49,7 @@ import * as swapRequestService from "../services/api/swap-request.service";
 import { CountdownTimer } from "./CountdownTimer";
 import { ToastContainer, ConfirmModal, useToast } from "./Toast";
 import { theme } from "../theme/theme";
-import { calculateRanking } from "../utils/ranking.utils";
+import { calculateRanking, getMassPoints } from "../utils/ranking.utils";
 import "./css/UserPanel.css"; // CSS Importado aqui
 
 // Lazy loading de abas secundárias e modais pesados (ex: html2canvas no RankingModal)
@@ -144,31 +148,47 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
       .catch(() => {});
   }, [user?.id]);
 
+  const [isOnline, setIsOnline] = useState(() => (typeof navigator !== "undefined" ? navigator.onLine : true));
+  const [pendingOfflineCount, setPendingOfflineCount] = useState(() => getOfflineCheckinQueue().length);
+
+  const handleManualSyncOffline = async () => {
+    const { syncedCount, failedMessages } = await syncOfflineCheckins();
+    setPendingOfflineCount(getOfflineCheckinQueue().length);
+    if (syncedCount > 0) {
+      show(
+        `${syncedCount} check-in(s) registrado(s) offline foi(ram) sincronizado(s) com sucesso!`,
+        "success",
+        6000
+      );
+      onUpdate?.();
+    }
+    if (failedMessages.length > 0) {
+      show(failedMessages[0], "error", 8000);
+    }
+  };
+
   // --- SINCRONIZAÇÃO AUTOMÁTICA DE CHECK-INS OFFLINE QUANDO VOLTAR A INTERNET ---
   useEffect(() => {
     if (!user) return;
 
-    const runSync = async () => {
-      const { syncedCount, failedMessages } = await syncOfflineCheckins();
-      if (syncedCount > 0) {
-        show(
-          `${syncedCount} check-in(s) registrado(s) offline foi(ram) sincronizado(s) com sucesso!`,
-          "success",
-          6000
-        );
-        onUpdate?.();
-      }
-      if (failedMessages.length > 0) {
-        show(failedMessages[0], "error", 8000);
-      }
+    const handleOnline = async () => {
+      setIsOnline(true);
+      await handleManualSyncOffline();
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
     };
 
     if (navigator.onLine) {
-      runSync();
+      handleManualSyncOffline();
     }
 
-    window.addEventListener("online", runSync);
-    return () => window.removeEventListener("online", runSync);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
   }, [user?.id]);
 
   // --- CHECK-IN AUTOMÁTICO VIA QR CODE DA SACRISTIA (online ou offline com fila) ---
@@ -262,6 +282,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
               scannedAt,
               massName: myWindowEntry.mass.name,
             });
+            setPendingOfflineCount(getOfflineCheckinQueue().length);
             show(
               "Modo Offline: presença registrada no aparelho! Será enviada ao servidor assim que houver internet.",
               "success",
@@ -552,6 +573,34 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
     return acc;
   }, 0);
 
+  const currentMonthScore = useMemo(() => {
+    const now = new Date();
+    const monthlyRanking = calculateRanking(masses, now.getMonth(), now.getFullYear());
+    return monthlyRanking.find((r) => r.id === user.id)?.score ?? 0;
+  }, [masses, user.id]);
+
+  const rankTitle = useMemo(() => {
+    if (confirmedScore >= 25) return "Guardiã(o) do Altar";
+    if (confirmedScore >= 10) return "Servo(a) Fiel";
+    return "Iniciante do Altar";
+  }, [confirmedScore]);
+
+  const nextUpcomingScale = useMemo(() => {
+    const minTime = Date.now() - 2 * 60 * 60 * 1000;
+    const upcoming = masses
+      .map((mass) => {
+        const signup = mass.signups.find((s) => s.userId === user.id && (s as any).status !== "RESERVA");
+        return signup ? { mass, signup } : null;
+      })
+      .filter((item): item is { mass: Mass; signup: Mass["signups"][number] } => {
+        if (!item) return false;
+        return new Date(item.mass.date).getTime() >= minTime;
+      })
+      .sort((a, b) => new Date(a.mass.date).getTime() - new Date(b.mass.date).getTime());
+
+    return upcoming[0] || null;
+  }, [masses, user.id]);
+
   return (
     <div
       className="user-panel-container"
@@ -562,7 +611,8 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
         position: "relative",
         display: "flex",
         flexDirection: "column",
-        backgroundColor: theme.colors.background
+        backgroundColor: theme.colors.background,
+        paddingBottom: isMobile ? "74px" : "0",
       }}
     >
       <Suspense fallback={null}>
@@ -834,62 +884,116 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
           </p>
         </div>
 
-        <p style={{ fontSize: "0.85rem", opacity: 0.85, marginTop: "4px", letterSpacing: "0.5px" }}>"Servir ao Altar com zelo e alegria."</p>
-      </div>
-
-      {/* ABAS */}
-      <div className="container-tabs no-print" style={{ width: "100%", boxSizing: "border-box" }}>
-        {/* Linha 1: Abas de navegação */}
-        <div className="menu-tabs-scroll-wrapper" style={{
-          display: "flex",
-          width: "100%",
-          background: "white",
-          borderRadius: "12px 12px 0 0",
-          padding: "6px 6px 0",
-          boxSizing: "border-box",
-          boxShadow: "0 -2px 10px rgba(0,0,0,0.05)",
-          border: `1px solid ${theme.colors.borderLight}`,
-          borderBottom: "none",
-          overflowX: "auto",
-          scrollbarWidth: "none",
-          msOverflowStyle: "none"
-        }}>
-          <button onClick={() => setActiveTab("inscricoes")} className={`tab-btn ${activeTab === "inscricoes" ? "active" : ""}`} style={{ flex: "1 0 auto", minWidth: isMobile ? "80px" : "auto", display: "flex", justifyContent: "center", gap: "5px" }}>
-            <Calendar size={16} /> <span className="mobile-hide-text">Inscrições</span>
-          </button>
-          <button onClick={() => setActiveTab("documento")} className={`tab-btn ${activeTab === "documento" ? "active" : ""}`} style={{ flex: "1 0 auto", minWidth: isMobile ? "80px" : "auto", display: "flex", justifyContent: "center", gap: "5px" }}>
-            <FileText size={16} /> <span className="mobile-hide-text">Escala</span>
-          </button>
-          <button onClick={() => setActiveTab("calendario")} className={`tab-btn ${activeTab === "calendario" ? "active" : ""}`} style={{ flex: "1 0 auto", minWidth: isMobile ? "60px" : "auto", display: "flex", justifyContent: "center", gap: "5px" }} title="Calendário Litúrgico">
-            <BookOpen size={16} /> <span className="mobile-hide-text">Liturgia</span>
-          </button>
-          <button onClick={() => setActiveTab("oracoes")} className={`tab-btn ${activeTab === "oracoes" ? "active" : ""}`} style={{ flex: "1 0 auto", minWidth: isMobile ? "80px" : "auto", display: "flex", justifyContent: "center", gap: "5px" }} title="Orações">
-            <BookMarked size={16} /> <span className="mobile-hide-text">Orações</span>
+        <div style={{ marginTop: "6px", marginBottom: "2px" }}>
+          <button
+            type="button"
+            onClick={() => setShowRanking(true)}
+            style={{
+              background: "rgba(230, 199, 134, 0.18)",
+              border: "1px solid rgba(230, 199, 134, 0.45)",
+              color: "#FDFBF7",
+              padding: "5px 14px",
+              borderRadius: "20px",
+              fontSize: "0.76rem",
+              fontWeight: 700,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              backdropFilter: "blur(4px)",
+            }}
+            title="Abrir meu extrato de pontos e ranking"
+          >
+            <Trophy size={13} color="#E6C786" />
+            <span>{currentMonthScore} pts este mês</span>
+            <span style={{ opacity: 0.65 }}>•</span>
+            <span style={{ color: "#E6C786" }}>{rankTitle}</span>
+            <ArrowRight size={12} color="#E6C786" />
           </button>
         </div>
 
-        {/* Linha 2: Botões de ação */}
-        <div style={{ display: "flex", width: "100%", background: "white", borderRadius: "0 0 12px 12px", padding: "4px 6px 6px", boxSizing: "border-box", border: `1px solid ${theme.colors.borderLight}`, borderTop: "1px solid #f0ede6", boxShadow: "0 6px 16px rgba(44, 26, 16, 0.08)", justifyContent: "flex-end", gap: "4px" }}>
-          <button onClick={() => setShowRanking(true)} className="tab-btn" style={{ flex: 1, color: theme.colors.success, display: "flex", justifyContent: "center" }} title="Placar Mensal">
-            <Medal size={18} />
+        <p style={{ fontSize: "0.85rem", opacity: 0.85, marginTop: "6px", letterSpacing: "0.5px" }}>"Servir ao Altar com zelo e alegria."</p>
+      </div>
+
+      {/* ABAS E AÇÕES RÁPIDAS */}
+      <div className="container-tabs no-print" style={{ width: "100%", boxSizing: "border-box" }}>
+        {/* Linha 1 (Desktop): Abas de navegação (no mobile ficam fixas na barra inferior) */}
+        {!isMobile && (
+          <div className="menu-tabs-scroll-wrapper" style={{
+            display: "flex",
+            width: "100%",
+            background: "white",
+            borderRadius: "12px 12px 0 0",
+            padding: "6px 6px 0",
+            boxSizing: "border-box",
+            boxShadow: "0 -2px 10px rgba(0,0,0,0.05)",
+            border: `1px solid ${theme.colors.borderLight}`,
+            borderBottom: "none",
+          }}>
+            <button onClick={() => setActiveTab("inscricoes")} className={`tab-btn ${activeTab === "inscricoes" ? "active" : ""}`} style={{ flex: "1 0 auto", display: "flex", justifyContent: "center", gap: "5px" }}>
+              <Calendar size={16} /> <span>Inscrições</span>
+            </button>
+            <button onClick={() => setActiveTab("documento")} className={`tab-btn ${activeTab === "documento" ? "active" : ""}`} style={{ flex: "1 0 auto", display: "flex", justifyContent: "center", gap: "5px" }}>
+              <FileText size={16} /> <span>Escala</span>
+            </button>
+            <button onClick={() => setActiveTab("calendario")} className={`tab-btn ${activeTab === "calendario" ? "active" : ""}`} style={{ flex: "1 0 auto", display: "flex", justifyContent: "center", gap: "5px" }} title="Calendário Litúrgico">
+              <BookOpen size={16} /> <span>Liturgia</span>
+            </button>
+            <button onClick={() => setActiveTab("oracoes")} className={`tab-btn ${activeTab === "oracoes" ? "active" : ""}`} style={{ flex: "1 0 auto", display: "flex", justifyContent: "center", gap: "5px" }} title="Orações">
+              <BookMarked size={16} /> <span>Orações</span>
+            </button>
+          </div>
+        )}
+
+        {/* Barra de ações rápidas com legendas claras */}
+        <div
+          style={{
+            display: "flex",
+            width: "100%",
+            background: "white",
+            borderRadius: isMobile ? "12px" : "0 0 12px 12px",
+            padding: isMobile ? "6px 4px" : "4px 6px 6px",
+            boxSizing: "border-box",
+            border: `1px solid ${theme.colors.borderLight}`,
+            borderTop: isMobile ? `1px solid ${theme.colors.borderLight}` : "1px solid #f0ede6",
+            boxShadow: "0 6px 16px rgba(44, 26, 16, 0.08)",
+            justifyContent: "space-between",
+            gap: "2px",
+          }}
+        >
+          <button
+            onClick={() => setShowRanking(true)}
+            className="tab-btn"
+            style={{ flex: 1, color: theme.colors.success, display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: "center", justifyContent: "center", gap: isMobile ? "2px" : "5px", padding: isMobile ? "6px 2px" : undefined, fontSize: isMobile ? "0.65rem" : "0.82rem" }}
+            title="Placar Mensal e Extrato"
+          >
+            <Medal size={17} />
+            <span>Placar</span>
           </button>
-          <button onClick={() => setShowBadges(true)} className="tab-btn" style={{ flex: 1, color: theme.colors.warning, display: "flex", justifyContent: "center" }} title="Minhas Conquistas">
-            <Trophy size={18} />
+          <button
+            onClick={() => setShowBadges(true)}
+            className="tab-btn"
+            style={{ flex: 1, color: theme.colors.warning, display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: "center", justifyContent: "center", gap: isMobile ? "2px" : "5px", padding: isMobile ? "6px 2px" : undefined, fontSize: isMobile ? "0.65rem" : "0.82rem" }}
+            title="Minhas Conquistas"
+          >
+            <Trophy size={17} />
+            <span>Conquistas</span>
           </button>
           <button
             onClick={() => setShowUnavailabilityModal(true)}
             className="tab-btn"
-            style={{ flex: 1, color: myUnavailabilities.length > 0 ? theme.colors.primary : theme.colors.textSecondary, display: "flex", justifyContent: "center", position: "relative" }}
+            style={{ flex: 1, color: myUnavailabilities.length > 0 ? theme.colors.primary : theme.colors.textSecondary, display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: "center", justifyContent: "center", gap: isMobile ? "2px" : "5px", padding: isMobile ? "6px 2px" : undefined, fontSize: isMobile ? "0.65rem" : "0.82rem", position: "relative" }}
             title="Indisponibilidade Programada / Justificar Ausência"
           >
-            <CalendarOff size={18} />
+            <CalendarOff size={17} />
+            <span>Ausência</span>
             {myUnavailabilities.length > 0 && (
-              <span style={{ position: "absolute", top: 4, right: 6, background: theme.colors.primary, color: "white", fontSize: "0.58rem", fontWeight: "bold", padding: "1px 4px", borderRadius: "8px" }}>
+              <span style={{ position: "absolute", top: 2, right: isMobile ? 6 : 6, background: theme.colors.primary, color: "white", fontSize: "0.58rem", fontWeight: "bold", padding: "1px 4px", borderRadius: "8px" }}>
                 {myUnavailabilities.length}
               </span>
             )}
           </button>
-          <div style={{ position: "relative", flex: 1 }}>
+          <div style={{ position: "relative", flex: 1, display: "flex" }}>
             <button
               onClick={() => {
                 if (unreadCount > 0) {
@@ -903,20 +1007,82 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                   show("Você não tem missas abertas pendentes no momento.", "info");
                 }
               }}
-              className="tab-btn" style={{ width: "100%", color: unreadCount > 0 ? theme.colors.danger : theme.colors.textMuted, display: "flex", justifyContent: "center" }} title="Notificações do Sistema">
-              <Bell size={18} />
+              className="tab-btn"
+              style={{ width: "100%", color: unreadCount > 0 ? theme.colors.danger : theme.colors.textMuted, display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: "center", justifyContent: "center", gap: isMobile ? "2px" : "5px", padding: isMobile ? "6px 2px" : undefined, fontSize: isMobile ? "0.65rem" : "0.82rem" }}
+              title="Notificações do Sistema"
+            >
+              <Bell size={17} />
+              <span>Avisos</span>
               {unreadCount > 0 && (
-                <span style={{ position: "absolute", top: 4, right: 4, background: "red", color: "white", fontSize: "0.6rem", fontWeight: "bold", padding: "1px 5px", borderRadius: "10px", minWidth: "14px", textAlign: "center", lineHeight: "1" }}>
+                <span style={{ position: "absolute", top: 2, right: 6, background: "red", color: "white", fontSize: "0.58rem", fontWeight: "bold", padding: "1px 5px", borderRadius: "10px", minWidth: "14px", textAlign: "center", lineHeight: "1" }}>
                   {unreadCount}
                 </span>
               )}
             </button>
           </div>
-          <button onClick={onLogout} className="tab-btn logout" style={{ flex: 1, display: "flex", justifyContent: "center", color: theme.colors.dangerDark }}>
-            <LogOut size={18} />
+          <button
+            onClick={onLogout}
+            className="tab-btn logout"
+            style={{ flex: 1, display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: "center", justifyContent: "center", gap: isMobile ? "2px" : "5px", padding: isMobile ? "6px 2px" : undefined, fontSize: isMobile ? "0.65rem" : "0.82rem", color: theme.colors.dangerDark }}
+            title="Sair da conta"
+          >
+            <LogOut size={17} />
+            <span>Sair</span>
           </button>
         </div>
       </div>
+
+      {/* FAIXA DE MODO OFFLINE / CHECK-IN PENDENTE */}
+      {(!isOnline || pendingOfflineCount > 0) && (
+        <div
+          className="no-print"
+          style={{
+            margin: "12px 15px 0 15px",
+            padding: "10px 14px",
+            borderRadius: "10px",
+            background: pendingOfflineCount > 0 ? "#FEF3C7" : "#F3F4F6",
+            border: `1px solid ${pendingOfflineCount > 0 ? "#FCD34D" : "#D1D5DB"}`,
+            color: pendingOfflineCount > 0 ? "#92400E" : "#374151",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "10px",
+            fontSize: "0.78rem",
+            fontWeight: 700,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <WifiOff size={16} style={{ flexShrink: 0 }} />
+            <span>
+              {pendingOfflineCount > 0
+                ? `${pendingOfflineCount} check-in(s) salvo(s) offline — será(ão) enviado(s) automaticamente ao conectar.`
+                : "Modo Offline ativo — suas escalas em cache continuam disponíveis para consulta e QR Code."}
+            </span>
+          </div>
+          {pendingOfflineCount > 0 && isOnline && (
+            <button
+              type="button"
+              onClick={handleManualSyncOffline}
+              style={{
+                background: "#92400E",
+                color: "#fff",
+                border: "none",
+                borderRadius: "8px",
+                padding: "5px 10px",
+                fontSize: "0.72rem",
+                fontWeight: 800,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+                flexShrink: 0,
+              }}
+            >
+              <RefreshCw size={12} /> Sincronizar
+            </button>
+          )}
+        </div>
+      )}
 
 
       {/* AVISOS */}
@@ -940,6 +1106,124 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
       <div style={{ flex: 1, width: "100%", boxSizing: "border-box" }}>
         {activeTab === "inscricoes" ? (
           <div>
+            {/* CARD DE DESTAQUE: SUA PRÓXIMA ESCALA */}
+            {nextUpcomingScale && (() => {
+              const nextMass = nextUpcomingScale.mass;
+              const nextSignup = nextUpcomingScale.signup;
+              const nextDate = new Date(nextMass.date);
+              const nextDateStr = nextDate.toLocaleDateString("pt-BR", {
+                timeZone: "America/Sao_Paulo",
+                weekday: "short",
+                day: "2-digit",
+                month: "2-digit",
+              });
+              const nextTimeStr = nextDate.toLocaleTimeString("pt-BR", {
+                timeZone: "America/Sao_Paulo",
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+              const nextRole = nextSignup.role
+                ? formatRole(nextSignup.role, getUserGender(user.id, user.name))
+                : "Auxiliar";
+              const isConfirmedPresent = Boolean(nextSignup.present);
+              const isPendingOffline = hasPendingOfflineCheckin(nextSignup.id);
+
+              return (
+                <div
+                  className="no-print"
+                  style={{
+                    margin: "12px 16px 4px 16px",
+                    padding: "14px 16px",
+                    borderRadius: "14px",
+                    background: "linear-gradient(135deg, #FFFFFF 0%, #FAF6EE 100%)",
+                    border: "1.5px solid #B8925A",
+                    boxShadow: "0 4px 14px rgba(74, 50, 34, 0.08)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                    <span style={{ fontSize: "0.68rem", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: "#8C6530" }}>
+                      ⛪ Sua Próxima Escala
+                    </span>
+                    {isConfirmedPresent ? (
+                      <span style={{ background: "#DCFCE7", color: "#166534", padding: "2px 8px", borderRadius: "10px", fontSize: "0.68rem", fontWeight: 800 }}>
+                        ✓ Presença Confirmada
+                      </span>
+                    ) : isPendingOffline ? (
+                      <span style={{ background: "#FEF3C7", color: "#92400E", padding: "2px 8px", borderRadius: "10px", fontSize: "0.68rem", fontWeight: 800 }}>
+                        ⏳ Aguardando Sincronizar
+                      </span>
+                    ) : (
+                      <span style={{ background: "#F7F5F0", color: theme.colors.primary, border: `1px solid ${theme.colors.border}`, padding: "2px 8px", borderRadius: "10px", fontSize: "0.68rem", fontWeight: 700 }}>
+                        {nextMass.published ? nextRole : "Aguardando publicação"}
+                      </span>
+                    )}
+                  </div>
+
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: "0.98rem", color: "#23170F", textTransform: "capitalize" }}>
+                      {nextDateStr} • {nextTimeStr}
+                      {nextMass.name ? ` — ${nextMass.name}` : ""}
+                    </div>
+                    <div style={{ fontSize: "0.78rem", color: "#5A4332", marginTop: "2px", fontWeight: 600 }}>
+                      📍 {nextMass.local || "Santuário"}
+                      {nextMass.published && ` • Função: ${nextRole}`}
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => setCalendarModalMass({ mass: nextMass, roleLabel: nextRole })}
+                      style={{
+                        flex: 1,
+                        minWidth: "120px",
+                        padding: "7px 10px",
+                        borderRadius: "8px",
+                        border: `1px solid ${theme.colors.border}`,
+                        background: "#ffffff",
+                        color: theme.colors.primary,
+                        fontSize: "0.76rem",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "5px",
+                      }}
+                    >
+                      <CalendarPlus size={14} /> Agenda
+                    </button>
+                    {!onlyMyMasses && (
+                      <button
+                        type="button"
+                        onClick={() => setOnlyMyMasses(true)}
+                        style={{
+                          flex: 1,
+                          minWidth: "120px",
+                          padding: "7px 10px",
+                          borderRadius: "8px",
+                          border: "none",
+                          background: theme.colors.primary,
+                          color: "#ffffff",
+                          fontSize: "0.76rem",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "5px",
+                        }}
+                      >
+                        <Filter size={14} /> Minhas Escalas
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* NAVEGADOR DE MESES */}
             <div className="month-navigator">
@@ -1203,6 +1487,27 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                                   {new Date(mass.date).toLocaleDateString("pt-BR", { weekday: "long" })}
                                 </span>
                               </div>
+                              {(() => {
+                                const pts = mass.points !== undefined && mass.points !== null ? mass.points : getMassPoints(mass.date);
+                                return (
+                                  <div style={{ marginTop: "6px" }}>
+                                    <span
+                                      style={{
+                                        display: "inline-block",
+                                        fontSize: "0.68rem",
+                                        fontWeight: 800,
+                                        padding: "2px 7px",
+                                        borderRadius: "6px",
+                                        background: pts >= 2 ? "#FEF3C7" : "#F7F5F0",
+                                        color: pts >= 2 ? "#92400E" : "#5A4332",
+                                        border: `1px solid ${pts >= 2 ? "#FDE68A" : theme.colors.border}`,
+                                      }}
+                                    >
+                                      +{pts} {pts === 1 ? "ponto" : "pontos"}
+                                    </span>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           </div>
 
@@ -1362,6 +1667,76 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
           onConfirm={confirmState.onConfirm}
           onCancel={() => setConfirmState(null)}
         />
+      )}
+
+      {/* BARRA INFERIOR FIXA NO CELULAR */}
+      {isMobile && (
+        <nav
+          className="no-print"
+          style={{
+            position: "fixed",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: 900,
+            background: "rgba(255, 255, 255, 0.96)",
+            backdropFilter: "blur(10px)",
+            borderTop: `1px solid ${theme.colors.border}`,
+            boxShadow: "0 -4px 16px rgba(44, 26, 16, 0.08)",
+            display: "flex",
+            justifyContent: "space-around",
+            alignItems: "center",
+            padding: "6px 4px",
+            paddingBottom: "calc(6px + env(safe-area-inset-bottom, 0px))",
+          }}
+        >
+          {[
+            { id: "inscricoes" as const, label: "Inscrições", icon: <Calendar size={19} /> },
+            { id: "documento" as const, label: "Escala", icon: <FileText size={19} /> },
+            { id: "calendario" as const, label: "Liturgia", icon: <BookOpen size={19} /> },
+            { id: "oracoes" as const, label: "Orações", icon: <BookMarked size={19} /> },
+          ].map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "2px",
+                  padding: "4px 2px",
+                  border: "none",
+                  background: "transparent",
+                  color: isActive ? theme.colors.primary : "#8C7360",
+                  fontWeight: isActive ? 800 : 600,
+                  fontSize: "0.68rem",
+                  cursor: "pointer",
+                  position: "relative",
+                }}
+              >
+                {isActive && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: "-6px",
+                      width: "26px",
+                      height: "3px",
+                      borderRadius: "3px",
+                      background: theme.colors.primary,
+                    }}
+                  />
+                )}
+                {tab.icon}
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </nav>
       )}
     </div>
   );

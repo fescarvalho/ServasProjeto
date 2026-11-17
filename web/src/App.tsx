@@ -196,8 +196,13 @@ function App() {
                 }}>
                   <Cross size={28} strokeWidth={2.2} />
                 </div>
-                <h2 style={{ marginBottom: 8, color: theme.colors.primary, fontFamily: "'Cinzel', Georgia, serif", fontSize: "1.35rem", letterSpacing: "0.5px" }}>SERVOS DO ALTAR</h2>
-                <p style={{ color: theme.colors.textSecondary, fontSize: "0.9rem", marginBottom: 28 }}>Acesse sua conta para continuar</p>
+                <h2 style={{ marginBottom: 4, color: theme.colors.primary, fontFamily: "'Cinzel', Georgia, serif", fontSize: "1.25rem", letterSpacing: "0.5px", lineHeight: 1.25 }}>
+                  GRUPO DE SERVOS E SERVAS
+                </h2>
+                <p style={{ color: theme.colors.secondary, fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.3px", margin: "0 0 18px 0" }}>
+                  Santuário Diocesano Nossa Senhora da Natividade
+                </p>
+                <p style={{ color: theme.colors.textSecondary, fontSize: "0.85rem", marginBottom: 24 }}>Acesse sua conta para continuar</p>
 
                 <form onSubmit={handleLogin}>
                   <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Seu E-mail" style={{ marginBottom: 14, width: "100%", padding: "12px 14px", borderRadius: "8px", border: `1px solid ${theme.colors.border}`, boxSizing: "border-box", color: theme.colors.textMain }} />
