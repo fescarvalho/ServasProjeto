@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useRef, lazy, Suspense } from "react";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   Cross,
   Calendar,
@@ -38,6 +37,7 @@ import {
 } from "../services/storage/offlineCheckin.service";
 import {
   getUserMetadata,
+  getMyUnavailabilities,
   addUnavailability,
   removeUnavailability,
   UnavailabilityItem
@@ -143,16 +143,20 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
     });
     loadSwapRequests();
     loadUnreadNotifications();
-    getUserMetadata()
-      .then((meta) => {
-        if (meta?.genders) setGlobalUserGenders(meta.genders);
-        if (meta?.unavailabilities && user?.id) {
-          const list = meta.unavailabilities[user.id] || [];
+    getMyUnavailabilities()
+      .then((list) => {
+        if (Array.isArray(list)) {
           setMyUnavailabilities(list);
           try {
             localStorage.setItem(`servas_unav_${user.id}`, JSON.stringify(list));
           } catch {}
         }
+      })
+      .catch(() => {});
+
+    getUserMetadata()
+      .then((meta) => {
+        if (meta?.genders) setGlobalUserGenders(meta.genders);
       })
       .catch(() => {});
   }, [user?.id]);
@@ -546,33 +550,44 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
     return monthMasses.filter(m => m.signups.some(s => s.userId === user.id));
   }, [monthMasses, onlyMyMasses, user.id]);
 
-  // --- VIRTUALIZADOR ---
-  const rowVirtualizer = useVirtualizer({
-    count: filteredMasses.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => isMobile ? (window.innerWidth - 40 + 15) : 180, // Largura do card + gap no mobile, altura no desktop
-    horizontal: isMobile,
-    overscan: 3,
-  });
+  // --- AGRUPAMENTO POR DIA (para agrupar missas do mesmo dia e rolar 1 dia por vez) ---
+  const groupedMassesByDay = useMemo(() => {
+    const groups: { dateKey: string; dateObj: Date; masses: Mass[] }[] = [];
+    const map = new Map<string, { dateKey: string; dateObj: Date; masses: Mass[] }>();
+
+    for (const mass of filteredMasses) {
+      const d = new Date(mass.date);
+      const brKey = d.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+      let grp = map.get(brKey);
+      if (!grp) {
+        grp = { dateKey: brKey, dateObj: d, masses: [] };
+        map.set(brKey, grp);
+        groups.push(grp);
+      }
+      grp.masses.push(mass);
+    }
+    return groups;
+  }, [filteredMasses]);
+
+  const dayCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // --- AUTO-SCROLL PARA A PRIMEIRA DATA DISPONÍVEL ---
   useEffect(() => {
-    if (activeTab === "inscricoes" && filteredMasses.length > 0) {
+    if (activeTab === "inscricoes" && groupedMassesByDay.length > 0) {
       const now = new Date();
       now.setHours(0, 0, 0, 0);
 
-      const firstUpcomingIndex = filteredMasses.findIndex(m => new Date(m.date) >= now);
-
-      if (firstUpcomingIndex !== -1) {
+      const firstUpcoming = groupedMassesByDay.find((g) => g.dateObj >= now);
+      if (firstUpcoming) {
         setTimeout(() => {
-          rowVirtualizer.scrollToIndex(firstUpcomingIndex, {
-            align: "center",
-            behavior: "smooth"
-          });
+          const el = dayCardRefs.current[firstUpcoming.dateKey];
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+          }
         }, 300);
       }
     }
-  }, [selectedDate, activeTab, filteredMasses, rowVirtualizer]);
+  }, [selectedDate, activeTab, groupedMassesByDay]);
 
   // Função robusta para checar se expirou
   const checkStatus = (massDate: string, deadline?: string) => {
@@ -1356,184 +1371,200 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                 <p style={{ fontSize: "0.8rem" }}>Use as setas acima para navegar.</p>
               </div>
             ) : (
-              /* --- LISTA RESPONSIVA COM VIRTUALIZAÇÃO --- */
-              <div
-                ref={parentRef}
-                className="responsive-list-container no-scrollbar"
-                style={{
-                  display: "block",
-                  position: "relative",
-                  height: isMobile ? "420px" : "calc(100vh - 250px)",
-                  width: "100%",
-                  overflowX: isMobile ? "auto" : "hidden",
-                  overflowY: isMobile ? "hidden" : "auto",
-                  padding: isMobile ? "10px 0 10px 0" : "0 30px 40px 30px",
-                  scrollSnapType: "none",
-                  boxSizing: "border-box"
-                }}
-              >
+              /* --- LISTA AGRUPADA POR DIA (1 dia por vez no celular com scroll-snap) --- */
+              <div>
+                {isMobile && groupedMassesByDay.length > 1 && (
+                  <div style={{ textAlign: "center", fontSize: "0.72rem", color: "#8C7360", fontWeight: 700, marginBottom: "6px" }}>
+                    ↔ Deslize para navegar entre os dias ({groupedMassesByDay.length} dias no mês)
+                  </div>
+                )}
                 <div
-                  style={{
-                    height: isMobile ? "100%" : `${rowVirtualizer.getTotalSize()}px`,
-                    width: isMobile ? `${rowVirtualizer.getTotalSize() + 40}px` : "100%",
-                    position: "relative",
-                  }}
+                  ref={parentRef}
+                  className="responsive-list-container no-scrollbar"
+                  style={
+                    isMobile
+                      ? {
+                          display: "flex",
+                          flexDirection: "row",
+                          alignItems: "flex-start",
+                          gap: "12px",
+                          overflowX: "auto",
+                          overflowY: "hidden",
+                          scrollSnapType: "x mandatory",
+                          WebkitOverflowScrolling: "touch",
+                          padding: "6px 18px 18px 18px",
+                          boxSizing: "border-box",
+                          width: "100%",
+                          height: "auto",
+                        }
+                      : {
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "18px",
+                          padding: "0 30px 40px 30px",
+                          maxWidth: "820px",
+                          margin: "0 auto",
+                          width: "100%",
+                          height: "auto",
+                          boxSizing: "border-box",
+                        }
+                  }
                 >
-                  {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-                    const mass = filteredMasses[virtualItem.index];
-                    const totalConfirmados = mass.signups ? mass.signups.filter((s: any) => s.status !== "RESERVA").length : 0;
-                    const vagasRestantes = mass.maxServers - totalConfirmados;
-                    const meuSignup = mass.signups.find((s) => s.userId === user.id);
-                    const jaEstouInscrita = !!meuSignup;
-                    const souReserva = (meuSignup as any)?.status === "RESERVA";
-                    const minhaFuncao = formatRole(meuSignup?.role, user.name, user.id);
+                  {groupedMassesByDay.map((group, groupIdx) => {
+                    const dayNum = group.dateObj.toLocaleDateString("pt-BR", {
+                      timeZone: "America/Sao_Paulo",
+                      day: "2-digit",
+                    });
+                    const monthShort = group.dateObj
+                      .toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", month: "short" })
+                      .replace(".", "")
+                      .toUpperCase();
+                    const weekdayLabel = group.dateObj.toLocaleDateString("pt-BR", {
+                      timeZone: "America/Sao_Paulo",
+                      weekday: "long",
+                    });
+                    const hasSolemnity = group.masses.some((m) => m.isSolemnity);
+                    const isSingleMass = group.masses.length === 1;
+                    const singleMass = isSingleMass ? group.masses[0] : null;
+                    const groupTitle = group.masses.find((m) => m.name)?.name || weekdayLabel;
 
-                    const isSundayDay = new Date(mass.date).getDay() === 0;
+                    if (isSingleMass && singleMass) {
+                      const mass = singleMass;
+                      const totalConfirmados = mass.signups ? mass.signups.filter((s: any) => s.status !== "RESERVA").length : 0;
+                      const vagasRestantes = mass.maxServers - totalConfirmados;
+                      const meuSignup = mass.signups.find((s) => s.userId === user.id);
+                      const jaEstouInscrita = !!meuSignup;
+                      const souReserva = (meuSignup as any)?.status === "RESERVA";
+                      const minhaFuncao = formatRole(meuSignup?.role, user.name, user.id);
 
-                    const estaAberto = mass.open;
-                    const prazoEncerrado = checkStatus(mass.date, mass.deadline);
-                    const lotado = vagasRestantes <= 0;
+                      const isSundayDay = new Date(mass.date).getDay() === 0;
+                      const estaAberto = mass.open;
+                      const prazoEncerrado = checkStatus(mass.date, mass.deadline);
+                      const lotado = vagasRestantes <= 0;
+                      const mostrarFuncao = jaEstouInscrita;
+                      const botaoDesabilitado = prazoEncerrado || !estaAberto;
+                      const isInativa = prazoEncerrado;
+                      const isAvailable = estaAberto && !prazoEncerrado;
 
-                    const mostrarFuncao = jaEstouInscrita;
+                      let cardClass = "";
+                      if (isInativa) cardClass = "card-inactive";
+                      else if (isAvailable) cardClass = "mass-highlight";
 
-                    const botaoDesabilitado = prazoEncerrado || !estaAberto;
-                    const isInativa = prazoEncerrado;
-                    const isAvailable = estaAberto && !prazoEncerrado;
+                      let highlightClass = "";
+                      if (mass.isSolemnity) highlightClass = "solemnity-card";
+                      else if (isSundayDay) highlightClass = "sunday-card";
 
-                    let cardClass = "";
-                    if (isInativa) {
-                      cardClass = "card-inactive";
-                    } else if (isAvailable) {
-                      cardClass = "mass-highlight";
-                    }
+                      let btnClass = "btn-servir";
+                      let btnText: React.ReactNode = <><Check size={16} strokeWidth={2.5} /> QUERO SERVIR</>;
 
-                    let highlightClass = "";
-                    if (mass.isSolemnity) {
-                      highlightClass = "solemnity-card";
-                    } else if (isSundayDay) {
-                      highlightClass = "sunday-card";
-                    }
-
-                    let btnClass = "btn-servir";
-                    let btnText: React.ReactNode = <><Check size={16} strokeWidth={2.5} /> QUERO SERVIR</>;
-
-                    if (jaEstouInscrita) {
-                      if (botaoDesabilitado) {
+                      if (jaEstouInscrita) {
+                        if (botaoDesabilitado) {
+                          btnClass = "btn-disabled";
+                          btnText = "FECHADO";
+                        } else {
+                          btnClass = "btn-desistir";
+                          btnText = souReserva ? "SAIR DA RESERVA" : "DESISTIR";
+                        }
+                      } else if (!estaAberto) {
                         btnClass = "btn-disabled";
-                        btnText = "FECHADO";
-                      } else {
-                        btnClass = "btn-desistir";
-                        btnText = souReserva ? "SAIR DA RESERVA" : "DESISTIR";
+                        btnText = "EM BREVE";
+                      } else if (prazoEncerrado) {
+                        btnClass = "btn-disabled";
+                        btnText = "ENCERRADO";
+                      } else if (lotado) {
+                        btnClass = "btn-reserva";
+                        btnText = <><Hourglass size={16} /> FILA DE ESPERA</>;
                       }
-                    } else if (!estaAberto) {
-                      btnClass = "btn-disabled";
-                      btnText = "EM BREVE";
-                    } else if (prazoEncerrado) {
-                      btnClass = "btn-disabled";
-                      btnText = "ENCERRADO";
-                    } else if (lotado) {
-                      btnClass = "btn-reserva";
-                      btnText = <><Hourglass size={16} /> FILA DE ESPERA</>;
-                    }
 
-                    return (
-                      <div
-                        key={virtualItem.key}
-                        data-index={virtualItem.index}
-                        ref={rowVirtualizer.measureElement}
-                        style={{
-                          position: "absolute",
-                          top: 0,
-                          left: 0,
-                          transform: isMobile ? `translateX(${virtualItem.start + 20}px)` : `translateY(${virtualItem.start}px)`,
-                          width: isMobile ? `${window.innerWidth - 40 + 15}px` : "100%",
-                          height: isMobile ? "100%" : undefined,
-                          paddingRight: isMobile ? "15px" : "0",
-                          paddingBottom: isMobile ? "0" : "20px",
-                          boxSizing: "border-box"
-                        }}
-                      >
+                      const pts = mass.points !== undefined && mass.points !== null ? mass.points : getMassPoints(mass.date);
+
+                      return (
                         <div
-                          className={`responsive-card ${cardClass} ${highlightClass}`}
+                          key={group.dateKey}
+                          ref={(el) => {
+                            dayCardRefs.current[group.dateKey] = el;
+                          }}
                           style={{
-                            width: "100%",
-                            height: "100%",
-                            margin: 0,
-                            minWidth: "auto",
+                            flex: isMobile ? "0 0 calc(100vw - 36px)" : "0 0 auto",
+                            width: isMobile ? "calc(100vw - 36px)" : "100%",
+                            scrollSnapAlign: isMobile ? "center" : undefined,
+                            scrollSnapStop: isMobile ? "always" : undefined,
                             boxSizing: "border-box",
-                            justifyContent: "flex-start"
                           }}
                         >
-                          {/* Timer */}
-                          {mass.deadline && !prazoEncerrado && estaAberto && (
-                            <div style={{ position: "absolute", top: 15, right: 15, zIndex: 2 }}>
-                              <CountdownTimer deadline={mass.deadline} />
-                            </div>
-                          )}
-
-                          {/* CABEÇALHO */}
-                          <div style={{ display: "flex", gap: "15px", alignItems: "flex-start", marginBottom: "20px" }}>
-                            <div className="pink-date-badge" style={mass.isSolemnity ? { background: "linear-gradient(180deg, #f59e0b 0%, #b45309 100%)", boxShadow: "0 4px 12px rgba(245, 158, 11, 0.4)" } : {}}>
-                              <span className="day">{new Date(mass.date).getDate()}</span>
-                              <span className="month">
-                                {new Date(mass.date).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}
-                              </span>
-                            </div>
-
-                            <div style={{ flex: 1 }}>
-                              <h3 className="card-title">
-                                {mass.name || new Date(mass.date).toLocaleDateString("pt-BR", { weekday: "long" })}
-                              </h3>
-                              {mass.local && (
-                                <div style={{ fontSize: "0.85rem", color: theme.colors.textSecondary, fontWeight: "bold", marginBottom: "4px" }}>
-                                  📍 {mass.local}
-                                </div>
-                              )}
-                              <div className="card-time">
-                                <Clock size={16} color={theme.colors.primary} />
-                                <span>
-                                  {new Date(mass.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                                </span>
-                                <span style={{ color: "#b2bec3" }}>•</span>
-                                <span style={{ textTransform: "capitalize" }}>
-                                  {new Date(mass.date).toLocaleDateString("pt-BR", { weekday: "long" })}
-                                </span>
+                          <div
+                            className={`responsive-card ${cardClass} ${highlightClass}`}
+                            style={{
+                              width: "100%",
+                              minHeight: isMobile ? "340px" : undefined,
+                              margin: 0,
+                              minWidth: "auto",
+                              boxSizing: "border-box",
+                              justifyContent: "flex-start",
+                              position: "relative",
+                            }}
+                          >
+                            {mass.deadline && !prazoEncerrado && estaAberto && (
+                              <div style={{ position: "absolute", top: 15, right: 15, zIndex: 2 }}>
+                                <CountdownTimer deadline={mass.deadline} />
                               </div>
-                              {(() => {
-                                const pts = mass.points !== undefined && mass.points !== null ? mass.points : getMassPoints(mass.date);
-                                return (
-                                  <div style={{ marginTop: "6px" }}>
-                                    <span
-                                      style={{
-                                        display: "inline-block",
-                                        fontSize: "0.68rem",
-                                        fontWeight: 800,
-                                        padding: "2px 7px",
-                                        borderRadius: "6px",
-                                        background: pts >= 2 ? "#FEF3C7" : "#F7F5F0",
-                                        color: pts >= 2 ? "#92400E" : "#5A4332",
-                                        border: `1px solid ${pts >= 2 ? "#FDE68A" : theme.colors.border}`,
-                                      }}
-                                    >
-                                      +{pts} {pts === 1 ? "ponto" : "pontos"}
-                                    </span>
-                                  </div>
-                                );
-                              })()}
-                            </div>
-                          </div>
+                            )}
 
-                          {/* FUNÇÃO / STATUS */}
-                          {mostrarFuncao && (
-                            <div className={`role-pill ${souReserva ? "reserva" : (!mass.published ? "pendente" : "")}`}>
-                              {souReserva ? (
-                                <>
-                                  <Hourglass size={14} />
-                                  Fila de Espera
-                                </>
-                              ) : (
-                                // CORREÇÃO LÓGICA: Verifica se está publicada
-                                mass.published ? (
+                            <div style={{ display: "flex", gap: "15px", alignItems: "flex-start", marginBottom: "20px" }}>
+                              <div className="pink-date-badge" style={mass.isSolemnity ? { background: "linear-gradient(180deg, #f59e0b 0%, #b45309 100%)", boxShadow: "0 4px 12px rgba(245, 158, 11, 0.4)" } : {}}>
+                                <span className="day">{dayNum}</span>
+                                <span className="month">{monthShort}</span>
+                              </div>
+
+                              <div style={{ flex: 1 }}>
+                                <h3 className="card-title">
+                                  {mass.name || weekdayLabel}
+                                </h3>
+                                {mass.local && (
+                                  <div style={{ fontSize: "0.85rem", color: theme.colors.textSecondary, fontWeight: "bold", marginBottom: "4px" }}>
+                                    📍 {mass.local}
+                                  </div>
+                                )}
+                                <div className="card-time">
+                                  <Clock size={16} color={theme.colors.primary} />
+                                  <span>
+                                    {new Date(mass.date).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}
+                                  </span>
+                                  <span style={{ color: "#b2bec3" }}>•</span>
+                                  <span style={{ textTransform: "capitalize" }}>{weekdayLabel}</span>
+                                </div>
+                                <div style={{ marginTop: "6px", display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                                  <span
+                                    style={{
+                                      display: "inline-block",
+                                      fontSize: "0.68rem",
+                                      fontWeight: 800,
+                                      padding: "2px 7px",
+                                      borderRadius: "6px",
+                                      background: pts >= 2 ? "#FEF3C7" : "#F7F5F0",
+                                      color: pts >= 2 ? "#92400E" : "#5A4332",
+                                      border: `1px solid ${pts >= 2 ? "#FDE68A" : theme.colors.border}`,
+                                    }}
+                                  >
+                                    +{pts} {pts === 1 ? "ponto" : "pontos"}
+                                  </span>
+                                  {mass.isSolemnity && (
+                                    <span style={{ fontSize: "0.66rem", fontWeight: 800, padding: "2px 7px", borderRadius: "6px", background: "#FEF3C7", color: "#B45309" }}>
+                                      Solenidade
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {mostrarFuncao && (
+                              <div className={`role-pill ${souReserva ? "reserva" : (!mass.published ? "pendente" : "")}`}>
+                                {souReserva ? (
+                                  <>
+                                    <Hourglass size={14} />
+                                    Fila de Espera
+                                  </>
+                                ) : mass.published ? (
                                   <>
                                     <User size={14} />
                                     Função: {minhaFuncao}
@@ -1543,50 +1574,58 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                                     <Clock size={14} />
                                     Aguardando publicação
                                   </>
-                                )
-                              )}
-                            </div>
-                          )}
-
-                          {/* DIVISOR */}
-                          <div style={{ height: "1px", background: theme.colors.borderLight, marginBottom: "15px", flexShrink: 0 }}></div>
-
-                          {/* VAGAS E BOTÃO */}
-                          <div style={{ marginTop: "auto" }}>
-                            <div className="vagas-text">
-                              <User size={18} strokeWidth={2.5} color={theme.colors.textMain} />
-                              <strong>{totalConfirmados}</strong> <span>/ {mass.maxServers} vagas</span>
-                            </div>
-
-                            <button className={btnClass} onClick={() => onToggleSignup(mass.id)} disabled={botaoDesabilitado}>
-                              {btnText}
-                            </button>
-
-                            {/* SELO DE PRESENÇA CONFIRMADA (Check-in realizado via QR Code da Sacristia ou pelo Admin) */}
-                            {jaEstouInscrita && !souReserva && meuSignup?.present && (
-                              <div
-                                style={{
-                                  marginTop: "8px",
-                                  padding: "8px 10px",
-                                  borderRadius: "8px",
-                                  background: "#E8F5E9",
-                                  border: "1px solid #A5D6A7",
-                                  color: "#1B5E20",
-                                  fontWeight: "bold",
-                                  fontSize: "0.8rem",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  gap: "6px",
-                                }}
-                              >
-                                <CheckCircle2 size={15} /> Presença Confirmada no Altar
+                                )}
                               </div>
                             )}
 
-                            {/* AÇÕES RÁPIDAS DO INSCRITO: AGENDA + PEDIR SUBSTITUIÇÃO */}
-                            {jaEstouInscrita && !souReserva && !prazoEncerrado && (
-                              (() => {
+                            <div style={{ height: "1px", background: theme.colors.borderLight, marginBottom: "15px", flexShrink: 0 }}></div>
+
+                            <div style={{ marginTop: "auto" }}>
+                              <div className="vagas-text">
+                                <User size={18} strokeWidth={2.5} color={theme.colors.textMain} />
+                                <strong>{totalConfirmados}</strong> <span>/ {mass.maxServers} vagas</span>
+                              </div>
+
+                              <button
+                                className={btnClass}
+                                onClick={() => onToggleSignup(mass.id)}
+                                disabled={botaoDesabilitado}
+                                style={
+                                  mass.isSolemnity && btnClass === "btn-servir"
+                                    ? {
+                                        background: "linear-gradient(135deg, #B45309 0%, #D97706 100%)",
+                                        color: "#FFFFFF",
+                                        boxShadow: "0 4px 12px rgba(217, 119, 6, 0.35)",
+                                        border: "1px solid #F59E0B",
+                                      }
+                                    : undefined
+                                }
+                              >
+                                {btnText}
+                              </button>
+
+                              {jaEstouInscrita && !souReserva && meuSignup?.present && (
+                                <div
+                                  style={{
+                                    marginTop: "8px",
+                                    padding: "8px 10px",
+                                    borderRadius: "8px",
+                                    background: "#E8F5E9",
+                                    border: "1px solid #A5D6A7",
+                                    color: "#1B5E20",
+                                    fontWeight: "bold",
+                                    fontSize: "0.8rem",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    gap: "6px",
+                                  }}
+                                >
+                                  <CheckCircle2 size={15} /> Presença Confirmada no Altar
+                                </div>
+                              )}
+
+                              {jaEstouInscrita && !souReserva && !prazoEncerrado && (() => {
                                 const mySignup = mass.signups.find(s => s.userId === user.id);
                                 const hasOpenRequest = swapRequests.some(sr => sr.signupId === mySignup?.id);
                                 return (
@@ -1633,9 +1672,295 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                                     </button>
                                   </div>
                                 );
-                              })()
-                            )}
+                              })()}
+                            </div>
                           </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div
+                        key={group.dateKey}
+                        ref={(el) => {
+                          dayCardRefs.current[group.dateKey] = el;
+                        }}
+                        style={{
+                          flex: isMobile ? "0 0 calc(100vw - 36px)" : "0 0 auto",
+                          width: isMobile ? "calc(100vw - 36px)" : "100%",
+                          scrollSnapAlign: isMobile ? "center" : undefined,
+                          scrollSnapStop: isMobile ? "always" : undefined,
+                          background: "#ffffff",
+                          borderRadius: "16px",
+                          border: hasSolemnity ? "1.5px solid #D97706" : `1px solid ${theme.colors.border}`,
+                          boxShadow: hasSolemnity ? "0 6px 18px rgba(217, 119, 6, 0.14)" : theme.colors.shadowBase,
+                          overflow: "hidden",
+                          display: "flex",
+                          flexDirection: "column",
+                          boxSizing: "border-box",
+                        }}
+                      >
+                        {/* CABEÇALHO DO DIA (com o nome da missa apenas no topo) */}
+                        <div
+                          style={{
+                            background: hasSolemnity
+                              ? "linear-gradient(135deg, #B45309 0%, #D97706 100%)"
+                              : "linear-gradient(135deg, #4A3222 0%, #5A3E2B 100%)",
+                            color: "#FDFBF7",
+                            padding: "12px 14px",
+                            display: "flex",
+                            alignItems: "flex-start",
+                            justifyContent: "space-between",
+                            gap: "10px",
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1, minWidth: 0 }}>
+                            <div
+                              style={{
+                                background: "rgba(255,255,255,0.16)",
+                                border: "1px solid rgba(230, 199, 134, 0.45)",
+                                borderRadius: "12px",
+                                padding: "8px 13px",
+                                minWidth: "56px",
+                                textAlign: "center",
+                                lineHeight: 1.05,
+                                flexShrink: 0,
+                              }}
+                            >
+                              <div style={{ fontSize: "1.45rem", fontWeight: 900, color: "#E6C786" }}>{dayNum}</div>
+                              <div style={{ fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.06em", marginTop: "2px" }}>{monthShort}</div>
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 800, fontSize: "0.98rem", lineHeight: 1.25, wordBreak: "break-word" }}>
+                                {groupTitle}
+                              </div>
+                              <div style={{ fontSize: "0.75rem", opacity: 0.9, textTransform: "capitalize", marginTop: "3px" }}>
+                                {weekdayLabel} • {group.masses.length} missas neste dia
+                              </div>
+                            </div>
+                          </div>
+                          {isMobile && (
+                            <span style={{ fontSize: "0.68rem", fontWeight: 700, opacity: 0.85, background: "rgba(0,0,0,0.2)", padding: "3px 8px", borderRadius: "10px", flexShrink: 0 }}>
+                              {groupIdx + 1}/{groupedMassesByDay.length}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* MISSAS DESTE DIA */}
+                        <div style={{ display: "flex", flexDirection: "column" }}>
+                          {group.masses.map((mass, mIdx) => {
+                            const totalConfirmados = mass.signups ? mass.signups.filter((s: any) => s.status !== "RESERVA").length : 0;
+                            const vagasRestantes = mass.maxServers - totalConfirmados;
+                            const meuSignup = mass.signups.find((s) => s.userId === user.id);
+                            const jaEstouInscrita = !!meuSignup;
+                            const souReserva = (meuSignup as any)?.status === "RESERVA";
+                            const minhaFuncao = formatRole(meuSignup?.role, user.name, user.id);
+
+                            const estaAberto = mass.open;
+                            const prazoEncerrado = checkStatus(mass.date, mass.deadline);
+                            const lotado = vagasRestantes <= 0;
+                            const mostrarFuncao = jaEstouInscrita;
+                            const botaoDesabilitado = prazoEncerrado || !estaAberto;
+                            const isInativa = prazoEncerrado;
+
+                            let btnClass = "btn-servir";
+                            let btnText: React.ReactNode = <><Check size={16} strokeWidth={2.5} /> QUERO SERVIR</>;
+
+                            if (jaEstouInscrita) {
+                              if (botaoDesabilitado) {
+                                btnClass = "btn-disabled";
+                                btnText = "FECHADO";
+                              } else {
+                                btnClass = "btn-desistir";
+                                btnText = souReserva ? "SAIR DA RESERVA" : "DESISTIR";
+                              }
+                            } else if (!estaAberto) {
+                              btnClass = "btn-disabled";
+                              btnText = "EM BREVE";
+                            } else if (prazoEncerrado) {
+                              btnClass = "btn-disabled";
+                              btnText = "ENCERRADO";
+                            } else if (lotado) {
+                              btnClass = "btn-reserva";
+                              btnText = <><Hourglass size={16} /> FILA DE ESPERA</>;
+                            }
+
+                            const pts = mass.points !== undefined && mass.points !== null ? mass.points : getMassPoints(mass.date);
+                            const timeLabel = new Date(mass.date).toLocaleTimeString("pt-BR", {
+                              timeZone: "America/Sao_Paulo",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            });
+
+                            return (
+                              <div
+                                key={mass.id}
+                                style={{
+                                  padding: "13px 14px",
+                                  borderTop: mIdx > 0 ? `2px dashed ${theme.colors.borderLight}` : "none",
+                                  background: isInativa ? "#FAF8F5" : "#ffffff",
+                                  opacity: isInativa ? 0.85 : 1,
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: "8px",
+                                }}
+                              >
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px" }}>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "4px" }}>
+                                      <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontWeight: 800, fontSize: "0.98rem", color: theme.colors.primary }}>
+                                        <Clock size={15} /> {timeLabel}
+                                      </span>
+                                      <span
+                                        style={{
+                                          fontSize: "0.68rem",
+                                          fontWeight: 800,
+                                          padding: "2px 7px",
+                                          borderRadius: "6px",
+                                          background: pts >= 2 ? "#FEF3C7" : "#F7F5F0",
+                                          color: pts >= 2 ? "#92400E" : "#5A4332",
+                                          border: `1px solid ${pts >= 2 ? "#FDE68A" : theme.colors.border}`,
+                                        }}
+                                      >
+                                        +{pts} {pts === 1 ? "ponto" : "pontos"}
+                                      </span>
+                                      {mass.isSolemnity && (
+                                        <span style={{ fontSize: "0.66rem", fontWeight: 800, padding: "2px 7px", borderRadius: "6px", background: "#FEF3C7", color: "#B45309" }}>
+                                          Solenidade
+                                        </span>
+                                      )}
+                                    </div>
+                                    {mass.local && (
+                                      <div style={{ fontSize: "0.82rem", color: theme.colors.textSecondary, fontWeight: 700 }}>
+                                        📍 {mass.local}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {mass.deadline && !prazoEncerrado && estaAberto && (
+                                    <div style={{ flexShrink: 0 }}>
+                                      <CountdownTimer deadline={mass.deadline} />
+                                    </div>
+                                  )}
+                                </div>
+
+                                {mostrarFuncao && (
+                                  <div className={`role-pill ${souReserva ? "reserva" : (!mass.published ? "pendente" : "")}`}>
+                                    {souReserva ? (
+                                      <>
+                                        <Hourglass size={14} />
+                                        Fila de Espera
+                                      </>
+                                    ) : mass.published ? (
+                                      <>
+                                        <User size={14} />
+                                        Função: {minhaFuncao}
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Clock size={14} />
+                                        Aguardando publicação
+                                      </>
+                                    )}
+                                  </div>
+                                )}
+
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", flexWrap: "wrap" }}>
+                                  <div className="vagas-text" style={{ margin: 0 }}>
+                                    <User size={16} strokeWidth={2.5} color={theme.colors.textMain} />
+                                    <strong>{totalConfirmados}</strong> <span>/ {mass.maxServers} vagas</span>
+                                  </div>
+                                </div>
+
+                                <button
+                                  className={btnClass}
+                                  onClick={() => onToggleSignup(mass.id)}
+                                  disabled={botaoDesabilitado}
+                                  style={
+                                    mass.isSolemnity && btnClass === "btn-servir"
+                                      ? {
+                                          background: "linear-gradient(135deg, #B45309 0%, #D97706 100%)",
+                                          color: "#FFFFFF",
+                                          boxShadow: "0 4px 12px rgba(217, 119, 6, 0.35)",
+                                          border: "1px solid #F59E0B",
+                                        }
+                                      : undefined
+                                  }
+                                >
+                                  {btnText}
+                                </button>
+
+                                {jaEstouInscrita && !souReserva && meuSignup?.present && (
+                                  <div
+                                    style={{
+                                      padding: "8px 10px",
+                                      borderRadius: "8px",
+                                      background: "#E8F5E9",
+                                      border: "1px solid #A5D6A7",
+                                      color: "#1B5E20",
+                                      fontWeight: "bold",
+                                      fontSize: "0.8rem",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      gap: "6px",
+                                    }}
+                                  >
+                                    <CheckCircle2 size={15} /> Presença Confirmada no Altar
+                                  </div>
+                                )}
+
+                                {jaEstouInscrita && !souReserva && !prazoEncerrado && (() => {
+                                  const mySignup = mass.signups.find(s => s.userId === user.id);
+                                  const hasOpenRequest = swapRequests.some(sr => sr.signupId === mySignup?.id);
+                                  return (
+                                    <div style={{ display: "flex", gap: "8px" }}>
+                                      <button
+                                        type="button"
+                                        onClick={() => setCalendarModalMass({ mass, roleLabel: minhaFuncao })}
+                                        style={{
+                                          flex: 1,
+                                          padding: "8px 6px",
+                                          borderRadius: "8px",
+                                          border: `1px solid ${theme.colors.border}`,
+                                          background: theme.colors.backgroundLight,
+                                          color: theme.colors.primary,
+                                          fontWeight: "bold",
+                                          cursor: "pointer",
+                                          fontSize: "0.76rem",
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                          gap: "4px",
+                                        }}
+                                        title="Salvar na agenda do celular com alarme"
+                                      >
+                                        <CalendarPlus size={14} /> Agenda
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => mySignup && handleRequestSwap(mySignup.id)}
+                                        disabled={hasOpenRequest || swapLoading === mySignup?.id}
+                                        style={{
+                                          flex: 1.3,
+                                          padding: "8px 6px",
+                                          borderRadius: "8px",
+                                          border: `1px dashed ${theme.colors.warning}`,
+                                          background: hasOpenRequest ? theme.colors.warningLight : "transparent",
+                                          color: hasOpenRequest ? theme.colors.warningDark : theme.colors.warning,
+                                          fontWeight: "bold",
+                                          cursor: hasOpenRequest ? "default" : "pointer",
+                                          fontSize: "0.76rem",
+                                        }}
+                                      >
+                                        {hasOpenRequest ? "⏳ Aguardando..." : "↔ Substituição"}
+                                      </button>
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     );

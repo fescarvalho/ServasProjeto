@@ -62,7 +62,6 @@ const StatisticsModal = lazy(() => import("./StatisticsModal").then((m) => ({ de
 const RankingModal = lazy(() => import("./RankingModal").then((m) => ({ default: m.RankingModal })));
 const LoginLogs = lazy(() => import("./LoginLogs").then((m) => ({ default: m.LoginLogs })));
 const ReminderModal = lazy(() => import("./ReminderModal").then((m) => ({ default: m.ReminderModal })));
-const AdminQuizManager = lazy(() => import("./AdminQuizManager").then((m) => ({ default: m.AdminQuizManager })));
 
 // ── MassForm extracted OUTSIDE AdminPanel to prevent unmount on every keystroke ──
 interface MassFormProps {
@@ -351,7 +350,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [showCreateForm, setShowCreateForm] = useState(false);
 
   // ── SISTEMA DE ABAS ──
-  const [activeTab, setActiveTab] = useState<"escalas" | "servas" | "logs" | "quizzes">("escalas");
+  const [activeTab, setActiveTab] = useState<"escalas" | "servas" | "logs">("escalas");
 
   // ── CRUD DE SERVOS ──
   const [servasList, setServasList] = useState<ServaData[]>([]);
@@ -1254,13 +1253,6 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
           >
             <Users size={18} />
             <span>Servos</span>
-          </button>
-          <button
-            className={`admin-tab ${activeTab === "quizzes" ? "active" : ""}`}
-            onClick={() => setActiveTab("quizzes")}
-          >
-            <FileText size={18} />
-            <span>AVA</span>
           </button>
           <button
             className={`admin-tab ${activeTab === "logs" ? "active" : ""}`}
@@ -2176,13 +2168,6 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
             </div>
           )}
         </div>
-      )}
-
-      {/* ═══════════════════ ABA: QUIZZES (AVA) ═══════════════════ */}
-      {isAdmin && activeTab === "quizzes" && (
-        <Suspense fallback={<div style={{ padding: 30, textAlign: "center" }}>Carregando AVA...</div>}>
-          <AdminQuizManager />
-        </Suspense>
       )}
 
       {/* ═══════════════════ ABA: LOGS ═══════════════════ */}

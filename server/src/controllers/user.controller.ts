@@ -49,6 +49,7 @@ export async function getUserMeta(req: Request, res: Response) {
             return success(res, {
                 genders: meta.genders,
                 unavailabilities: meta.unavailabilities,
+                myUnavailabilities: req.userId ? meta.unavailabilities[req.userId] || [] : [],
             });
         }
         return success(res, {
@@ -57,10 +58,28 @@ export async function getUserMeta(req: Request, res: Response) {
                 req.userId && meta.unavailabilities[req.userId]
                     ? { [req.userId]: meta.unavailabilities[req.userId] }
                     : {},
+            myUnavailabilities: req.userId ? meta.unavailabilities[req.userId] || [] : [],
         });
     } catch (err) {
         console.error("Get user meta error:", err);
         return error(res, "Erro ao buscar metadados");
+    }
+}
+
+/**
+ * Get unavailabilities for the authenticated user
+ */
+export async function getMyUnavailabilities(req: Request, res: Response) {
+    try {
+        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+        const userId = req.userId;
+        if (!userId) return badRequest(res, "Usuário não autenticado");
+
+        const list = await userService.getUserUnavailabilities(userId);
+        return success(res, list);
+    } catch (err) {
+        console.error("Get my unavailabilities error:", err);
+        return error(res, "Erro ao buscar indisponibilidades");
     }
 }
 

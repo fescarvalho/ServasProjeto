@@ -11,7 +11,7 @@ clientsClaim();
 precacheAndRoute(self.__WB_MANIFEST || []);
 cleanupOutdatedCaches();
 
-const RUNTIME_CACHE = 'servos-runtime-v4';
+const RUNTIME_CACHE = 'servos-runtime-v5';
 const SHELL_CACHE_KEY = '/__app_shell__';
 
 self.addEventListener('activate', (event: ExtendableEvent) => {

@@ -348,6 +348,14 @@ export async function updateUser(
 }
 
 /**
+ * Retorna a lista de indisponibilidades programadas do usuário
+ */
+export async function getUserUnavailabilities(userId: string): Promise<UnavailabilityItem[]> {
+    const meta = await getSystemUserMeta();
+    return meta.unavailabilities[userId] || [];
+}
+
+/**
  * Adiciona ou atualiza uma indisponibilidade programada para um usuário
  */
 export async function addUserUnavailability(userId: string, date: string, reason?: string) {

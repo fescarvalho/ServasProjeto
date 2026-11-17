@@ -20,6 +20,7 @@ export interface ServaData {
 export interface UserMetadataResponse {
     genders: Record<string, "M" | "F">;
     unavailabilities: Record<string, UnavailabilityItem[]>;
+    myUnavailabilities?: UnavailabilityItem[];
 }
 
 /**
@@ -27,6 +28,16 @@ export interface UserMetadataResponse {
  */
 export async function getUserMetadata(): Promise<UserMetadataResponse> {
     const response = await apiClient.get<UserMetadataResponse>("/users/metadata", {
+        params: { _t: Date.now() },
+    });
+    return response.data;
+}
+
+/**
+ * Busca as indisponibilidades programadas do próprio usuário autenticado
+ */
+export async function getMyUnavailabilities(): Promise<UnavailabilityItem[]> {
+    const response = await apiClient.get<UnavailabilityItem[]>("/users/unavailability", {
         params: { _t: Date.now() },
     });
     return response.data;
