@@ -593,19 +593,51 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     try {
       await toggleOpen(id, !currentOpen);
       onUpdate();
-
-      if (!currentOpen) {
-        const mass = masses.find(m => m.id === id);
-        if (mass) {
-          const formattedDate = new Date(mass.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "long" });
-          const text = encodeURIComponent(`📅 *Atenção, Servos e Servas!*\n\nAs inscrições para a missa do dia *${formattedDate}* foram *Abertas*!\n\nCorra no aplicativo e garanta o seu horário acessando a aba de Inscrições.\n🔗 https://servasdoaltar.vercel.app/`);
-          window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
-        }
-      }
     } catch (error) {
       console.error(error);
       alert("Erro ao alterar cadeado.");
     }
+  }
+
+  async function handleOpenAllFilteredMasses() {
+    const closedMasses = filteredMasses.filter((m) => !m.open);
+    if (closedMasses.length === 0) return;
+
+    if (!window.confirm(`Deseja abrir as inscrições de ${closedMasses.length} missa(s) listada(s) agora?`)) {
+      return;
+    }
+
+    try {
+      await Promise.all(closedMasses.map((m) => toggleOpen(m.id, true)));
+      onUpdate();
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao abrir algumas missas.");
+    }
+  }
+
+  function handleNotifyOpenMassesWhatsApp() {
+    const openMasses = filteredMasses.filter((m) => m.open);
+    if (openMasses.length === 0) {
+      alert("Nenhuma missa aberta na lista atual para avisar.");
+      return;
+    }
+
+    const datesSummary = openMasses
+      .slice(0, 12)
+      .map((m) => {
+        const d = new Date(m.date);
+        const dateStr = d.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" });
+        const timeStr = d.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+        return `• ${dateStr} às ${timeStr}${m.local ? ` (${m.local})` : ""}`;
+      })
+      .join("\n");
+
+    const extra = openMasses.length > 12 ? `\n...e mais ${openMasses.length - 12} horário(s)!` : "";
+    const text = encodeURIComponent(
+      `📅 *Atenção, Servos e Servas!*\n\nAs inscrições foram *Abertas* para ${openMasses.length} missa(s):\n\n${datesSummary}${extra}\n\nCorra no aplicativo e garanta o seu horário acessando a aba de Inscrições.\n🔗 https://servasdoaltar.vercel.app/`
+    );
+    window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -1326,6 +1358,62 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                 <Filter size={16} />
                 <span>{startDate || endDate ? "Filtro Ativo" : "Filtrar"}</span>
               </button>
+            </div>
+          )}
+
+          {/* AÇÕES EM LOTE: ABRIR TODAS + AVISO ÚNICO NO WHATSAPP */}
+          {isAdmin && filteredMasses.length > 0 && (
+            <div className="no-print" style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "12px" }}>
+              {filteredMasses.some((m) => !m.open) && (
+                <button
+                  type="button"
+                  onClick={handleOpenAllFilteredMasses}
+                  style={{
+                    flex: 1,
+                    minWidth: "150px",
+                    padding: "8px 12px",
+                    borderRadius: "8px",
+                    border: "1px solid #BBF7D0",
+                    background: "#F0FDF4",
+                    color: "#166534",
+                    fontSize: "0.78rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <LockOpen size={14} />
+                  <span>Abrir Todas ({filteredMasses.filter((m) => !m.open).length})</span>
+                </button>
+              )}
+              {filteredMasses.some((m) => m.open) && (
+                <button
+                  type="button"
+                  onClick={handleNotifyOpenMassesWhatsApp}
+                  style={{
+                    flex: 1,
+                    minWidth: "150px",
+                    padding: "8px 12px",
+                    borderRadius: "8px",
+                    border: "1px solid #BBF7D0",
+                    background: "#DCFCE7",
+                    color: "#15803D",
+                    fontSize: "0.78rem",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <Megaphone size={14} />
+                  <span>Avisar Abertas no Zap</span>
+                </button>
+              )}
             </div>
           )}
 
