@@ -16,7 +16,6 @@ import {
   Search,
   Hourglass,
   Bell,
-  BookOpen,
   BookMarked,
   CalendarPlus,
   CalendarOff,
@@ -57,7 +56,6 @@ const OfficialDocument = lazy(() => import("./OfficialDocument").then((m) => ({ 
 const RankingModal = lazy(() => import("./RankingModal").then((m) => ({ default: m.RankingModal })));
 const BadgesModal = lazy(() => import("./BadgesModal").then((m) => ({ default: m.BadgesModal })));
 const WinnerModal = lazy(() => import("./WinnerModal").then((m) => ({ default: m.WinnerModal })));
-const LiturgicalCalendar = lazy(() => import("./LiturgicalCalendar").then((m) => ({ default: m.LiturgicalCalendar })));
 const Prayers = lazy(() => import("./Prayers").then((m) => ({ default: m.Prayers })));
 
 interface UserPanelProps {
@@ -69,7 +67,7 @@ interface UserPanelProps {
 }
 
 export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: UserPanelProps) {
-  const [activeTab, setActiveTab] = useState<"inscricoes" | "documento" | "calendario" | "oracoes">("inscricoes");
+  const [activeTab, setActiveTab] = useState<"inscricoes" | "documento" | "oracoes">("inscricoes");
   const [onlyMyMasses, setOnlyMyMasses] = useState(false);
   const [showBadges, setShowBadges] = useState(false);
   const [showRanking, setShowRanking] = useState(false);
@@ -936,9 +934,6 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
             <button onClick={() => setActiveTab("documento")} className={`tab-btn ${activeTab === "documento" ? "active" : ""}`} style={{ flex: "1 0 auto", display: "flex", justifyContent: "center", gap: "5px" }}>
               <FileText size={16} /> <span>Escala</span>
             </button>
-            <button onClick={() => setActiveTab("calendario")} className={`tab-btn ${activeTab === "calendario" ? "active" : ""}`} style={{ flex: "1 0 auto", display: "flex", justifyContent: "center", gap: "5px" }} title="Calendário Litúrgico">
-              <BookOpen size={16} /> <span>Liturgia</span>
-            </button>
             <button onClick={() => setActiveTab("oracoes")} className={`tab-btn ${activeTab === "oracoes" ? "active" : ""}`} style={{ flex: "1 0 auto", display: "flex", justifyContent: "center", gap: "5px" }} title="Orações">
               <BookMarked size={16} /> <span>Orações</span>
             </button>
@@ -1640,9 +1635,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
               </div>
             }
           >
-            {activeTab === "calendario" ? (
-              <LiturgicalCalendar />
-            ) : activeTab === "oracoes" ? (
+            {activeTab === "oracoes" ? (
               <Prayers />
             ) : (
               <OfficialDocument masses={masses.filter((m) => m.published)} />
@@ -1693,7 +1686,6 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
           {[
             { id: "inscricoes" as const, label: "Inscrições", icon: <Calendar size={19} /> },
             { id: "documento" as const, label: "Escala", icon: <FileText size={19} /> },
-            { id: "calendario" as const, label: "Liturgia", icon: <BookOpen size={19} /> },
             { id: "oracoes" as const, label: "Orações", icon: <BookMarked size={19} /> },
           ].map((tab) => {
             const isActive = activeTab === tab.id;
