@@ -49,6 +49,11 @@ export async function deleteNotice(req: Request, res: Response) {
  */
 export async function postMonthlyChampion(req: Request, res: Response) {
     try {
+        const authHeader = req.headers.authorization;
+        if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+            return res.status(401).json({ error: "Unauthorized cron execution" });
+        }
+
         const result = await noticeService.postMonthlyChampionNotice();
         if (result.success) {
             return success(res, result, HTTP_STATUS.CREATED);

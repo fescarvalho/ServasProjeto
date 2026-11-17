@@ -1,15 +1,34 @@
 import { Request, Response } from "express";
 import * as userService from "../services/user.service";
+import { prisma } from "../config/database";
 import { success, error, badRequest } from "../utils/response.utils";
 import { HTTP_STATUS } from "../constants";
 
+async function isRequestAdmin(userId?: string): Promise<boolean> {
+    if (!userId) return false;
+    const u = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+    return u?.role === "ADMIN";
+}
+
 /**
- * Get users list (id + name + gender + unavailabilities)
+ * Get users list (id + name + gender + unavailabilities for admin)
  */
 export async function getUsersList(req: Request, res: Response) {
     try {
-        const users = await userService.getUsersList();
-        return success(res, users);
+        const [users, isAdmin] = await Promise.all([
+            userService.getUsersList(),
+            isRequestAdmin(req.userId),
+        ]);
+        if (isAdmin) {
+            return success(res, users);
+        }
+        const filtered = users.map((u) => ({
+            id: u.id,
+            name: u.name,
+            gender: u.gender,
+            unavailabilities: u.id === req.userId ? u.unavailabilities : [],
+        }));
+        return success(res, filtered);
     } catch (err) {
         console.error("Get users error:", err);
         return error(res, "Error fetching users");
@@ -17,12 +36,27 @@ export async function getUsersList(req: Request, res: Response) {
 }
 
 /**
- * Get system user metadata (genders + unavailabilities)
+ * Get system user metadata (genders + unavailabilities; non-admins only see own unavailabilities)
  */
 export async function getUserMeta(req: Request, res: Response) {
     try {
-        const meta = await userService.getSystemUserMeta();
-        return success(res, meta);
+        const [meta, isAdmin] = await Promise.all([
+            userService.getSystemUserMeta(),
+            isRequestAdmin(req.userId),
+        ]);
+        if (isAdmin) {
+            return success(res, {
+                genders: meta.genders,
+                unavailabilities: meta.unavailabilities,
+            });
+        }
+        return success(res, {
+            genders: meta.genders,
+            unavailabilities:
+                req.userId && meta.unavailabilities[req.userId]
+                    ? { [req.userId]: meta.unavailabilities[req.userId] }
+                    : {},
+        });
     } catch (err) {
         console.error("Get user meta error:", err);
         return error(res, "Erro ao buscar metadados");

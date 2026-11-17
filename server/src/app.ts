@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import { corsConfig } from "./config/cors";
 import routes from "./routes";
 import { errorMiddleware, notFoundMiddleware } from "./middleware/error.middleware";
@@ -7,8 +8,9 @@ import { errorMiddleware, notFoundMiddleware } from "./middleware/error.middlewa
 const app = express();
 
 // Middlewares
+app.use(helmet());
 app.use(cors(corsConfig));
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 
 // Health check
 app.get("/", (req, res) => {

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { subscribe, notifyCron, sendCustomPush } from "../controllers/push.controller";
 import { authMiddleware } from "../middleware/auth.middleware";
+import { adminMiddleware } from "../middleware/admin.middleware";
 
 const router = Router();
 
@@ -8,7 +9,7 @@ const router = Router();
 router.post("/subscribe", authMiddleware, subscribe);
 
 // Endpoint for admin to send custom push notifications
-router.post("/send-custom", authMiddleware, sendCustomPush);
+router.post("/send-custom", authMiddleware, adminMiddleware, sendCustomPush);
 
 // Endpoint for Vercel Cron to trigger notifications
 // We don't use standard authMiddleware here because Vercel Cron doesn't have a user JWT token

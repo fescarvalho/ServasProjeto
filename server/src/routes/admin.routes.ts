@@ -8,7 +8,17 @@ import { parseScheduleImage } from "../services/ai.service";
 import * as adminQuizController from "../controllers/admin.quiz.controller";
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 }, // Máximo 5 MB
+    fileFilter: (_req, file, cb) => {
+        if (file.mimetype && file.mimetype.startsWith("image/")) {
+            cb(null, true);
+        } else {
+            cb(new Error("Apenas arquivos de imagem são permitidos."));
+        }
+    },
+});
 
 /**
  * POST /admin/upload-schedule — Processa imagem da agenda com IA

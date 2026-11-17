@@ -1,13 +1,14 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env";
+import { prisma } from "../config/database";
 import { unauthorized } from "../utils/response.utils";
 
 /**
  * Authentication middleware
- * Validates JWT token and adds userId to request
+ * Validates JWT token, checks user is active, and adds userId to request
  */
-export function authMiddleware(req: Request, res: Response, next: NextFunction) {
+export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
     const authHeader = req.headers.authorization;
 
     // Validate authorization header
@@ -29,6 +30,15 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
 
     try {
         const decoded = jwt.verify(token, env.JWT_SECRET) as { id: string };
+        const user = await prisma.user.findUnique({
+            where: { id: decoded.id },
+            select: { role: true },
+        });
+
+        if (!user || user.role === "INATIVO") {
+            return unauthorized(res, "Cadastro inativo ou inválido");
+        }
+
         req.userId = decoded.id;
         return next();
     } catch (err) {

@@ -21,7 +21,8 @@ export async function getOpenSwapRequests(req: Request, res: Response) {
  */
 export async function createSwapRequest(req: Request, res: Response) {
     try {
-        const { signupId, requesterId } = req.body;
+        const { signupId } = req.body;
+        const requesterId = String(req.userId);
         const result = await swapRequestService.createSwapRequest(signupId, requesterId);
         return success(res, result);
     } catch (err: any) {
@@ -32,12 +33,11 @@ export async function createSwapRequest(req: Request, res: Response) {
 
 /**
  * POST /swap-requests/:id/accept — accept and execute a swap
- * Body: { acceptorId }
  */
 export async function acceptSwapRequest(req: Request, res: Response) {
     try {
         const id = String(req.params.id);
-        const { acceptorId } = req.body;
+        const acceptorId = String(req.userId);
         const result = await swapRequestService.acceptSwapRequest(id, acceptorId);
         return success(res, result);
     } catch (err: any) {
@@ -48,12 +48,11 @@ export async function acceptSwapRequest(req: Request, res: Response) {
 
 /**
  * DELETE /swap-requests/:id — cancel a swap request
- * Body: { userId }
  */
 export async function cancelSwapRequest(req: Request, res: Response) {
     try {
         const id = String(req.params.id);
-        const { userId } = req.body;
+        const userId = String(req.userId);
         const result = await swapRequestService.cancelSwapRequest(id, userId);
         return success(res, result);
     } catch (err: any) {

@@ -1,4 +1,5 @@
 import { prisma } from "../config/database";
+import bcrypt from "bcryptjs";
 
 const META_PREFIX = "__SYS_USER_META__:";
 
@@ -247,11 +248,13 @@ export async function createUser(data: {
         throw new Error("EMAIL_EXISTS");
     }
 
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+
     const created = await prisma.user.create({
         data: {
             name: data.name,
             email: data.email,
-            password: data.password,
+            password: hashedPassword,
             birthDate: data.birthDate ? new Date(data.birthDate + "T12:00:00") : null,
             role: data.role || "USER",
         },

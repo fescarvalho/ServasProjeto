@@ -1,7 +1,10 @@
 import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 import { prisma } from "../config/database";
 import { env } from "../config/env";
 import { checkAndAutoInactivateUser } from "./user.service";
+
+const BCRYPT_HASH_REGEX = /^\$2[aby]\$\d{2}\$/;
 
 interface LoginData {
     email: string;
@@ -28,9 +31,26 @@ export async function login(data: LoginData): Promise<UserResponse | null> {
         return null;
     }
 
-    // TODO: Use bcrypt for password hashing in production
-    if (user.password !== password) {
-        return null;
+    const isHashed = BCRYPT_HASH_REGEX.test(user.password);
+    if (isHashed) {
+        const passwordMatches = await bcrypt.compare(password, user.password);
+        if (!passwordMatches) {
+            return null;
+        }
+    } else {
+        // Migração transparente de contas antigas em texto puro para bcrypt
+        if (user.password !== password) {
+            return null;
+        }
+        try {
+            const hashedPassword = await bcrypt.hash(password, 10);
+            await prisma.user.update({
+                where: { id: user.id },
+                data: { password: hashedPassword },
+            });
+        } catch (migrateErr: any) {
+            console.error("[Auth] Falha ao migrar senha para bcrypt:", migrateErr?.message);
+        }
     }
 
     if (user.role === "INATIVO") {
