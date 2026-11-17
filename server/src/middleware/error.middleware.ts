@@ -13,11 +13,15 @@ export function errorMiddleware(
     console.error("Error:", err);
 
     const status = (err as any).status || HTTP_STATUS.INTERNAL_SERVER_ERROR;
-    const message = err.message || "Internal server error";
+    const isDev = process.env.NODE_ENV === "development";
+    const message =
+        !isDev && status >= 500
+            ? "Erro interno no servidor"
+            : err.message || "Internal server error";
 
     res.status(status).json({
         error: message,
-        ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
+        ...(isDev && { stack: err.stack }),
     });
 }
 
