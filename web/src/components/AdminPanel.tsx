@@ -360,6 +360,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [servaSortByDays, setServaSortByDays] = useState(false);
   const [unavModalServa, setUnavModalServa] = useState<{ name: string; items: UnavailabilityItem[] } | null>(null);
   const [showAllUnavModal, setShowAllUnavModal] = useState(false);
+  const [dismissedUnavBanner, setDismissedUnavBanner] = useState(false);
   const [showServaModal, setShowServaModal] = useState(false);
   const [editingServa, setEditingServa] = useState<ServaData | null>(null);
   const [servaForm, setServaForm] = useState<{ name: string; email: string; password: string; birthDate: string; role: string; gender: "M" | "F" | "" }>({
@@ -1070,6 +1071,103 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
           <span>Sair</span>
         </button>
       </header>
+
+      {/* AVISO AO LOGAR: AUSÊNCIAS PROGRAMADAS FUTURAS */}
+      {isAdmin && !dismissedUnavBanner && (() => {
+        const now = new Date();
+        const brNow = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+        const todayStr = `${brNow.getFullYear()}-${String(brNow.getMonth() + 1).padStart(2, "0")}-${String(brNow.getDate()).padStart(2, "0")}`;
+
+        const upcoming = Object.entries(unavailabilitiesMap)
+          .flatMap(([uid, items]) => {
+            const memberName =
+              servasList.find((s) => s.id === uid)?.name ||
+              allUsers.find((u) => u.id === uid)?.name ||
+              "Membro";
+            return (items || [])
+              .filter((item) => item.date >= todayStr)
+              .map((item) => ({ userName: memberName, date: item.date, reason: item.reason }));
+          })
+          .sort((a, b) => a.date.localeCompare(b.date));
+
+        if (upcoming.length === 0) return null;
+
+        const previewText = upcoming
+          .slice(0, 2)
+          .map((u) => {
+            const shortDate = new Date(u.date + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+            return `${u.userName.split(" ")[0]} (${shortDate}${u.reason ? ` - ${u.reason}` : ""})`;
+          })
+          .join(" • ");
+
+        return (
+          <div
+            className="no-print"
+            style={{
+              margin: "0 0 12px 0",
+              padding: "12px 14px",
+              borderRadius: "12px",
+              background: "linear-gradient(135deg, #FEF3C7 0%, #FFFBEB 100%)",
+              border: "1.5px solid #F59E0B",
+              boxShadow: "0 4px 12px rgba(180, 83, 9, 0.12)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "10px",
+            }}
+          >
+            <div
+              onClick={() => setShowAllUnavModal(true)}
+              style={{ flex: 1, minWidth: 0, cursor: "pointer" }}
+            >
+              <div style={{ fontWeight: 800, fontSize: "0.84rem", color: "#92400E", display: "flex", alignItems: "center", gap: "6px" }}>
+                <Calendar size={15} />
+                <span>
+                  {upcoming.length} {upcoming.length === 1 ? "ausência programada registrada" : "ausências programadas registradas"}
+                </span>
+              </div>
+              <div style={{ fontSize: "0.76rem", color: "#78350F", marginTop: "3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {previewText}{upcoming.length > 2 ? ` e +${upcoming.length - 2}` : ""}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+              <button
+                type="button"
+                onClick={() => setShowAllUnavModal(true)}
+                style={{
+                  background: "#B45309",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "6px 10px",
+                  fontSize: "0.74rem",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                Ver todas
+              </button>
+              <button
+                type="button"
+                onClick={() => setDismissedUnavBanner(true)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#92400E",
+                  cursor: "pointer",
+                  padding: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+                title="Ocultar aviso"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ─── 2. CENTRAL DE FERRAMENTAS RÁPIDAS (3x2 no mobile) ─────────────── */}
       {isAdmin && (
