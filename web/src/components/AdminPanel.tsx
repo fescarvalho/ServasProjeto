@@ -1618,9 +1618,14 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                                           style={{ flex: 1, padding: "8px" }}
                                         >
                                           <option value="">Selecione o(a) substituto(a)...</option>
-                                          {allUsers.map((u) => (
-                                            <option key={u.id} value={u.id}>{u.name}</option>
-                                          ))}
+                                          {allUsers
+                                            .filter((u) => {
+                                              const massDateBr = new Date(mass.date).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+                                              return !(unavailabilitiesMap[u.id] || []).some((unav) => unav.date === massDateBr);
+                                            })
+                                            .map((u) => (
+                                              <option key={u.id} value={u.id}>{u.name}</option>
+                                            ))}
                                         </select>
                                         <button
                                           type="button"
@@ -1797,6 +1802,10 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                                 <div style={{ maxHeight: "160px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "4px", marginBottom: "10px" }}>
                                   {allUsers
                                     .filter(u => !mass.signups.some(s => s.userId === u.id))
+                                    .filter(u => {
+                                      const massDateBr = new Date(mass.date).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+                                      return !(unavailabilitiesMap[u.id] || []).some(unav => unav.date === massDateBr);
+                                    })
                                     .filter(u => !addSearchTerm.trim() || u.name.toLowerCase().includes(addSearchTerm.toLowerCase()))
                                     .map(u => {
                                       const isSelected = selectedForThisMass.includes(u.id);

@@ -1454,6 +1454,10 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                       if (mass.isSolemnity) highlightClass = "solemnity-card";
                       else if (isSundayDay) highlightClass = "sunday-card";
 
+                      const myUnavForDay = myUnavailabilities.find((u) => u.date === group.dateKey);
+                      const isBlockedByUnav = !jaEstouInscrita && Boolean(myUnavForDay);
+                      const botaoDesabilitadoFinal = botaoDesabilitado || isBlockedByUnav;
+
                       let btnClass = "btn-servir";
                       let btnText: React.ReactNode = <><Check size={16} strokeWidth={2.5} /> QUERO SERVIR</>;
 
@@ -1465,6 +1469,9 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                           btnClass = "btn-desistir";
                           btnText = souReserva ? "SAIR DA RESERVA" : "DESISTIR";
                         }
+                      } else if (isBlockedByUnav) {
+                        btnClass = "btn-disabled";
+                        btnText = `AUSENTE: ${myUnavForDay?.reason || "Indisponível"}`;
                       } else if (!estaAberto) {
                         btnClass = "btn-disabled";
                         btnText = "EM BREVE";
@@ -1589,7 +1596,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                               <button
                                 className={btnClass}
                                 onClick={() => onToggleSignup(mass.id)}
-                                disabled={botaoDesabilitado}
+                                disabled={botaoDesabilitadoFinal}
                                 style={
                                   mass.isSolemnity && btnClass === "btn-servir"
                                     ? {
@@ -1598,6 +1605,8 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                                         boxShadow: "0 4px 12px rgba(217, 119, 6, 0.35)",
                                         border: "1px solid #F59E0B",
                                       }
+                                    : isBlockedByUnav
+                                    ? { whiteSpace: "normal", lineHeight: 1.25 }
                                     : undefined
                                 }
                               >
@@ -1763,6 +1772,10 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                             const botaoDesabilitado = prazoEncerrado || !estaAberto;
                             const isInativa = prazoEncerrado;
 
+                            const myUnavForDay = myUnavailabilities.find((u) => u.date === group.dateKey);
+                            const isBlockedByUnav = !jaEstouInscrita && Boolean(myUnavForDay);
+                            const botaoDesabilitadoFinal = botaoDesabilitado || isBlockedByUnav;
+
                             let btnClass = "btn-servir";
                             let btnText: React.ReactNode = <><Check size={16} strokeWidth={2.5} /> QUERO SERVIR</>;
 
@@ -1774,6 +1787,9 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                                 btnClass = "btn-desistir";
                                 btnText = souReserva ? "SAIR DA RESERVA" : "DESISTIR";
                               }
+                            } else if (isBlockedByUnav) {
+                              btnClass = "btn-disabled";
+                              btnText = `AUSENTE: ${myUnavForDay?.reason || "Indisponível"}`;
                             } else if (!estaAberto) {
                               btnClass = "btn-disabled";
                               btnText = "EM BREVE";
@@ -1875,7 +1891,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                                 <button
                                   className={btnClass}
                                   onClick={() => onToggleSignup(mass.id)}
-                                  disabled={botaoDesabilitado}
+                                  disabled={botaoDesabilitadoFinal}
                                   style={
                                     mass.isSolemnity && btnClass === "btn-servir"
                                       ? {
@@ -1884,6 +1900,8 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                                           boxShadow: "0 4px 12px rgba(217, 119, 6, 0.35)",
                                           border: "1px solid #F59E0B",
                                         }
+                                      : isBlockedByUnav
+                                      ? { whiteSpace: "normal", lineHeight: 1.25 }
                                       : undefined
                                   }
                                 >
