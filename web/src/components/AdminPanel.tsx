@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import {
   Shield,
   FileText,
@@ -14,7 +14,6 @@ import {
   RefreshCw,
   Save,
   Filter,
-  User as UserIcon,
   Camera,
   Loader2,
   Check,
@@ -23,15 +22,16 @@ import {
   Users,
   ClipboardList,
   QrCode,
-  ChevronDown,
-  ChevronUp,
   Search,
   LogOut,
   Clock,
   MapPin,
   UserPlus,
   UserX,
-  UserCheck
+  UserCheck,
+  LayoutGrid,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { Mass, User, Signup } from "../types/types";
 import { formatRole, setGlobalUserGenders, getUserGender } from "../constants/roles";
@@ -340,7 +340,6 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showReminderModal, setShowReminderModal] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
-  const [showNoticeSection, setShowNoticeSection] = useState(false);
   const [showFilterSection, setShowFilterSection] = useState(false);
   const [expandedAddMassId, setExpandedAddMassId] = useState<string | null>(null);
   const [addSearchTerm, setAddSearchTerm] = useState("");
@@ -348,8 +347,11 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
 
   // Form visibility
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showToolsModal, setShowToolsModal] = useState(false);
+  const [showNoticeSection, setShowNoticeSection] = useState(false);
+  const [selectedDayMassId, setSelectedDayMassId] = useState<Record<string, string>>({});
 
-  // ── SISTEMA DE ABAS ──
+  // ── SISTEMA DE ABAS (Menu Inferior Original: Escalas | Servos | Acessos) ──
   const [activeTab, setActiveTab] = useState<"escalas" | "servas" | "logs">("escalas");
 
   // ── CRUD DE SERVOS ──
@@ -850,6 +852,24 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const publishedCount = filteredMasses.filter(m => m.published).length;
   const openCount = filteredMasses.filter(m => m.open).length;
 
+  const groupedAdminMasses = useMemo(() => {
+    const groups: { dateKey: string; dateObj: Date; masses: Mass[] }[] = [];
+    const map = new Map<string, { dateKey: string; dateObj: Date; masses: Mass[] }>();
+
+    for (const mass of filteredMasses) {
+      const d = new Date(mass.date);
+      const brKey = d.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+      let grp = map.get(brKey);
+      if (!grp) {
+        grp = { dateKey: brKey, dateObj: d, masses: [] };
+        map.set(brKey, grp);
+        groups.push(grp);
+      }
+      grp.masses.push(mass);
+    }
+    return groups;
+  }, [filteredMasses]);
+
   const getAgeFromBirthDate = (birthDate?: string | null): number | null => {
     if (!birthDate) return null;
     const datePart = birthDate.split("T")[0];
@@ -1085,6 +1105,271 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         </div>
       )}
 
+      {/* ─── MODAL: CENTRAL DE FERRAMENTAS & RELATÓRIOS ─────────────────── */}
+      {showToolsModal && isAdmin && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.65)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+            backdropFilter: "blur(4px)",
+          }}
+          onClick={() => setShowToolsModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: "#FAF8F5",
+              width: "100%",
+              maxWidth: "460px",
+              maxHeight: "85vh",
+              borderRadius: "16px",
+              overflowY: "auto",
+              display: "flex",
+              flexDirection: "column",
+              border: `1px solid ${theme.colors.border}`,
+              boxShadow: "0 20px 50px rgba(0,0,0,0.35)",
+              animation: "slideDown 0.2s ease",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div
+              style={{
+                background: theme.colors.primaryGradient,
+                color: "#fff",
+                padding: "14px 18px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                position: "sticky",
+                top: 0,
+                zIndex: 10,
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 800, fontSize: "1rem", display: "flex", alignItems: "center", gap: "8px" }}>
+                  <LayoutGrid size={18} />
+                  <span>Central de Ferramentas</span>
+                </div>
+                <div style={{ fontSize: "0.74rem", opacity: 0.9 }}>
+                  Relatórios, utilitários e ações em lote
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowToolsModal(false)}
+                style={{
+                  background: "rgba(255,255,255,0.22)",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: 30,
+                  height: 30,
+                  color: "#fff",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Conteúdo */}
+            <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "16px" }}>
+              {/* Relatórios e Exportação */}
+              <div>
+                <div style={{ fontSize: "0.74rem", fontWeight: 800, color: theme.colors.textSecondary, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>
+                  Relatórios & Escala
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px" }}>
+                  <button
+                    className="tool-card-btn"
+                    style={{ padding: "12px 10px" }}
+                    onClick={() => {
+                      setShowStatsModal(true);
+                      setShowToolsModal(false);
+                    }}
+                  >
+                    <div className="tool-card-icon" style={{ background: "#EFF6FF", color: "#1D4ED8" }}>
+                      <BarChart2 size={18} />
+                    </div>
+                    <span>Relatório Geral</span>
+                  </button>
+
+                  <button
+                    className="tool-card-btn"
+                    style={{ padding: "12px 10px" }}
+                    onClick={() => {
+                      setShowRankingModal(true);
+                      setShowToolsModal(false);
+                    }}
+                  >
+                    <div className="tool-card-icon" style={{ background: "#FEF3C7", color: "#B45309" }}>
+                      <Trophy size={18} />
+                    </div>
+                    <span>Ranking de Pontos</span>
+                  </button>
+
+                  <button
+                    className="tool-card-btn"
+                    style={{ padding: "12px 10px" }}
+                    onClick={() => {
+                      setShowTextModal(true);
+                      setShowToolsModal(false);
+                    }}
+                  >
+                    <div className="tool-card-icon" style={{ background: "#ECFDF5", color: "#047857" }}>
+                      <Edit size={18} />
+                    </div>
+                    <span>Texto p/ WhatsApp</span>
+                  </button>
+
+                  <button
+                    className="tool-card-btn"
+                    style={{ padding: "12px 10px" }}
+                    onClick={() => {
+                      setShowReminderModal(true);
+                      setShowToolsModal(false);
+                    }}
+                  >
+                    <div className="tool-card-icon" style={{ background: "#F7F5F0", color: "#4A3222" }}>
+                      <Megaphone size={18} />
+                    </div>
+                    <span>Enviar Lembretes</span>
+                  </button>
+
+                  <button
+                    className="tool-card-btn"
+                    style={{ padding: "12px 10px" }}
+                    onClick={() => {
+                      setShowQrModal(true);
+                      setShowToolsModal(false);
+                    }}
+                  >
+                    <div className="tool-card-icon" style={{ background: "#F7F5F0", color: "#4A3222" }}>
+                      <QrCode size={18} />
+                    </div>
+                    <span>Cartaz QR Sacristia</span>
+                  </button>
+
+                  <button
+                    className="tool-card-btn"
+                    style={{ padding: "12px 10px" }}
+                    onClick={() => {
+                      setViewMode("pdf");
+                      setShowToolsModal(false);
+                    }}
+                  >
+                    <div className="tool-card-icon" style={{ background: "#FEF2F2", color: "#B91C1C" }}>
+                      <FileText size={18} />
+                    </div>
+                    <span>Gerar Escala PDF</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Ações Rápidas & Automação */}
+              <div>
+                <div style={{ fontSize: "0.74rem", fontWeight: 800, color: theme.colors.textSecondary, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>
+                  Ações Rápidas & Automação
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      padding: "10px 12px",
+                      borderRadius: "8px",
+                      background: "#FFFFFF",
+                      border: "1px solid #E5DEC9",
+                      color: theme.colors.primary,
+                      fontWeight: 700,
+                      fontSize: "0.82rem",
+                      cursor: isAiLoading ? "not-allowed" : "pointer",
+                      margin: 0,
+                    }}
+                  >
+                    {isAiLoading ? <Loader2 className="animate-spin" size={16} /> : <Camera size={16} />}
+                    <span>{isAiLoading ? "Lendo imagem da agenda..." : "Importar Agenda por Foto (IA)"}</span>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={(e) => {
+                        setShowToolsModal(false);
+                        handleAiUpload(e);
+                      }}
+                      style={{ display: "none" }}
+                      disabled={isAiLoading}
+                    />
+                  </label>
+
+                  {filteredMasses.some((m) => !m.open) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowToolsModal(false);
+                        handleOpenAllFilteredMasses();
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        padding: "10px 12px",
+                        borderRadius: "8px",
+                        border: "1px solid #BBF7D0",
+                        background: "#F0FDF4",
+                        color: "#166534",
+                        fontWeight: 700,
+                        fontSize: "0.82rem",
+                        cursor: "pointer",
+                        textAlign: "left",
+                      }}
+                    >
+                      <LockOpen size={16} />
+                      <span>Abrir Todas as Inscrições ({filteredMasses.filter((m) => !m.open).length} fechadas)</span>
+                    </button>
+                  )}
+
+                  {filteredMasses.some((m) => m.open) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowToolsModal(false);
+                        handleNotifyOpenMassesWhatsApp();
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        padding: "10px 12px",
+                        borderRadius: "8px",
+                        border: "1px solid #A7F3D0",
+                        background: "#ECFDF5",
+                        color: "#047857",
+                        fontWeight: 700,
+                        fontSize: "0.82rem",
+                        cursor: "pointer",
+                        textAlign: "left",
+                      }}
+                    >
+                      <Megaphone size={16} />
+                      <span>Avisar Missas Abertas no WhatsApp</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ─── 1. TOP APPBAR COMPACTA ────────────────────────────────────────── */}
       <header className="admin-header no-print">
         <div className="header-brand">
@@ -1200,76 +1485,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         );
       })()}
 
-      {/* ─── 2. CENTRAL DE FERRAMENTAS RÁPIDAS (3x2 no mobile) ─────────────── */}
-      {isAdmin && (
-        <div className="admin-tools-grid no-print">
-          <button className="tool-card-btn" onClick={() => setShowStatsModal(true)}>
-            <div className="tool-card-icon" style={{ background: "#EFF6FF", color: "#1D4ED8" }}>
-              <BarChart2 size={18} />
-            </div>
-            <span>Relatório</span>
-          </button>
-
-          <button className="tool-card-btn" onClick={() => setShowRankingModal(true)}>
-            <div className="tool-card-icon" style={{ background: "#FEF3C7", color: "#B45309" }}>
-              <Trophy size={18} />
-            </div>
-            <span>Ranking</span>
-          </button>
-
-          <button className="tool-card-btn" onClick={() => setShowTextModal(true)}>
-            <div className="tool-card-icon" style={{ background: "#ECFDF5", color: "#047857" }}>
-              <Edit size={18} />
-            </div>
-            <span>Texto Zap</span>
-          </button>
-
-          <button className="tool-card-btn" onClick={() => setShowReminderModal(true)}>
-            <div className="tool-card-icon" style={{ background: "#F7F5F0", color: "#4A3222" }}>
-              <Megaphone size={18} />
-            </div>
-            <span>Lembretes</span>
-          </button>
-
-          <button className="tool-card-btn" onClick={() => setShowQrModal(true)}>
-            <div className="tool-card-icon" style={{ background: "#F7F5F0", color: "#4A3222" }}>
-              <QrCode size={18} />
-            </div>
-            <span>QR Check-in</span>
-          </button>
-
-          <button className="tool-card-btn" onClick={() => setViewMode("pdf")}>
-            <div className="tool-card-icon" style={{ background: "#FEF2F2", color: "#B91C1C" }}>
-              <FileText size={18} />
-            </div>
-            <span>Gerar PDF</span>
-          </button>
-        </div>
-      )}
-
-      {/* ─── 3. MURAL DE AVISOS COLAPSÁVEL (Economiza espaço vertical no celular) ─ */}
-      {isAdmin && (
-        <div className="notice-accordion no-print">
-          <button
-            type="button"
-            className="notice-accordion-header"
-            onClick={() => setShowNoticeSection(!showNoticeSection)}
-          >
-            <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <Megaphone size={18} />
-              Gerenciar Mural de Avisos
-            </span>
-            {showNoticeSection ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-          </button>
-          {showNoticeSection && (
-            <div className="notice-accordion-body">
-              <NoticeBoard />
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ─── 4. NAVEGAÇÃO DE ABAS (Fixa no rodapé no celular) ──────────────── */}
+      {/* ─── NAVEGAÇÃO DE ABAS (Fixa no rodapé no celular) ──────────────── */}
       {isAdmin && (
         <nav className="admin-tabs no-print">
           <button
@@ -1299,120 +1515,94 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
       {/* ═══════════════════ ABA: ESCALAS ═══════════════════ */}
       {(activeTab === "escalas" || !isAdmin) && (
         <>
-          {/* RESUMO RÁPIDO (KPIs) */}
+          {/* RESUMO COMPACTO EM UMA LINHA */}
           {isAdmin && (
-            <div className="admin-kpi-row no-print">
-              <div className="admin-kpi-card">
-                <div className="admin-kpi-value">{filteredMasses.length}</div>
-                <div className="admin-kpi-label">Missas</div>
-              </div>
-              <div className="admin-kpi-card">
-                <div className="admin-kpi-value" style={{ color: "#2E7D32" }}>{publishedCount}</div>
-                <div className="admin-kpi-label">Publicadas</div>
-              </div>
-              <div className="admin-kpi-card">
-                <div className="admin-kpi-value" style={{ color: "#1D4ED8" }}>{openCount}</div>
-                <div className="admin-kpi-label">Inscrições Abertas</div>
-              </div>
+            <div
+              className="no-print"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "8px",
+                padding: "8px 14px",
+                background: "#FFFFFF",
+                border: `1px solid ${theme.colors.borderLight}`,
+                borderRadius: "10px",
+                marginBottom: "10px",
+                fontSize: "0.78rem",
+                color: theme.colors.textSecondary,
+                fontWeight: 600,
+                flexWrap: "wrap",
+              }}
+            >
+              <span><strong style={{ color: theme.colors.primary }}>{filteredMasses.length}</strong> missas</span>
+              <span>•</span>
+              <span><strong style={{ color: "#166534" }}>{publishedCount}</strong> publicadas</span>
+              <span>•</span>
+              <span><strong style={{ color: "#1D4ED8" }}>{openCount}</strong> abertas p/ inscrição</span>
             </div>
           )}
 
-          {/* BARRA DE AÇÕES PRINCIPAL: NOVA MISSA + IMPORTAR IA + FILTRAR */}
+          {/* BARRA DE AÇÕES: NOVA MISSA + FILTRAR + FERRAMENTAS */}
           {isAdmin && !editingId && (
-            <div className="admin-action-bar no-print">
-              <button
-                type="button"
-                onClick={() => setShowCreateForm(!showCreateForm)}
-                className="btn-action-primary"
-                style={showCreateForm ? { background: theme.colors.dangerDark } : {}}
-              >
-                {showCreateForm ? <X size={16} /> : <PlusCircle size={16} />}
-                <span>{showCreateForm ? "Fechar" : "Nova Missa"}</span>
-              </button>
+            <div style={{ marginBottom: "12px" }} className="no-print">
+              <div className="admin-action-bar" style={{ marginBottom: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateForm(!showCreateForm)}
+                  className="btn-action-primary"
+                  style={showCreateForm ? { background: theme.colors.dangerDark } : {}}
+                >
+                  {showCreateForm ? <X size={16} /> : <PlusCircle size={16} />}
+                  <span>{showCreateForm ? "Fechar" : "Nova Missa"}</span>
+                </button>
 
-              <label
-                className="btn-action-secondary"
-                style={{ cursor: isAiLoading ? "not-allowed" : "pointer", margin: 0 }}
-              >
-                {isAiLoading ? <Loader2 className="animate-spin" size={16} /> : <Camera size={16} />}
-                <span>{isAiLoading ? "Lendo..." : "Agenda IA"}</span>
-                <input
-                  type="file"
-                  accept="image/*,application/pdf"
-                  onChange={handleAiUpload}
-                  style={{ display: "none" }}
-                  disabled={isAiLoading}
-                />
-              </label>
+                <button
+                  type="button"
+                  onClick={() => setShowFilterSection(!showFilterSection)}
+                  className="btn-action-secondary"
+                  style={
+                    startDate || endDate
+                      ? { background: "#EFECE6", borderColor: theme.colors.primary, flex: 0.9 }
+                      : { flex: 0.9 }
+                  }
+                >
+                  <Filter size={16} />
+                  <span>{startDate || endDate ? "Filtro Ativo" : "Filtrar"}</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setShowFilterSection(!showFilterSection)}
-                className="btn-action-secondary"
-                style={
-                  startDate || endDate
-                    ? { background: "#EFECE6", borderColor: theme.colors.primary, flex: 0.85 }
-                    : { flex: 0.85 }
-                }
-              >
-                <Filter size={16} />
-                <span>{startDate || endDate ? "Filtro Ativo" : "Filtrar"}</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setShowToolsModal(true)}
+                  className="btn-action-secondary"
+                  style={{ flex: 1 }}
+                  title="Central de Ferramentas e Relatórios"
+                >
+                  <LayoutGrid size={16} />
+                  <span>Ferramentas</span>
+                </button>
+              </div>
             </div>
           )}
 
-          {/* AÇÕES EM LOTE: ABRIR TODAS + AVISO ÚNICO NO WHATSAPP */}
-          {isAdmin && filteredMasses.length > 0 && (
-            <div className="no-print" style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "12px" }}>
-              {filteredMasses.some((m) => !m.open) && (
-                <button
-                  type="button"
-                  onClick={handleOpenAllFilteredMasses}
-                  style={{
-                    flex: 1,
-                    minWidth: "150px",
-                    padding: "8px 12px",
-                    borderRadius: "8px",
-                    border: "1px solid #BBF7D0",
-                    background: "#F0FDF4",
-                    color: "#166534",
-                    fontSize: "0.78rem",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "6px",
-                  }}
-                >
-                  <LockOpen size={14} />
-                  <span>Abrir Todas ({filteredMasses.filter((m) => !m.open).length})</span>
-                </button>
-              )}
-              {filteredMasses.some((m) => m.open) && (
-                <button
-                  type="button"
-                  onClick={handleNotifyOpenMassesWhatsApp}
-                  style={{
-                    flex: 1,
-                    minWidth: "150px",
-                    padding: "8px 12px",
-                    borderRadius: "8px",
-                    border: "1px solid #BBF7D0",
-                    background: "#DCFCE7",
-                    color: "#15803D",
-                    fontSize: "0.78rem",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "6px",
-                  }}
-                >
-                  <Megaphone size={14} />
-                  <span>Avisar Abertas no Zap</span>
-                </button>
+          {/* MURAL DE AVISOS COLAPSÁVEL */}
+          {isAdmin && (
+            <div className="notice-accordion no-print" style={{ marginBottom: "14px" }}>
+              <button
+                type="button"
+                className="notice-accordion-header"
+                onClick={() => setShowNoticeSection(!showNoticeSection)}
+              >
+                <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <Megaphone size={18} />
+                  Gerenciar Mural de Avisos
+                </span>
+                {showNoticeSection ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              </button>
+              {showNoticeSection && (
+                <div className="notice-accordion-body">
+                  <NoticeBoard />
+                </div>
               )}
             </div>
           )}
@@ -1520,427 +1710,608 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
             </div>
           )}
 
-          {/* LISTA DE MISSAS (CARDS MOBILE-FIRST) */}
+          {/* LISTA DE MISSAS AGRUPADA POR DIA (COM ABAS DE HORÁRIO EM DIAS COM MÚLTIPLAS MISSAS) */}
           <div className="mass-list">
-            {filteredMasses.length === 0 ? (
+            {groupedAdminMasses.length === 0 ? (
               <div style={{ textAlign: "center", padding: "40px 20px", background: "#fff", borderRadius: "14px", border: `1px dashed ${theme.colors.border}`, color: theme.colors.textMuted }}>
                 <Calendar size={32} style={{ opacity: 0.35, marginBottom: "8px" }} />
                 <p style={{ margin: 0, fontWeight: 600 }}>Nenhuma missa encontrada para o período.</p>
               </div>
             ) : (
-              filteredMasses.map((mass) => {
-                if (editingId === mass.id) {
-                  return (
-                    <div key={mass.id} className="new-mass-card no-print" style={{ borderColor: "#D97706", background: "#FFFBEB" }}>
-                      <div className="section-title" style={{ color: "#92400E" }}>
-                        <Edit size={18} /> <span>Editando: {mass.name || "Missa"}</span>
-                      </div>
-                      <MassForm {...massFormProps} isInline={true} mass={mass} />
-                    </div>
-                  );
-                }
+              groupedAdminMasses.map((group) => {
+                const dayNum = group.dateObj.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit" });
+                const monthShort = group.dateObj.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", month: "short" }).replace(".", "").toUpperCase();
+                const weekdayLabel = group.dateObj.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "long" });
+                const hasSolemnity = group.masses.some((m) => m.isSolemnity);
+                const isMultiMassDay = group.masses.length > 1;
+                const dayTitle = group.masses.find((m) => m.name)?.name || weekdayLabel;
 
-                const massDateObj = new Date(mass.date);
-                const isPublished = mass.published;
-                const userIsIn = mass.signups.some(s => s.userId === user.id);
-                const confirmados = mass.signups.filter((s: any) => s.status !== "RESERVA");
-                const vagasRestantes = mass.maxServers - confirmados.length;
-                const showNameList = isAdmin || isPublished;
-                const isAddExpanded = expandedAddMassId === mass.id;
-                const selectedForThisMass = selectedUserToAdd[mass.id] || [];
+                // Se estiver editando uma missa deste dia, exibe ela; caso contrário usa a aba de horário selecionada (padrão: 1ª missa do dia)
+                const editingInGroup = group.masses.find((m) => m.id === editingId);
+                const activeMassSelection = editingInGroup
+                  ? editingInGroup.id
+                  : selectedDayMassId[group.dateKey] || group.masses[0].id;
+
+                const visibleMasses =
+                  !isMultiMassDay || activeMassSelection === "ALL"
+                    ? group.masses
+                    : group.masses.filter((m) => m.id === activeMassSelection);
+
+                const finalMassesToShow = visibleMasses.length > 0 ? visibleMasses : [group.masses[0]];
 
                 return (
-                  <div key={mass.id} className={`admin-mass-card ${mass.isSolemnity ? "solemnity" : ""}`}>
-                    {/* TOPO DO CARD: DATA + TÍTULO/META + EDITAR/EXCLUIR */}
-                    <div className="admin-mass-top">
-                      <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", flex: 1, minWidth: 0 }}>
-                        <div className={`admin-date-box ${mass.isSolemnity ? "solemnity" : ""}`}>
-                          <span className="day">{massDateObj.getDate()}</span>
-                          <span className="month">
-                            {massDateObj.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}
-                          </span>
+                  <div
+                    key={group.dateKey}
+                    style={{
+                      background: "#FFFFFF",
+                      borderRadius: "16px",
+                      border: hasSolemnity ? "1.5px solid #D97706" : `1px solid ${theme.colors.borderLight}`,
+                      boxShadow: "0 3px 12px rgba(44, 26, 16, 0.06)",
+                      marginBottom: "16px",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {/* CABEÇALHO DO DIA */}
+                    <div
+                      style={{
+                        background: hasSolemnity
+                          ? "linear-gradient(135deg, #B45309 0%, #D97706 100%)"
+                          : "linear-gradient(135deg, #4A3222 0%, #5A3E2B 100%)",
+                        color: "#FDFBF7",
+                        padding: "12px 16px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "12px",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0, flex: 1 }}>
+                        <div
+                          style={{
+                            background: "rgba(255,255,255,0.15)",
+                            border: "1px solid rgba(230, 199, 134, 0.45)",
+                            borderRadius: "10px",
+                            padding: "6px 12px",
+                            textAlign: "center",
+                            lineHeight: 1.05,
+                            flexShrink: 0,
+                          }}
+                        >
+                          <div style={{ fontSize: "1.3rem", fontWeight: 900, color: "#E6C786" }}>{dayNum}</div>
+                          <div style={{ fontSize: "0.68rem", fontWeight: 800, letterSpacing: "0.05em", marginTop: "2px" }}>{monthShort}</div>
                         </div>
-
-                        <div className="admin-mass-meta">
-                          {mass.isSolemnity && (
-                            <span style={{ fontSize: "0.68rem", background: "#FEF3C7", color: "#B45309", border: "1px solid #FDE68A", padding: "2px 7px", borderRadius: "6px", fontWeight: 800, display: "inline-block", marginBottom: "4px" }}>
-                              👑 SOLENIDADE
-                            </span>
-                          )}
-                          <h3 className="admin-mass-title">
-                            {mass.name || massDateObj.toLocaleDateString("pt-BR", { weekday: "long" })}
-                          </h3>
-                          <div className="admin-mass-sub">
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                              <Clock size={13} />
-                              {massDateObj.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                            </span>
-                            <span style={{ textTransform: "capitalize" }}>
-                              • {massDateObj.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "")}
-                            </span>
-                            {mass.local && (
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "3px", color: theme.colors.primary }}>
-                                <MapPin size={13} /> {mass.local}
-                              </span>
-                            )}
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontWeight: 800, fontSize: "0.96rem", lineHeight: 1.25, wordBreak: "break-word" }}>
+                            {dayTitle}
+                          </div>
+                          <div style={{ fontSize: "0.74rem", opacity: 0.88, textTransform: "capitalize", marginTop: "2px" }}>
+                            {weekdayLabel} • {group.masses.length} {group.masses.length === 1 ? "horário" : "horários neste dia"}
                           </div>
                         </div>
                       </div>
-
-                      {isAdmin && (
-                        <div className="admin-card-tools no-print">
-                          <button
-                            type="button"
-                            className="btn-card-icon"
-                            onClick={() => handleStartEdit(mass)}
-                            title="Editar missa e sortear escala"
-                          >
-                            <Edit size={16} />
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-card-icon danger"
-                            onClick={() => handleDeleteMass(mass.id)}
-                            title="Excluir missa"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      )}
                     </div>
 
-                    {/* BARRA DE STATUS (PÚBLICA/RASCUNHO + CADEADO + VAGAS) */}
-                    <div className="admin-status-strip no-print">
-                      {isAdmin ? (
-                        <div className="status-toggles">
-                          <button
-                            type="button"
-                            onClick={() => handleTogglePublish(mass.id, mass.published)}
-                            className="chip-toggle"
-                            style={{
-                              background: mass.published ? "#DCFCE7" : "#FEF3C7",
-                              color: mass.published ? "#166534" : "#92400E",
-                            }}
-                          >
-                            {mass.published ? "● Pública" : "○ Rascunho"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleToggleOpen(mass.id, mass.open)}
-                            className="chip-toggle"
-                            style={{
-                              background: mass.open ? "#DBEAFE" : "#E5E7EB",
-                              color: mass.open ? "#1E40AF" : "#4B5563",
-                            }}
-                          >
-                            {mass.open ? <><LockOpen size={13} /> Aberta</> : <><Lock size={13} /> Fechada</>}
-                          </button>
-                        </div>
-                      ) : <div />}
-
-                      <div style={{ fontSize: "0.78rem", fontWeight: 800, color: vagasRestantes > 0 ? "#166534" : "#B91C1C", display: "flex", alignItems: "center", gap: "5px" }}>
-                        <UserIcon size={14} />
-                        <span>{confirmados.length}/{mass.maxServers} vagas</span>
-                        <span style={{ fontWeight: 600, opacity: 0.8 }}>
-                          ({vagasRestantes > 0 ? `${vagasRestantes} livre${vagasRestantes > 1 ? "s" : ""}` : "Lotado"})
-                        </span>
-                      </div>
-                    </div>
-
-                    {!isAdmin && (
-                      <button
-                        onClick={() => handleToggleSignup(mass.id)}
+                    {/* SELETOR DE HORÁRIOS (QUANDO HÁ 2 OU MAIS MISSAS NO MESMO DIA — EX: DOMINGO COM 5 MISSAS) */}
+                    {isMultiMassDay && (
+                      <div
+                        className="no-print"
                         style={{
-                          width: "100%",
-                          padding: "10px",
-                          marginBottom: "12px",
-                          borderRadius: "8px",
-                          fontWeight: "bold",
-                          cursor: "pointer",
-                          background: userIsIn ? "#FEE2E2" : (vagasRestantes > 0 ? "#DCFCE7" : "#E5E7EB"),
-                          color: userIsIn ? "#B91C1C" : (vagasRestantes > 0 ? "#166534" : "#6B7280"),
-                          border: "none",
+                          display: "flex",
+                          gap: "6px",
+                          overflowX: "auto",
+                          padding: "10px 14px",
+                          background: "#FAF8F5",
+                          borderBottom: `1px solid ${theme.colors.borderLight}`,
+                          scrollbarWidth: "none",
                         }}
-                        disabled={!userIsIn && vagasRestantes <= 0}
                       >
-                        {userIsIn ? "SAIR DA ESCALA" : (vagasRestantes > 0 ? "ENTRAR NA ESCALA" : "LOTADO")}
-                      </button>
+                        {group.masses.map((m) => {
+                          const tStr = new Date(m.date).toLocaleTimeString("pt-BR", {
+                            timeZone: "America/Sao_Paulo",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          });
+                          const confCount = m.signups.filter((s: any) => s.status !== "RESERVA").length;
+                          const isSelectedTab = activeMassSelection === m.id;
+
+                          return (
+                            <button
+                              key={m.id}
+                              type="button"
+                              onClick={() => setSelectedDayMassId((prev) => ({ ...prev, [group.dateKey]: m.id }))}
+                              style={{
+                                padding: "7px 12px",
+                                borderRadius: "10px",
+                                border: isSelectedTab ? `1.5px solid ${theme.colors.primary}` : `1px solid ${theme.colors.border}`,
+                                background: isSelectedTab ? theme.colors.primary : "#FFFFFF",
+                                color: isSelectedTab ? "#FFFFFF" : "#23170F",
+                                fontWeight: 800,
+                                fontSize: "0.78rem",
+                                whiteSpace: "nowrap",
+                                cursor: "pointer",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                boxShadow: isSelectedTab ? "0 2px 8px rgba(74,50,34,0.2)" : "none",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  width: "7px",
+                                  height: "7px",
+                                  borderRadius: "50%",
+                                  background: m.published ? "#22C55E" : "#F59E0B",
+                                  display: "inline-block",
+                                }}
+                                title={m.published ? "Publicada" : "Rascunho"}
+                              />
+                              <span>{tStr}</span>
+                              <span
+                                style={{
+                                  fontSize: "0.68rem",
+                                  opacity: isSelectedTab ? 0.9 : 0.7,
+                                  fontWeight: 700,
+                                }}
+                              >
+                                ({confCount}/{m.maxServers})
+                              </span>
+                            </button>
+                          );
+                        })}
+
+                        <button
+                          type="button"
+                          onClick={() => setSelectedDayMassId((prev) => ({ ...prev, [group.dateKey]: "ALL" }))}
+                          style={{
+                            padding: "7px 11px",
+                            borderRadius: "10px",
+                            border: activeMassSelection === "ALL" ? `1.5px solid ${theme.colors.primary}` : `1px solid ${theme.colors.border}`,
+                            background: activeMassSelection === "ALL" ? theme.colors.primary : "#FFFFFF",
+                            color: activeMassSelection === "ALL" ? "#FFFFFF" : theme.colors.textSecondary,
+                            fontWeight: 700,
+                            fontSize: "0.74rem",
+                            whiteSpace: "nowrap",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Todas ({group.masses.length})
+                        </button>
+                      </div>
                     )}
 
-                    {/* LISTA DE INSCRITOS (CARDS COMPACTOS MOBILE-FIRST) */}
-                    {showNameList && (
-                      <div>
-                        {mass.signups.length === 0 ? (
-                          <div style={{ textAlign: "center", padding: "12px", fontSize: "0.8rem", color: theme.colors.textMuted, background: "#FAF8F5", borderRadius: "8px" }}>
-                            Nenhum(a) servo(a) inscrito(a) nesta missa.
-                          </div>
-                        ) : (
-                          <div className="admin-signups-list">
-                            {mass.signups
-                              .slice()
-                              .sort((a, b) => {
-                                const statusA = (a as any).status === "RESERVA" ? 1 : 0;
-                                const statusB = (b as any).status === "RESERVA" ? 1 : 0;
-                                if (statusA !== statusB) return statusA - statusB;
-                                const wA = getRoleWeight(a.role);
-                                const wB = getRoleWeight(b.role);
-                                if (wA !== wB) return wA - wB;
-                                return (a.user.name || "").localeCompare(b.user.name || "");
-                              })
-                              .map((signup) => {
-                                const isReserva = (signup as any).status === "RESERVA";
-                                const isSwap = (signup as any).isSubstitution;
-                                const substName = (signup as any).substitutedName;
+                    {/* CONTEÚDO DA(S) MISSA(S) SELECIONADA(S) */}
+                    <div>
+                      {finalMassesToShow.map((mass, idxInView) => {
+                        if (editingId === mass.id) {
+                          return (
+                            <div key={mass.id} style={{ padding: "16px", background: "#FFFBEB", borderTop: idxInView > 0 ? `2px dashed ${theme.colors.border}` : "none" }}>
+                              <div className="section-title" style={{ color: "#92400E" }}>
+                                <Edit size={18} /> <span>Editando horário: {new Date(mass.date).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}</span>
+                              </div>
+                              <MassForm {...massFormProps} isInline={true} mass={mass} />
+                            </div>
+                          );
+                        }
 
-                                if (swappingSignupId === signup.id) {
-                                  return (
-                                    <div key={signup.id} className="admin-signup-row" style={{ background: "#EFF6FF", borderColor: "#BFDBFE" }}>
-                                      <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#1E40AF" }}>
-                                        Substituir {signup.user.name} por:
-                                      </div>
-                                      <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                                        <select
-                                          autoFocus
-                                          value={selectedReplacementId}
-                                          onChange={(e) => setSelectedReplacementId(e.target.value)}
-                                          style={{ flex: 1, padding: "8px" }}
-                                        >
-                                          <option value="">Selecione o(a) substituto(a)...</option>
+                        const massDateObj = new Date(mass.date);
+                        const timeStr = massDateObj.toLocaleTimeString("pt-BR", {
+                          timeZone: "America/Sao_Paulo",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        });
+                        const isPublished = mass.published;
+                        const userIsIn = mass.signups.some((s) => s.userId === user.id);
+                        const confirmados = mass.signups.filter((s: any) => s.status !== "RESERVA");
+                        const vagasRestantes = mass.maxServers - confirmados.length;
+                        const showNameList = isAdmin || isPublished;
+                        const isAddExpanded = expandedAddMassId === mass.id;
+                        const selectedForThisMass = selectedUserToAdd[mass.id] || [];
+
+                        return (
+                          <div
+                            key={mass.id}
+                            style={{
+                              padding: "14px 16px",
+                              borderTop: idxInView > 0 ? `2px dashed ${theme.colors.border}` : "none",
+                            }}
+                          >
+                            {/* BARRA DO HORÁRIO: HORA + LOCAL + STATUS + AÇÕES DA MISSA */}
+                            <div
+                              style={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: "8px",
+                                padding: "8px 12px",
+                                background: "#F7F5F0",
+                                borderRadius: "10px",
+                                marginBottom: "12px",
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                                <span style={{ fontWeight: 900, fontSize: "0.95rem", color: theme.colors.primary, display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                                  <Clock size={15} /> {timeStr}
+                                </span>
+                                {mass.local && (
+                                  <span style={{ fontSize: "0.78rem", fontWeight: 700, color: theme.colors.textSecondary, display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                                    <MapPin size={13} /> {mass.local}
+                                  </span>
+                                )}
+                                <span style={{ fontSize: "0.76rem", fontWeight: 800, color: vagasRestantes > 0 ? "#166534" : "#B91C1C" }}>
+                                  • {confirmados.length}/{mass.maxServers} vagas
+                                </span>
+                              </div>
+
+                              {isAdmin && (
+                                <div className="no-print" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleTogglePublish(mass.id, mass.published)}
+                                    className="chip-toggle"
+                                    style={{
+                                      background: mass.published ? "#DCFCE7" : "#FEF3C7",
+                                      color: mass.published ? "#166534" : "#92400E",
+                                      padding: "5px 9px",
+                                    }}
+                                  >
+                                    {mass.published ? "● Pública" : "○ Rascunho"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleOpen(mass.id, mass.open)}
+                                    className="chip-toggle"
+                                    style={{
+                                      background: mass.open ? "#DBEAFE" : "#E5E7EB",
+                                      color: mass.open ? "#1E40AF" : "#4B5563",
+                                      padding: "5px 9px",
+                                    }}
+                                  >
+                                    {mass.open ? <><LockOpen size={12} /> Aberta</> : <><Lock size={12} /> Fechada</>}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn-card-icon"
+                                    style={{ width: 30, height: 30, background: "#fff" }}
+                                    onClick={() => handleStartEdit(mass)}
+                                    title="Editar missa ou sortear funções"
+                                  >
+                                    <Edit size={14} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn-card-icon danger"
+                                    style={{ width: 30, height: 30 }}
+                                    onClick={() => handleDeleteMass(mass.id)}
+                                    title="Excluir missa"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
+                            {!isAdmin && (
+                              <button
+                                onClick={() => handleToggleSignup(mass.id)}
+                                style={{
+                                  width: "100%",
+                                  padding: "10px",
+                                  marginBottom: "12px",
+                                  borderRadius: "8px",
+                                  fontWeight: "bold",
+                                  cursor: "pointer",
+                                  background: userIsIn ? "#FEE2E2" : vagasRestantes > 0 ? "#DCFCE7" : "#E5E7EB",
+                                  color: userIsIn ? "#B91C1C" : vagasRestantes > 0 ? "#166534" : "#6B7280",
+                                  border: "none",
+                                }}
+                                disabled={!userIsIn && vagasRestantes <= 0}
+                              >
+                                {userIsIn ? "SAIR DA ESCALA" : vagasRestantes > 0 ? "ENTRAR NA ESCALA" : "LOTADO"}
+                              </button>
+                            )}
+
+                            {/* LISTA DE INSCRITOS EM LINHA ÚNICA LIMPA */}
+                            {showNameList && (
+                              <div>
+                                {mass.signups.length === 0 ? (
+                                  <div style={{ textAlign: "center", padding: "12px", fontSize: "0.8rem", color: theme.colors.textMuted, background: "#FAF8F5", borderRadius: "8px" }}>
+                                    Nenhum(a) servo(a) escalado(a) neste horário.
+                                  </div>
+                                ) : (
+                                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                                    {mass.signups
+                                      .slice()
+                                      .sort((a, b) => {
+                                        const statusA = (a as any).status === "RESERVA" ? 1 : 0;
+                                        const statusB = (b as any).status === "RESERVA" ? 1 : 0;
+                                        if (statusA !== statusB) return statusA - statusB;
+                                        const wA = getRoleWeight(a.role);
+                                        const wB = getRoleWeight(b.role);
+                                        if (wA !== wB) return wA - wB;
+                                        return (a.user.name || "").localeCompare(b.user.name || "");
+                                      })
+                                      .map((signup) => {
+                                        const isReserva = (signup as any).status === "RESERVA";
+                                        const isSwap = (signup as any).isSubstitution;
+                                        const substName = (signup as any).substitutedName;
+
+                                        if (swappingSignupId === signup.id) {
+                                          return (
+                                            <div key={signup.id} className="admin-signup-row" style={{ background: "#EFF6FF", borderColor: "#BFDBFE" }}>
+                                              <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#1E40AF" }}>
+                                                Substituir {signup.user.name} por:
+                                              </div>
+                                              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                                                <select
+                                                  autoFocus
+                                                  value={selectedReplacementId}
+                                                  onChange={(e) => setSelectedReplacementId(e.target.value)}
+                                                  style={{ flex: 1, padding: "8px" }}
+                                                >
+                                                  <option value="">Selecione o(a) substituto(a)...</option>
+                                                  {allUsers
+                                                    .filter((u) => {
+                                                      const massDateBr = new Date(mass.date).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+                                                      return !(unavailabilitiesMap[u.id] || []).some((unav) => unav.date === massDateBr);
+                                                    })
+                                                    .map((u) => (
+                                                      <option key={u.id} value={u.id}>{u.name}</option>
+                                                    ))}
+                                                </select>
+                                                <button
+                                                  type="button"
+                                                  onClick={handleExecuteSwap}
+                                                  style={{ padding: "8px 12px", background: "#1D4ED8", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer" }}
+                                                >
+                                                  <Save size={16} />
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => setSwappingSignupId(null)}
+                                                  style={{ padding: "8px 12px", background: "#E5E7EB", color: "#374151", border: "none", borderRadius: "8px", cursor: "pointer" }}
+                                                >
+                                                  <X size={16} />
+                                                </button>
+                                              </div>
+                                            </div>
+                                          );
+                                        }
+
+                                        return (
+                                          <div
+                                            key={signup.id}
+                                            style={{
+                                              display: "flex",
+                                              alignItems: "center",
+                                              justifyContent: "space-between",
+                                              gap: "8px",
+                                              padding: "8px 10px",
+                                              borderRadius: "9px",
+                                              border: isReserva ? "1px solid #FDE68A" : signup.present ? "1px solid #BBF7D0" : "1px solid #EFECE6",
+                                              background: isReserva ? "#FFFBEB" : signup.present ? "#F0FDF4" : "#FFFFFF",
+                                              flexWrap: "wrap",
+                                            }}
+                                          >
+                                            {/* ESQUERDA: CHECK DE PRESENÇA + NOME */}
+                                            <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: "130px", flex: 1 }}>
+                                              {isAdmin && !isReserva && (
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleTogglePresence(signup.id)}
+                                                  title={signup.present ? "Presença confirmada (clique para desmarcar)" : "Clique para confirmar presença"}
+                                                  style={{
+                                                    width: "24px",
+                                                    height: "24px",
+                                                    borderRadius: "50%",
+                                                    border: signup.present ? "none" : "1.5px solid #C4B5A3",
+                                                    background: signup.present ? "#16A34A" : "#FAF8F5",
+                                                    color: signup.present ? "#FFFFFF" : "transparent",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    cursor: "pointer",
+                                                    flexShrink: 0,
+                                                    padding: 0,
+                                                  }}
+                                                >
+                                                  <Check size={14} strokeWidth={3} />
+                                                </button>
+                                              )}
+                                              <div style={{ minWidth: 0 }}>
+                                                <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#23170F", lineHeight: 1.2 }}>
+                                                  {signup.user.name}
+                                                </div>
+                                                {(isReserva || (isSwap && substName)) && (
+                                                  <div style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: "2px", flexWrap: "wrap" }}>
+                                                    {isReserva && (
+                                                      <span style={{ fontSize: "0.65rem", background: "#FEF3C7", color: "#B45309", padding: "1px 5px", borderRadius: "4px", fontWeight: 800 }}>
+                                                        RESERVA
+                                                      </span>
+                                                    )}
+                                                    {isSwap && substName && (
+                                                      <span style={{ fontSize: "0.68rem", color: "#6B7280", fontWeight: 600 }}>
+                                                        🔄 Subst. {substName}
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </div>
+
+                                            {/* DIREITA: FUNÇÃO + AÇÕES DISCRETAS */}
+                                            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+                                              {isAdmin ? (
+                                                <select
+                                                  className="role-select"
+                                                  style={{ minWidth: "118px", padding: "5px 8px" }}
+                                                  value={signup.role || "Auxiliar"}
+                                                  onChange={(e) => handleChangeRole(signup.id, e.target.value)}
+                                                >
+                                                  <option value="Auxiliar">Auxiliar</option>
+                                                  <option value="Cerimoniária">{formatRole("Cerimoniária", signup.user.name, signup.userId)}</option>
+                                                  <option value="Librífera">{formatRole("Librífera", signup.user.name, signup.userId)}</option>
+                                                  {(getUserGender(signup.userId, signup.user.name) === "M" || signup.role === "Turiferário") && (
+                                                    <option value="Turiferário">Turiferário</option>
+                                                  )}
+                                                  <option value="Naveteiro">{formatRole("Naveteiro", signup.user.name, signup.userId)}</option>
+                                                  <option value="Lava-pés">Lava-pés</option>
+                                                  <option value="Leituras">Leituras</option>
+                                                  <option value="Matraca">Matraca</option>
+                                                </select>
+                                              ) : (
+                                                <span className="tag-role" style={{ margin: 0 }}>
+                                                  {formatRole(signup.role, signup.user.name, signup.userId)}
+                                                </span>
+                                              )}
+
+                                              {isAdmin && (
+                                                <div className="no-print" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                                                  {isReserva ? (
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => handlePromote(signup.id)}
+                                                      style={{ width: 28, height: 28, borderRadius: "7px", border: "1px solid #FDE68A", background: "#FEF3C7", color: "#B45309", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}
+                                                      title="Promover para titular"
+                                                    >
+                                                      <ArrowUpCircle size={14} />
+                                                    </button>
+                                                  ) : (
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => setSwappingSignupId(signup.id)}
+                                                      style={{ width: 28, height: 28, borderRadius: "7px", border: "1px solid #E5DEC9", background: "#FAF8F5", color: "#5A4332", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}
+                                                      title="Substituir servo(a)"
+                                                    >
+                                                      <RefreshCw size={13} />
+                                                    </button>
+                                                  )}
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveSignup(signup.id)}
+                                                    style={{ width: 28, height: 28, borderRadius: "7px", border: "1px solid #FECACA", background: "#FEF2F2", color: "#B91C1C", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}
+                                                    title="Remover da escala"
+                                                  >
+                                                    <Trash2 size={13} />
+                                                  </button>
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                  </div>
+                                )}
+
+                                {/* ADICIONAR SERVO(A) NA ESCALA */}
+                                {isAdmin && (
+                                  <div className="no-print" style={{ marginTop: "8px" }}>
+                                    {!isAddExpanded ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setExpandedAddMassId(mass.id);
+                                          setAddSearchTerm("");
+                                        }}
+                                        style={{
+                                          width: "100%",
+                                          padding: "8px",
+                                          background: "transparent",
+                                          border: `1px dashed ${theme.colors.border}`,
+                                          borderRadius: "8px",
+                                          color: theme.colors.primary,
+                                          fontWeight: 700,
+                                          fontSize: "0.76rem",
+                                          cursor: "pointer",
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                          gap: "6px",
+                                        }}
+                                      >
+                                        <UserPlus size={14} /> Adicionar Servo(a)
+                                      </button>
+                                    ) : (
+                                      <div style={{ padding: "12px", background: "#F7F5F0", borderRadius: "10px", border: `1px solid ${theme.colors.border}` }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                                          <strong style={{ fontSize: "0.8rem", color: theme.colors.primary }}>
+                                            Selecionar servo(a) ({selectedForThisMass.length})
+                                          </strong>
+                                          <button
+                                            type="button"
+                                            onClick={() => setExpandedAddMassId(null)}
+                                            style={{ background: "none", border: "none", color: "#666", cursor: "pointer" }}
+                                          >
+                                            <X size={16} />
+                                          </button>
+                                        </div>
+
+                                        <input
+                                          type="text"
+                                          placeholder="Buscar nome..."
+                                          value={addSearchTerm}
+                                          onChange={(e) => setAddSearchTerm(e.target.value)}
+                                          style={{ padding: "8px 10px", fontSize: "0.84rem", marginBottom: "8px" }}
+                                        />
+
+                                        <div style={{ maxHeight: "160px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "4px", marginBottom: "10px" }}>
                                           {allUsers
+                                            .filter((u) => !mass.signups.some((s) => s.userId === u.id))
                                             .filter((u) => {
                                               const massDateBr = new Date(mass.date).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
                                               return !(unavailabilitiesMap[u.id] || []).some((unav) => unav.date === massDateBr);
                                             })
-                                            .map((u) => (
-                                              <option key={u.id} value={u.id}>{u.name}</option>
-                                            ))}
-                                        </select>
-                                        <button
-                                          type="button"
-                                          onClick={handleExecuteSwap}
-                                          style={{ padding: "8px 12px", background: "#1D4ED8", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer" }}
-                                        >
-                                          <Save size={16} />
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => setSwappingSignupId(null)}
-                                          style={{ padding: "8px 12px", background: "#E5E7EB", color: "#374151", border: "none", borderRadius: "8px", cursor: "pointer" }}
-                                        >
-                                          <X size={16} />
-                                        </button>
-                                      </div>
-                                    </div>
-                                  );
-                                }
-
-                                return (
-                                  <div key={signup.id} className={`admin-signup-row ${isReserva ? "reserva" : ""}`}>
-                                    <div className="admin-signup-main">
-                                      <div style={{ minWidth: 0, flex: 1 }}>
-                                        <div className="admin-signup-name">
-                                          {signup.user.name}
-                                        </div>
-                                        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "2px" }}>
-                                          {isSwap && substName && (
-                                            <span style={{ fontSize: "0.7rem", color: "#6B7280", fontWeight: 600 }}>
-                                              🔄 Subst. {substName}
-                                            </span>
-                                          )}
-                                          {isReserva && (
-                                            <span style={{ fontSize: "0.68rem", background: "#FEF3C7", color: "#B45309", padding: "1px 6px", borderRadius: "4px", fontWeight: 800 }}>
-                                              FILA DE ESPERA
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-
-                                      {isAdmin ? (
-                                        <select
-                                          className="role-select"
-                                          value={signup.role || "Auxiliar"}
-                                          onChange={(e) => handleChangeRole(signup.id, e.target.value)}
-                                        >
-                                          <option value="Auxiliar">Auxiliar</option>
-                                          <option value="Cerimoniária">{formatRole("Cerimoniária", signup.user.name, signup.userId)}</option>
-                                          <option value="Librífera">{formatRole("Librífera", signup.user.name, signup.userId)}</option>
-                                          {(getUserGender(signup.userId, signup.user.name) === "M" || signup.role === "Turiferário") && (
-                                            <option value="Turiferário">Turiferário</option>
-                                          )}
-                                          <option value="Naveteiro">{formatRole("Naveteiro", signup.user.name, signup.userId)}</option>
-                                          <option value="Lava-pés">Lava-pés</option>
-                                          <option value="Leituras">Leituras</option>
-                                          <option value="Matraca">Matraca</option>
-                                        </select>
-                                      ) : (
-                                        <span className="tag-role" style={{ margin: 0 }}>
-                                          {formatRole(signup.role, signup.user.name, signup.userId)}
-                                        </span>
-                                      )}
-                                    </div>
-
-                                    {isAdmin && (
-                                      <div className="admin-signup-actions no-print">
-                                        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                                          {!isReserva && (
-                                            <button
-                                              type="button"
-                                              onClick={() => handleTogglePresence(signup.id)}
-                                              className="chip-action"
-                                              style={{
-                                                background: signup.present ? "#DCFCE7" : "#FEE2E2",
-                                                color: signup.present ? "#166534" : "#B91C1C",
-                                              }}
-                                            >
-                                              {signup.present ? "✅ Presente" : "❌ Faltou"}
-                                            </button>
-                                          )}
-
-                                          {!isReserva && (
-                                            <button
-                                              type="button"
-                                              onClick={() => setSwappingSignupId(signup.id)}
-                                              className="chip-action"
-                                              style={{ background: "#EFF6FF", color: "#1D4ED8" }}
-                                            >
-                                              <RefreshCw size={12} /> Trocar
-                                            </button>
-                                          )}
-
-                                          {isReserva && (
-                                            <button
-                                              type="button"
-                                              onClick={() => handlePromote(signup.id)}
-                                              className="chip-action"
-                                              style={{ background: "#FEF3C7", color: "#B45309" }}
-                                            >
-                                              <ArrowUpCircle size={13} /> Promover
-                                            </button>
-                                          )}
+                                            .filter((u) => !addSearchTerm.trim() || u.name.toLowerCase().includes(addSearchTerm.toLowerCase()))
+                                            .map((u) => {
+                                              const isSelected = selectedForThisMass.includes(u.id);
+                                              return (
+                                                <button
+                                                  key={u.id}
+                                                  type="button"
+                                                  onClick={() => toggleSelectUserForMass(mass.id, u.id)}
+                                                  style={{
+                                                    display: "flex",
+                                                    justifyContent: "space-between",
+                                                    alignItems: "center",
+                                                    padding: "8px 10px",
+                                                    borderRadius: "6px",
+                                                    border: `1px solid ${isSelected ? theme.colors.primary : "#E5DEC9"}`,
+                                                    background: isSelected ? theme.colors.primary : "#ffffff",
+                                                    color: isSelected ? "#ffffff" : "#23170F",
+                                                    fontWeight: 600,
+                                                    fontSize: "0.82rem",
+                                                    textAlign: "left",
+                                                    textTransform: "none",
+                                                    cursor: "pointer",
+                                                  }}
+                                                >
+                                                  <span>{u.name}</span>
+                                                  {isSelected && <Check size={15} />}
+                                                </button>
+                                              );
+                                            })}
                                         </div>
 
                                         <button
                                           type="button"
-                                          onClick={() => handleRemoveSignup(signup.id)}
-                                          className="chip-action"
-                                          style={{ background: "transparent", color: "#B91C1C", padding: "4px 6px" }}
-                                          title="Remover da escala"
+                                          onClick={() => handleAddUserToMass(mass.id)}
+                                          disabled={selectedForThisMass.length === 0}
+                                          className="btn-action-primary"
+                                          style={{ width: "100%", opacity: selectedForThisMass.length === 0 ? 0.5 : 1 }}
                                         >
-                                          <Trash2 size={14} />
+                                          <PlusCircle size={15} />
+                                          <span>Confirmar Adição ({selectedForThisMass.length})</span>
                                         </button>
                                       </div>
                                     )}
                                   </div>
-                                );
-                              })}
-                          </div>
-                        )}
-
-                        {/* ADICIONAR SERVO(A) NA ESCALA (CHECKLIST COLAPSÁVEL AMIGÁVEL PARA CELULAR) */}
-                        {isAdmin && (
-                          <div className="no-print" style={{ marginTop: "10px" }}>
-                            {!isAddExpanded ? (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setExpandedAddMassId(mass.id);
-                                  setAddSearchTerm("");
-                                }}
-                                style={{
-                                  width: "100%",
-                                  padding: "9px",
-                                  background: "#FAF8F5",
-                                  border: `1px dashed ${theme.colors.border}`,
-                                  borderRadius: "8px",
-                                  color: theme.colors.primary,
-                                  fontWeight: 700,
-                                  fontSize: "0.78rem",
-                                  cursor: "pointer",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  gap: "6px",
-                                }}
-                              >
-                                <UserPlus size={15} /> Adicionar Servo(a) na Escala
-                              </button>
-                            ) : (
-                              <div style={{ padding: "12px", background: "#F7F5F0", borderRadius: "10px", border: `1px solid ${theme.colors.border}` }}>
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                                  <strong style={{ fontSize: "0.8rem", color: theme.colors.primary }}>
-                                    Toque nos nomes para selecionar ({selectedForThisMass.length})
-                                  </strong>
-                                  <button
-                                    type="button"
-                                    onClick={() => setExpandedAddMassId(null)}
-                                    style={{ background: "none", border: "none", color: "#666", cursor: "pointer" }}
-                                  >
-                                    <X size={16} />
-                                  </button>
-                                </div>
-
-                                <input
-                                  type="text"
-                                  placeholder="Buscar nome..."
-                                  value={addSearchTerm}
-                                  onChange={(e) => setAddSearchTerm(e.target.value)}
-                                  style={{ padding: "8px 10px", fontSize: "0.84rem", marginBottom: "8px" }}
-                                />
-
-                                <div style={{ maxHeight: "160px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "4px", marginBottom: "10px" }}>
-                                  {allUsers
-                                    .filter(u => !mass.signups.some(s => s.userId === u.id))
-                                    .filter(u => {
-                                      const massDateBr = new Date(mass.date).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
-                                      return !(unavailabilitiesMap[u.id] || []).some(unav => unav.date === massDateBr);
-                                    })
-                                    .filter(u => !addSearchTerm.trim() || u.name.toLowerCase().includes(addSearchTerm.toLowerCase()))
-                                    .map(u => {
-                                      const isSelected = selectedForThisMass.includes(u.id);
-                                      return (
-                                        <button
-                                          key={u.id}
-                                          type="button"
-                                          onClick={() => toggleSelectUserForMass(mass.id, u.id)}
-                                          style={{
-                                            display: "flex",
-                                            justifyContent: "space-between",
-                                            alignItems: "center",
-                                            padding: "8px 10px",
-                                            borderRadius: "6px",
-                                            border: `1px solid ${isSelected ? theme.colors.primary : "#E5DEC9"}`,
-                                            background: isSelected ? theme.colors.primary : "#ffffff",
-                                            color: isSelected ? "#ffffff" : "#23170F",
-                                            fontWeight: 600,
-                                            fontSize: "0.82rem",
-                                            textAlign: "left",
-                                            textTransform: "none",
-                                            cursor: "pointer",
-                                          }}
-                                        >
-                                          <span>{u.name}</span>
-                                          {isSelected && <Check size={15} />}
-                                        </button>
-                                      );
-                                    })}
-                                </div>
-
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddUserToMass(mass.id)}
-                                  disabled={selectedForThisMass.length === 0}
-                                  className="btn-action-primary"
-                                  style={{ width: "100%", opacity: selectedForThisMass.length === 0 ? 0.5 : 1 }}
-                                >
-                                  <PlusCircle size={15} />
-                                  <span>Confirmar Adição ({selectedForThisMass.length})</span>
-                                </button>
+                                )}
                               </div>
                             )}
                           </div>
-                        )}
-                      </div>
-                    )}
+                        );
+                      })}
+                    </div>
                   </div>
                 );
               })
