@@ -24,9 +24,27 @@ const EXEMPT_AUTO_INACTIVE_EMAILS = new Set([
     "eduarda@serva.com",
 ]);
 
-export function isExemptFromAutoInactivation(email?: string | null): boolean {
-    if (!email) return false;
-    return EXEMPT_AUTO_INACTIVE_EMAILS.has(email.trim().toLowerCase());
+export function isExemptFromAutoInactivation(email?: string | null, name?: string | null): boolean {
+    if (email && EXEMPT_AUTO_INACTIVE_EMAILS.has(email.trim().toLowerCase())) {
+        return true;
+    }
+    if (name) {
+        const firstName = name
+            .trim()
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .split(/\s+/)[0];
+        if (
+            firstName === "camilla" ||
+            firstName === "camila" ||
+            firstName === "alice" ||
+            firstName === "eduarda"
+        ) {
+            return true;
+        }
+    }
+    return false;
 }
 
 /**
@@ -109,10 +127,11 @@ export async function checkAndAutoInactivateUser(
     userId: string,
     currentRole: string,
     userEmail?: string | null,
-    existingMeta?: SystemUserMeta
+    existingMeta?: SystemUserMeta,
+    userName?: string | null
 ): Promise<boolean> {
     if (currentRole !== "USER") return false;
-    if (isExemptFromAutoInactivation(userEmail)) return false;
+    if (isExemptFromAutoInactivation(userEmail, userName)) return false;
 
     const cutoff = new Date(Date.now() - INACTIVITY_DAYS * 24 * 60 * 60 * 1000);
     const meta = existingMeta || (await getSystemUserMeta());
@@ -194,7 +213,7 @@ export async function getUsersListFull() {
         const hasGrace = Boolean(graceIso && new Date(graceIso) >= cutoff);
 
         let effectiveRole = u.role;
-        const isExempt = isExemptFromAutoInactivation(u.email);
+        const isExempt = isExemptFromAutoInactivation(u.email, u.name);
         if (u.role === "USER" && !hasGrace && !isExempt) {
             if (lastMassDate && new Date(lastMassDate) < cutoff) {
                 effectiveRole = "INATIVO";

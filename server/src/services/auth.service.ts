@@ -58,7 +58,7 @@ export async function login(data: LoginData): Promise<UserResponse | null> {
     }
 
     // Verifica se passou de 3 meses (90 dias) sem nenhuma escala e inativa automaticamente
-    const wasAutoInactivated = await checkAndAutoInactivateUser(user.id, user.role, user.email);
+    const wasAutoInactivated = await checkAndAutoInactivateUser(user.id, user.role, user.email, undefined, user.name);
     if (wasAutoInactivated) {
         throw new Error("USER_INATIVO_3_MESES");
     }

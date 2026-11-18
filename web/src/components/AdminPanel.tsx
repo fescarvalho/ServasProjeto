@@ -888,7 +888,34 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     return age >= 0 ? age : null;
   };
 
+  const isExemptFromScaleTimeCount = (serva: ServaData): boolean => {
+    const email = (serva.email || "").trim().toLowerCase();
+    if (
+      email === "alice@serva.com" ||
+      email === "camilla@serva.com" ||
+      email === "camila@serva.com" ||
+      email === "eduarda@serva.com"
+    ) {
+      return true;
+    }
+    const firstName = (serva.name || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .split(/\s+/)[0];
+    return (
+      firstName === "camilla" ||
+      firstName === "camila" ||
+      firstName === "alice" ||
+      firstName === "eduarda"
+    );
+  };
+
   const getDaysWithoutScaleInfo = (serva: ServaData) => {
+    if (isExemptFromScaleTimeCount(serva)) {
+      return null;
+    }
     const refIso = serva.lastMassDate || serva.firstLoginDate;
     if (!refIso) {
       return {
@@ -970,8 +997,8 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     })
     .sort((a, b) => {
       if (!servaSortByDays) return 0;
-      const daysA = getDaysWithoutScaleInfo(a).days ?? -1;
-      const daysB = getDaysWithoutScaleInfo(b).days ?? -1;
+      const daysA = getDaysWithoutScaleInfo(a)?.days ?? -1;
+      const daysB = getDaysWithoutScaleInfo(b)?.days ?? -1;
       return daysB - daysA;
     });
 
@@ -2558,24 +2585,26 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                               {age !== null ? ` • ${age} ${age === 1 ? "ano" : "anos"}` : ""}
                             </span>
                           )}
-                          <span
-                            title={daysInfo.tooltip}
-                            style={{
-                              fontSize: "0.68rem",
-                              color: daysInfo.color,
-                              background: daysInfo.bg,
-                              border: `1px solid ${daysInfo.border}`,
-                              padding: "2px 7px",
-                              borderRadius: "6px",
-                              fontWeight: 700,
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "4px",
-                            }}
-                          >
-                            <Clock size={11} />
-                            <span>{daysInfo.label}</span>
-                          </span>
+                          {daysInfo && (
+                            <span
+                              title={daysInfo.tooltip}
+                              style={{
+                                fontSize: "0.68rem",
+                                color: daysInfo.color,
+                                background: daysInfo.bg,
+                                border: `1px solid ${daysInfo.border}`,
+                                padding: "2px 7px",
+                                borderRadius: "6px",
+                                fontWeight: 700,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                              }}
+                            >
+                              <Clock size={11} />
+                              <span>{daysInfo.label}</span>
+                            </span>
+                          )}
                           {unavList.length > 0 && (
                             <button
                               type="button"
