@@ -1443,7 +1443,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                       <div style={{ marginTop: "2px", fontSize: "0.7rem", color: "#8C7360" }}>
                         As fotos são eliminadas automaticamente após 30 dias.
                       </div>
-                      <div style={{ display: "flex", justifyContent: "center", gap: "8px", marginTop: "10px" }}>
+                      <div style={{ display: "flex", justifyContent: "center", gap: "8px", marginTop: "10px", flexWrap: "wrap" }}>
                         <label
                           style={{
                             padding: "6px 12px",
@@ -1461,7 +1461,33 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                           }}
                         >
                           <Camera size={14} />
-                          <span>Substituir Foto</span>
+                          <span>📷 Câmera</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            onChange={(e) => handleAdminUploadPhoto(modalMass.id, e)}
+                            style={{ display: "none" }}
+                            disabled={photoActionLoading}
+                          />
+                        </label>
+                        <label
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: "8px",
+                            border: `1px solid ${theme.colors.border}`,
+                            background: "#FAF8F5",
+                            color: theme.colors.primary,
+                            fontSize: "0.76rem",
+                            fontWeight: 700,
+                            cursor: photoActionLoading ? "not-allowed" : "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            margin: 0,
+                          }}
+                        >
+                          <span>🖼️ Galeria</span>
                           <input
                             type="file"
                             accept="image/*"
@@ -1502,31 +1528,58 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                       <div style={{ fontSize: "0.75rem", color: "#8C7360", marginBottom: "12px" }}>
                         Os(as) servos(as) escalados(as) podem enviar no dia da missa, ou você pode anexar abaixo:
                       </div>
-                      <label
-                        style={{
-                          padding: "8px 14px",
-                          borderRadius: "8px",
-                          background: theme.colors.primary,
-                          color: "#fff",
-                          fontSize: "0.78rem",
-                          fontWeight: 800,
-                          cursor: photoActionLoading ? "not-allowed" : "pointer",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          margin: 0,
-                        }}
-                      >
-                        {photoActionLoading ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
-                        <span>{photoActionLoading ? "Enviando..." : "Enviar Foto da Equipe"}</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handleAdminUploadPhoto(modalMass.id, e)}
-                          style={{ display: "none" }}
-                          disabled={photoActionLoading}
-                        />
-                      </label>
+                      <div style={{ display: "flex", justifyContent: "center", gap: "8px", flexWrap: "wrap" }}>
+                        <label
+                          style={{
+                            padding: "8px 14px",
+                            borderRadius: "8px",
+                            background: "#166534",
+                            color: "#fff",
+                            fontSize: "0.78rem",
+                            fontWeight: 800,
+                            cursor: photoActionLoading ? "not-allowed" : "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            margin: 0,
+                          }}
+                        >
+                          {photoActionLoading ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
+                          <span>📷 Abrir Câmera</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            onChange={(e) => handleAdminUploadPhoto(modalMass.id, e)}
+                            style={{ display: "none" }}
+                            disabled={photoActionLoading}
+                          />
+                        </label>
+                        <label
+                          style={{
+                            padding: "8px 14px",
+                            borderRadius: "8px",
+                            background: theme.colors.primary,
+                            color: "#fff",
+                            fontSize: "0.78rem",
+                            fontWeight: 800,
+                            cursor: photoActionLoading ? "not-allowed" : "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            margin: 0,
+                          }}
+                        >
+                          <span>🖼️ Escolher da Galeria</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleAdminUploadPhoto(modalMass.id, e)}
+                            style={{ display: "none" }}
+                            disabled={photoActionLoading}
+                          />
+                        </label>
+                      </div>
                     </div>
                   )}
                 </div>

@@ -163,6 +163,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
 
   const [isOnline, setIsOnline] = useState(() => (typeof navigator !== "undefined" ? navigator.onLine : true));
   const [uploadingPhotoMassId, setUploadingPhotoMassId] = useState<string | null>(null);
+  const [photoSourcePickerMass, setPhotoSourcePickerMass] = useState<Mass | null>(null);
   const [viewingPhotoMass, setViewingPhotoMass] = useState<{
     mass: Mass;
     photo: MassPhotoData | null;
@@ -269,7 +270,10 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
               <Eye size={12} /> Ver
             </button>
             {inWindow && (
-              <label
+              <button
+                type="button"
+                onClick={() => setPhotoSourcePickerMass(mass)}
+                disabled={isUploading}
                 style={{
                   padding: "4px 8px",
                   borderRadius: "6px",
@@ -287,14 +291,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
               >
                 {isUploading ? <Loader2 size={12} className="animate-spin" /> : <Camera size={12} />}
                 <span>{isUploading ? "Enviando..." : "Trocar"}</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleUploadTeamPhoto(mass.id, e)}
-                  style={{ display: "none" }}
-                  disabled={isUploading}
-                />
-              </label>
+              </button>
             )}
           </div>
         </div>
@@ -302,11 +299,16 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
     }
 
     return (
-      <label
+      <button
+        type="button"
+        onClick={() => setPhotoSourcePickerMass(mass)}
+        disabled={isUploading}
         style={{
           marginTop: "8px",
+          width: "100%",
           padding: "10px 12px",
           borderRadius: "9px",
+          border: "none",
           background: "linear-gradient(135deg, #166534 0%, #15803D 100%)",
           color: "#FFFFFF",
           fontWeight: 800,
@@ -322,14 +324,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
       >
         {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
         <span>{isUploading ? "Comprimindo e enviando foto..." : "📸 Enviar Foto da Equipe (Presença)"}</span>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => handleUploadTeamPhoto(mass.id, e)}
-          style={{ display: "none" }}
-          disabled={isUploading}
-        />
-      </label>
+      </button>
     );
   }
 
@@ -2000,6 +1995,156 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
           onConfirm={confirmState.onConfirm}
           onCancel={() => setConfirmState(null)}
         />
+      )}
+
+      {/* MODAL: ESCOLHER CÂMERA OU GALERIA PARA ENVIAR A FOTO */}
+      {photoSourcePickerMass && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.65)",
+            zIndex: 10020,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+            backdropFilter: "blur(3px)",
+          }}
+          onClick={() => setPhotoSourcePickerMass(null)}
+        >
+          <div
+            style={{
+              background: "#FAF8F5",
+              width: "100%",
+              maxWidth: "360px",
+              borderRadius: "16px",
+              border: `1px solid ${theme.colors.border}`,
+              boxShadow: "0 20px 50px rgba(0,0,0,0.35)",
+              overflow: "hidden",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                background: theme.colors.primaryGradient,
+                color: "#fff",
+                padding: "14px 16px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div style={{ fontWeight: 800, fontSize: "0.95rem", display: "flex", alignItems: "center", gap: "7px" }}>
+                <Camera size={18} />
+                <span>Enviar Foto da Equipe</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPhotoSourcePickerMass(null)}
+                style={{
+                  background: "rgba(255,255,255,0.22)",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: 28,
+                  height: 28,
+                  color: "#fff",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <X size={15} />
+              </button>
+            </div>
+
+            <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
+              <div style={{ fontSize: "0.82rem", color: "#5A4332", fontWeight: 600, textAlign: "center", marginBottom: "2px" }}>
+                Como você deseja enviar a foto desta missa?
+              </div>
+
+              <label
+                style={{
+                  padding: "13px 14px",
+                  borderRadius: "10px",
+                  background: "linear-gradient(135deg, #166534 0%, #15803D 100%)",
+                  color: "#FFFFFF",
+                  fontWeight: 800,
+                  fontSize: "0.88rem",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  boxShadow: "0 4px 12px rgba(22, 101, 52, 0.25)",
+                  margin: 0,
+                }}
+              >
+                <span>📷 Abrir Câmera (Tirar Foto Agora)</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={(e) => {
+                    const mId = photoSourcePickerMass.id;
+                    setPhotoSourcePickerMass(null);
+                    handleUploadTeamPhoto(mId, e);
+                  }}
+                  style={{ display: "none" }}
+                />
+              </label>
+
+              <label
+                style={{
+                  padding: "13px 14px",
+                  borderRadius: "10px",
+                  background: "#FFFFFF",
+                  border: `1.5px solid ${theme.colors.primary}`,
+                  color: theme.colors.primary,
+                  fontWeight: 800,
+                  fontSize: "0.88rem",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  margin: 0,
+                }}
+              >
+                <span>🖼️ Escolher Foto da Galeria</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const mId = photoSourcePickerMass.id;
+                    setPhotoSourcePickerMass(null);
+                    handleUploadTeamPhoto(mId, e);
+                  }}
+                  style={{ display: "none" }}
+                />
+              </label>
+
+              <button
+                type="button"
+                onClick={() => setPhotoSourcePickerMass(null)}
+                style={{
+                  marginTop: "2px",
+                  padding: "9px",
+                  borderRadius: "8px",
+                  border: "none",
+                  background: "#EFECE6",
+                  color: "#5A4332",
+                  fontWeight: 700,
+                  fontSize: "0.8rem",
+                  cursor: "pointer",
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* MODAL DE VISUALIZAÇÃO DA FOTO DA EQUIPE */}
