@@ -21,7 +21,6 @@ import {
   Calendar,
   Users,
   ClipboardList,
-  QrCode,
   Search,
   LogOut,
   Clock,
@@ -33,7 +32,7 @@ import {
   ChevronDown,
   ChevronUp
 } from "lucide-react";
-import { Mass, User, Signup } from "../types/types";
+import { Mass, MassPhotoData, User, Signup } from "../types/types";
 import { formatRole, setGlobalUserGenders, getUserGender } from "../constants/roles";
 import { useMasses } from "../hooks/useMasses";
 import { useSignup } from "../hooks/useSignup";
@@ -42,6 +41,13 @@ import { getMassPoints } from "../utils/ranking.utils";
 import { toLocalDate, toLocalDateTime } from "../utils/date.utils";
 import { APP_CONFIG } from "../constants/config";
 import { getUsersList } from "../services/api/notice.service";
+import {
+  getMassPhoto,
+  uploadMassPhoto,
+  deleteMassPhoto,
+  confirmAllMassPresence,
+  compressMassPhotoFile,
+} from "../services/api/mass.service";
 import {
   getServasList,
   createServa,
@@ -339,7 +345,11 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [showRankingModal, setShowRankingModal] = useState(false);
   const [showStatsModal, setShowStatsModal] = useState(false);
   const [showReminderModal, setShowReminderModal] = useState(false);
-  const [showQrModal, setShowQrModal] = useState(false);
+  const [photoModalMassId, setPhotoModalMassId] = useState<string | null>(null);
+  const [photoModalData, setPhotoModalData] = useState<MassPhotoData | null>(null);
+  const [photoModalLoading, setPhotoModalLoading] = useState(false);
+  const [photoActionLoading, setPhotoActionLoading] = useState(false);
+  const [onlyWithPhotos, setOnlyWithPhotos] = useState(false);
   const [showFilterSection, setShowFilterSection] = useState(false);
   const [expandedAddMassId, setExpandedAddMassId] = useState<string | null>(null);
   const [addSearchTerm, setAddSearchTerm] = useState("");
@@ -519,7 +529,17 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     }
   }
 
+  const massesWithPhotoCount = useMemo(
+    () => masses.filter((m) => m.hasPhoto && !m.name?.includes("Ajuste de Pontos")).length,
+    [masses]
+  );
+
   const filteredMasses = masses.filter((mass) => {
+    if (mass.name?.includes("Ajuste de Pontos")) return false;
+    if (onlyWithPhotos) {
+      return Boolean(mass.hasPhoto);
+    }
+
     const massDate = new Date(mass.date);
     const massDateStr = new Date(massDate.getTime() - massDate.getTimezoneOffset() * 60000).toISOString().split("T")[0];
 
@@ -532,9 +552,73 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
       if (massDateStr < todayStr) return false;
     }
 
-    if (mass.name?.includes("Ajuste de Pontos")) return false;
     return true;
   });
+
+  async function handleOpenPhotoModal(massId: string) {
+    setPhotoModalMassId(massId);
+    setPhotoModalData(null);
+    const targetMass = masses.find((m) => m.id === massId);
+    if (!targetMass?.hasPhoto) {
+      setPhotoModalLoading(false);
+      return;
+    }
+    try {
+      setPhotoModalLoading(true);
+      const data = await getMassPhoto(massId);
+      setPhotoModalData(data);
+    } catch (err) {
+      console.error("Erro ao carregar foto da missa:", err);
+      setPhotoModalData(null);
+    } finally {
+      setPhotoModalLoading(false);
+    }
+  }
+
+  async function handleAdminUploadPhoto(massId: string, e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    try {
+      setPhotoActionLoading(true);
+      const compressed = await compressMassPhotoFile(file, 960, 0.74);
+      await uploadMassPhoto(massId, compressed);
+      const updatedPhoto = await getMassPhoto(massId);
+      setPhotoModalData(updatedPhoto);
+      onUpdate();
+    } catch (err: any) {
+      alert(err?.response?.data?.error || err?.message || "Erro ao enviar foto.");
+    } finally {
+      setPhotoActionLoading(false);
+    }
+  }
+
+  async function handleAdminDeletePhoto(massId: string) {
+    if (!confirm("Deseja remover a foto da equipe desta missa?")) return;
+    try {
+      setPhotoActionLoading(true);
+      await deleteMassPhoto(massId);
+      setPhotoModalData(null);
+      onUpdate();
+    } catch (err: any) {
+      alert(err?.response?.data?.error || "Erro ao remover foto.");
+    } finally {
+      setPhotoActionLoading(false);
+    }
+  }
+
+  async function handleConfirmAllPresence(massId: string) {
+    try {
+      setPhotoActionLoading(true);
+      await confirmAllMassPresence(massId);
+      onUpdate();
+    } catch (err: any) {
+      alert(err?.response?.data?.error || "Erro ao confirmar presenças.");
+    } finally {
+      setPhotoActionLoading(false);
+    }
+  }
 
   if (viewMode === "pdf" && isAdmin)
     return (
@@ -1012,125 +1096,326 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         {showReminderModal && isAdmin && <ReminderModal masses={masses} onClose={() => setShowReminderModal(false)} />}
       </Suspense>
 
-      {showQrModal && isAdmin && (
-        <div
-          className="qr-print-overlay"
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.65)",
-            zIndex: 9999,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "16px",
-            overflowY: "auto",
-          }}
-          onClick={() => setShowQrModal(false)}
-        >
+      {photoModalMassId && isAdmin && (() => {
+        const modalMass = masses.find((m) => m.id === photoModalMassId);
+        if (!modalMass) return null;
+        const confirmedSignups = modalMass.signups.filter((s: any) => s.status !== "RESERVA");
+        const presentCount = confirmedSignups.filter((s) => s.present).length;
+        const allPresent = confirmedSignups.length > 0 && presentCount === confirmedSignups.length;
+
+        return (
           <div
-            className="qr-print-card"
             style={{
-              background: "white",
-              width: "100%",
-              maxWidth: "420px",
-              borderRadius: "16px",
-              padding: "28px 24px",
-              textAlign: "center",
-              boxShadow: "0 12px 30px rgba(0,0,0,0.3)",
-              border: `2px solid ${theme.colors.primary}`,
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.7)",
+              zIndex: 9999,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "16px",
+              backdropFilter: "blur(3px)",
             }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={() => setPhotoModalMassId(null)}
           >
-            <div style={{ fontSize: "0.72rem", fontWeight: 800, letterSpacing: "1px", textTransform: "uppercase", color: theme.colors.textSecondary, marginBottom: "4px" }}>
-              Santuário Diocesano N. Sra. da Natividade
-            </div>
-            <div style={{ fontSize: "0.82rem", fontWeight: 800, color: theme.colors.primary, fontFamily: "'Cinzel', Georgia, serif", marginBottom: "14px" }}>
-              GRUPO DE SERVOS E SERVAS SANTA TEREZINHA
-            </div>
-
-            <div style={{ background: "#F7F5F0", border: `1px solid ${theme.colors.border}`, borderRadius: "10px", padding: "12px 14px", marginBottom: "16px" }}>
-              <h2 style={{ margin: "0 0 4px 0", color: theme.colors.primary, fontSize: "1.25rem", fontFamily: "'Cinzel', Georgia, serif", letterSpacing: "0.5px" }}>
-                CONFIRME SUA PRESENÇA
-              </h2>
-              <p style={{ margin: 0, fontSize: "0.88rem", color: theme.colors.textMain, fontWeight: 600 }}>
-                Está escalado(a) para servir nesta Santa Missa? Realize seu check-in ao chegar na sacristia!
-              </p>
-            </div>
-
-            <div style={{ padding: "16px", background: "#fff", border: `2px solid ${theme.colors.primary}`, borderRadius: "14px", display: "inline-block", marginBottom: "16px" }}>
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent("https://servasdoaltar.vercel.app/escalas?checkin=SACRISTIA_ST_2026")}`}
-                alt="QR Code Check-in de Presença"
-                width={220}
-                height={220}
-                style={{ display: "block" }}
-              />
-            </div>
-
-            <div style={{ textAlign: "left", background: "#FAF8F5", border: `1px solid ${theme.colors.borderLight}`, borderRadius: "10px", padding: "12px 14px", marginBottom: "16px", fontSize: "0.83rem", color: theme.colors.textMain, lineHeight: 1.5 }}>
-              <strong style={{ display: "block", color: theme.colors.primary, marginBottom: "6px", fontSize: "0.84rem", textTransform: "uppercase" }}>
-                📱 Como confirmar sua presença:
-              </strong>
-              <div><strong>1.</strong> Abra a câmera do seu celular e aponte para o QR Code acima.</div>
-              <div><strong>2.</strong> Toque no link que aparecer na tela para abrir o aplicativo.</div>
-              <div><strong>3.</strong> Permita o acesso à localização (GPS) para confirmar sua presença no Santuário!</div>
-            </div>
-
-            <p style={{ margin: "0 0 18px 0", fontSize: "0.78rem", fontStyle: "italic", color: theme.colors.textSecondary, fontWeight: 600 }}>
-              "Servir ao Altar com zelo, pontualidade e alegria."
-            </p>
-
-            <div className="no-print" style={{ display: "flex", gap: "10px" }}>
-              <button
-                type="button"
-                onClick={() => window.print()}
-                style={{ flex: 1.3, padding: "12px", background: theme.colors.primaryGradient, color: "white", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}
+            <div
+              style={{
+                background: "#FAF8F5",
+                width: "100%",
+                maxWidth: "500px",
+                maxHeight: "90vh",
+                borderRadius: "16px",
+                overflowY: "auto",
+                display: "flex",
+                flexDirection: "column",
+                border: `1px solid ${theme.colors.border}`,
+                boxShadow: "0 20px 50px rgba(0,0,0,0.4)",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Cabeçalho */}
+              <div
+                style={{
+                  background: theme.colors.primaryGradient,
+                  color: "#fff",
+                  padding: "14px 16px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  position: "sticky",
+                  top: 0,
+                  zIndex: 10,
+                }}
               >
-                🖨️ Imprimir Cartaz
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowQrModal(false)}
-                style={{ flex: 0.7, padding: "12px", background: "#EFECE6", color: "#4A3222", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}
-              >
-                Fechar
-              </button>
-            </div>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: "0.98rem", display: "flex", alignItems: "center", gap: "7px" }}>
+                    <Camera size={18} />
+                    <span>Foto da Equipe & Conferência</span>
+                  </div>
+                  <div style={{ fontSize: "0.75rem", opacity: 0.92 }}>
+                    {new Date(modalMass.date).toLocaleDateString("pt-BR", {
+                      timeZone: "America/Sao_Paulo",
+                      weekday: "short",
+                      day: "2-digit",
+                      month: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                    {modalMass.local ? ` • ${modalMass.local}` : ""}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPhotoModalMassId(null)}
+                  style={{
+                    background: "rgba(255,255,255,0.22)",
+                    border: "none",
+                    borderRadius: "50%",
+                    width: 30,
+                    height: 30,
+                    color: "#fff",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
 
-            <style>{`
-              @media print {
-                body * {
-                  visibility: hidden !important;
-                }
-                .qr-print-overlay,
-                .qr-print-overlay * {
-                  visibility: visible !important;
-                }
-                .qr-print-overlay {
-                  position: absolute !important;
-                  inset: 0 !important;
-                  background: #ffffff !important;
-                  padding: 0 !important;
-                  display: flex !important;
-                  align-items: center !important;
-                  justify-content: center !important;
-                }
-                .qr-print-card {
-                  box-shadow: none !important;
-                  max-width: 520px !important;
-                  width: 100% !important;
-                  padding: 36px !important;
-                  border: 3px solid #4A3222 !important;
-                }
-                .qr-print-card .no-print {
-                  display: none !important;
-                }
-              }
-            `}</style>
+              <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "16px" }}>
+                {/* Área da Foto */}
+                <div
+                  style={{
+                    background: "#FFFFFF",
+                    border: `1px solid ${theme.colors.borderLight}`,
+                    borderRadius: "12px",
+                    padding: "12px",
+                    textAlign: "center",
+                  }}
+                >
+                  {photoModalLoading ? (
+                    <div style={{ padding: "36px 10px", color: theme.colors.textSecondary }}>
+                      <Loader2 size={26} className="animate-spin" style={{ margin: "0 auto 8px" }} />
+                      <div style={{ fontSize: "0.84rem", fontWeight: 600 }}>Carregando foto da equipe...</div>
+                    </div>
+                  ) : photoModalData?.imageDataUrl ? (
+                    <div>
+                      <img
+                        src={photoModalData.imageDataUrl}
+                        alt="Foto da Equipe"
+                        style={{
+                          width: "100%",
+                          maxHeight: "48vh",
+                          objectFit: "contain",
+                          borderRadius: "10px",
+                          background: "#111",
+                          border: `1px solid ${theme.colors.border}`,
+                        }}
+                      />
+                      <div style={{ marginTop: "8px", fontSize: "0.78rem", color: "#5A4332", fontWeight: 600 }}>
+                        Enviada por <strong>{photoModalData.uploadedByName}</strong> em{" "}
+                        {new Date(photoModalData.uploadedAt).toLocaleString("pt-BR", {
+                          timeZone: "America/Sao_Paulo",
+                          day: "2-digit",
+                          month: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                      <div style={{ marginTop: "2px", fontSize: "0.7rem", color: "#8C7360" }}>
+                        As fotos são eliminadas automaticamente após 30 dias.
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "center", gap: "8px", marginTop: "10px" }}>
+                        <label
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: "8px",
+                            border: `1px solid ${theme.colors.border}`,
+                            background: "#FAF8F5",
+                            color: theme.colors.primary,
+                            fontSize: "0.76rem",
+                            fontWeight: 700,
+                            cursor: photoActionLoading ? "not-allowed" : "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            margin: 0,
+                          }}
+                        >
+                          <Camera size={14} />
+                          <span>Substituir Foto</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleAdminUploadPhoto(modalMass.id, e)}
+                            style={{ display: "none" }}
+                            disabled={photoActionLoading}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => handleAdminDeletePhoto(modalMass.id)}
+                          disabled={photoActionLoading}
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: "8px",
+                            border: "1px solid #FECACA",
+                            background: "#FEF2F2",
+                            color: "#B91C1C",
+                            fontSize: "0.76rem",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                          }}
+                        >
+                          <Trash2 size={14} />
+                          <span>Excluir Foto</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ padding: "20px 10px" }}>
+                      <Camera size={32} style={{ color: "#C4B5A3", margin: "0 auto 8px", display: "block" }} />
+                      <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#5A4332", marginBottom: "4px" }}>
+                        Nenhuma foto enviada para esta missa ainda.
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "#8C7360", marginBottom: "12px" }}>
+                        Os(as) servos(as) escalados(as) podem enviar no dia da missa, ou você pode anexar abaixo:
+                      </div>
+                      <label
+                        style={{
+                          padding: "8px 14px",
+                          borderRadius: "8px",
+                          background: theme.colors.primary,
+                          color: "#fff",
+                          fontSize: "0.78rem",
+                          fontWeight: 800,
+                          cursor: photoActionLoading ? "not-allowed" : "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          margin: 0,
+                        }}
+                      >
+                        {photoActionLoading ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
+                        <span>{photoActionLoading ? "Enviando..." : "Enviar Foto da Equipe"}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleAdminUploadPhoto(modalMass.id, e)}
+                          style={{ display: "none" }}
+                          disabled={photoActionLoading}
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                {/* Checklist de Presença da Equipe */}
+                <div
+                  style={{
+                    background: "#FFFFFF",
+                    border: `1px solid ${theme.colors.borderLight}`,
+                    borderRadius: "12px",
+                    padding: "12px",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: "8px",
+                      marginBottom: "10px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div style={{ fontWeight: 800, fontSize: "0.84rem", color: theme.colors.primary }}>
+                      Servos Escalados ({presentCount}/{confirmedSignups.length} presentes)
+                    </div>
+                    {confirmedSignups.length > 0 && !allPresent && (
+                      <button
+                        type="button"
+                        onClick={() => handleConfirmAllPresence(modalMass.id)}
+                        disabled={photoActionLoading}
+                        style={{
+                          padding: "6px 10px",
+                          borderRadius: "8px",
+                          border: "none",
+                          background: "#16A34A",
+                          color: "#FFFFFF",
+                          fontSize: "0.74rem",
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        <Check size={14} strokeWidth={2.5} />
+                        <span>Marcar Todos Presentes</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {confirmedSignups.length === 0 ? (
+                    <div style={{ fontSize: "0.8rem", color: "#888", textAlign: "center", padding: "10px" }}>
+                      Nenhum servo escalado nesta missa.
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                      {confirmedSignups.map((s) => (
+                        <div
+                          key={s.id}
+                          onClick={() => handleTogglePresence(s.id)}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            padding: "8px 10px",
+                            borderRadius: "8px",
+                            border: s.present ? "1px solid #86EFAC" : "1px solid #E5DEC9",
+                            background: s.present ? "#F0FDF4" : "#FAF8F5",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: "0.86rem", color: "#23170F" }}>
+                              {s.user.name}
+                            </div>
+                            <div style={{ fontSize: "0.72rem", color: "#6B7280", fontWeight: 600 }}>
+                              {formatRole(s.role, s.user.name, s.userId)}
+                            </div>
+                          </div>
+                          <span
+                            style={{
+                              padding: "4px 10px",
+                              borderRadius: "20px",
+                              background: s.present ? "#16A34A" : "#E5E7EB",
+                              color: s.present ? "#FFFFFF" : "#4B5563",
+                              fontSize: "0.72rem",
+                              fontWeight: 800,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "4px",
+                            }}
+                          >
+                            {s.present ? <><Check size={12} strokeWidth={3} /> Presente</> : "Marcar Presença"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ─── MODAL: CENTRAL DE FERRAMENTAS & RELATÓRIOS ─────────────────── */}
       {showToolsModal && isAdmin && (
@@ -1275,14 +1560,14 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                     className="tool-card-btn"
                     style={{ padding: "12px 10px" }}
                     onClick={() => {
-                      setShowQrModal(true);
+                      setOnlyWithPhotos((prev) => !prev);
                       setShowToolsModal(false);
                     }}
                   >
-                    <div className="tool-card-icon" style={{ background: "#F7F5F0", color: "#4A3222" }}>
-                      <QrCode size={18} />
+                    <div className="tool-card-icon" style={{ background: "#DCFCE7", color: "#166534" }}>
+                      <Camera size={18} />
                     </div>
-                    <span>Cartaz QR Sacristia</span>
+                    <span>Fotos Enviadas ({massesWithPhotoCount})</span>
                   </button>
 
                   <button
@@ -1566,7 +1851,33 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
               <span>•</span>
               <span><strong style={{ color: "#166534" }}>{publishedCount}</strong> publicadas</span>
               <span>•</span>
-              <span><strong style={{ color: "#1D4ED8" }}>{openCount}</strong> abertas p/ inscrição</span>
+              <span><strong style={{ color: "#1D4ED8" }}>{openCount}</strong> abertas</span>
+              {(massesWithPhotoCount > 0 || onlyWithPhotos) && (
+                <>
+                  <span>•</span>
+                  <button
+                    type="button"
+                    onClick={() => setOnlyWithPhotos((prev) => !prev)}
+                    style={{
+                      background: onlyWithPhotos ? "#166534" : "#DCFCE7",
+                      color: onlyWithPhotos ? "#FFFFFF" : "#166534",
+                      border: "1px solid #86EFAC",
+                      borderRadius: "8px",
+                      padding: "2px 8px",
+                      fontSize: "0.74rem",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                    title="Filtrar apenas missas com foto enviada pela equipe (últimos 30 dias)"
+                  >
+                    <Camera size={12} />
+                    <span>{onlyWithPhotos ? "Mostrando Fotos (Ver todas)" : `${massesWithPhotoCount} foto(s)`}</span>
+                  </button>
+                </>
+              )}
             </div>
           )}
 
@@ -1873,6 +2184,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                                 title={m.published ? "Publicada" : "Rascunho"}
                               />
                               <span>{tStr}</span>
+                              {m.hasPhoto && <span title="Foto da equipe enviada">📸</span>}
                               <span
                                 style={{
                                   fontSize: "0.68rem",
@@ -1972,6 +2284,36 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
 
                               {isAdmin && (
                                 <div className="no-print" style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                                  {mass.hasPhoto ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenPhotoModal(mass.id)}
+                                      className="chip-toggle"
+                                      style={{
+                                        background: "#DCFCE7",
+                                        color: "#166534",
+                                        border: "1px solid #86EFAC",
+                                        padding: "5px 9px",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: "4px",
+                                        fontWeight: 800,
+                                      }}
+                                      title={`Ver foto enviada por ${mass.photoUploadedBy || "equipe"} e conferir presença`}
+                                    >
+                                      <Camera size={13} /> Foto
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenPhotoModal(mass.id)}
+                                      className="btn-card-icon"
+                                      style={{ width: 30, height: 30, background: "#fff" }}
+                                      title="Enviar ou conferir foto da equipe"
+                                    >
+                                      <Camera size={14} />
+                                    </button>
+                                  )}
                                   <button
                                     type="button"
                                     onClick={() => handleTogglePublish(mass.id, mass.published)}

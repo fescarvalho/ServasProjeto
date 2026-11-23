@@ -13,24 +13,30 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
 
     // Validate authorization header
     if (!authHeader || typeof authHeader !== "string") {
-        return unauthorized(res, "Token not provided or invalid format");
+        return unauthorized(res, "Sessão não iniciada. Faça login novamente.");
     }
 
     const parts = authHeader.split(" ");
 
     if (parts.length !== 2) {
-        return unauthorized(res, "Token error");
+        return unauthorized(res, "Sessão inválida. Faça login novamente.");
     }
 
     const [scheme, token] = parts;
 
     if (!/^Bearer$/i.test(scheme)) {
-        return unauthorized(res, "Malformed token");
+        return unauthorized(res, "Sessão inválida. Faça login novamente.");
+    }
+
+    let decoded: { id: string };
+    try {
+        decoded = jwt.verify(token, env.JWT_SECRET) as { id: string };
+    } catch (err) {
+        return unauthorized(res, "Sua sessão expirou. Faça login novamente.");
     }
 
     try {
-        const decoded = jwt.verify(token, env.JWT_SECRET) as { id: string };
-        const user = await prisma.user.findUnique({
+        let user = await prisma.user.findUnique({
             where: { id: decoded.id },
             select: { role: true },
         });
@@ -41,7 +47,22 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
 
         req.userId = decoded.id;
         return next();
-    } catch (err) {
-        return unauthorized(res, "Invalid token");
+    } catch (dbErr) {
+        // Em caso de oscilação momentânea do pool de conexão serverless, tenta validar mais 1 vez
+        try {
+            const userRetry = await prisma.user.findUnique({
+                where: { id: decoded.id },
+                select: { role: true },
+            });
+            if (!userRetry || userRetry.role === "INATIVO") {
+                return unauthorized(res, "Cadastro inativo ou inválido");
+            }
+            req.userId = decoded.id;
+            return next();
+        } catch {
+            // Não invalida a sessão caso seja apenas uma falha momentânea de conexão com o banco
+            req.userId = decoded.id;
+            return next();
+        }
     }
 }

@@ -22,15 +22,6 @@ const QuizTakingPage = lazy(() => import("./pages/QuizTakingPage").then((m) => (
 // Tempo máximo sem renovação online antes de exigir novo login (180 dias em ms)
 const OFFLINE_TIMEOUT_MS = 180 * 24 * 60 * 60 * 1000;
 
-// Captura imediatamente o parâmetro ?checkin=... do QR Code antes de qualquer redirecionamento para /login
-if (typeof window !== "undefined") {
-  const params = new URLSearchParams(window.location.search);
-  const checkinParam = params.get("checkin");
-  if (checkinParam) {
-    sessionStorage.setItem("pending_qr_checkin_token", checkinParam);
-  }
-}
-
 function App() {
   // PWA Hook
   const {
@@ -95,7 +86,12 @@ function App() {
       }
     }, 30_000);
 
+    const handleAuthExpired = () => {
+      logout();
+    };
+
     window.addEventListener("online", handleOnline);
+    window.addEventListener("servas:auth-expired", handleAuthExpired);
     document.addEventListener("visibilitychange", handleVisibility);
 
     // Verifica também ao montar (app aberto/recarregado)
@@ -103,6 +99,7 @@ function App() {
 
     return () => {
       window.removeEventListener("online", handleOnline);
+      window.removeEventListener("servas:auth-expired", handleAuthExpired);
       document.removeEventListener("visibilitychange", handleVisibility);
       clearInterval(keepAlive);
     };

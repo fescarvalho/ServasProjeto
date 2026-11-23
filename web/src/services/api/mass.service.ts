@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import { Mass } from "../../types/types";
+import { Mass, MassPhotoData } from "../../types/types";
 
 export interface CreateMassData {
     date: string;
@@ -86,5 +86,82 @@ export async function uploadScheduleImage(file: File): Promise<any[]> {
         },
     });
 
+    return response.data;
+}
+
+/**
+ * Comprime e redimensiona a foto da equipe no próprio celular antes do envio (~70-120 KB)
+ */
+export function compressMassPhotoFile(file: File, maxDimension = 960, quality = 0.72): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error("Não foi possível ler o arquivo de imagem."));
+        reader.onload = () => {
+            const img = new Image();
+            img.onerror = () => reject(new Error("Arquivo de imagem inválido."));
+            img.onload = () => {
+                let { width, height } = img;
+                if (width > maxDimension || height > maxDimension) {
+                    if (width >= height) {
+                        height = Math.round((height * maxDimension) / width);
+                        width = maxDimension;
+                    } else {
+                        width = Math.round((width * maxDimension) / height);
+                        height = maxDimension;
+                    }
+                }
+
+                const canvas = document.createElement("canvas");
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext("2d");
+                if (!ctx) {
+                    reject(new Error("Falha ao processar imagem no navegador."));
+                    return;
+                }
+
+                ctx.fillStyle = "#FFFFFF";
+                ctx.fillRect(0, 0, width, height);
+                ctx.drawImage(img, 0, 0, width, height);
+
+                const dataUrl = canvas.toDataURL("image/jpeg", quality);
+                resolve(dataUrl);
+            };
+            img.src = String(reader.result);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+/**
+ * Busca a foto da equipe de uma missa sob demanda
+ */
+export async function getMassPhoto(massId: string): Promise<MassPhotoData> {
+    const response = await apiClient.get<MassPhotoData>(`/masses/${massId}/photo?t=${Date.now()}`);
+    return response.data;
+}
+
+/**
+ * Envia/substitui a foto da equipe de uma missa
+ */
+export async function uploadMassPhoto(massId: string, imageDataUrl: string): Promise<{ uploadedById: string; uploadedByName: string; uploadedAt: string }> {
+    const response = await apiClient.post<{ uploadedById: string; uploadedByName: string; uploadedAt: string }>(`/masses/${massId}/photo`, {
+        imageDataUrl,
+    });
+    return response.data;
+}
+
+/**
+ * Remove a foto da equipe de uma missa (Admin)
+ */
+export async function deleteMassPhoto(massId: string): Promise<void> {
+    await apiClient.delete(`/masses/${massId}/photo`);
+}
+
+/**
+ * Confirma a presença de todos os servos confirmados de uma missa (Admin)
+ */
+export async function confirmAllMassPresence(massId: string): Promise<{ count: number }> {
+    const response = await apiClient.post<{ count: number }>(`/masses/${massId}/confirm-all-presence`);
     return response.data;
 }

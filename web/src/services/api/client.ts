@@ -17,4 +17,17 @@ apiClient.interceptors.request.use((config) => {
     return config;
 });
 
+// Interceptor para tratar sessão expirada (401) automaticamente em tokens antigos
+apiClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        const status = error?.response?.status;
+        const reqUrl = String(error?.config?.url || "");
+        if (status === 401 && !reqUrl.includes("/login")) {
+            window.dispatchEvent(new CustomEvent("servas:auth-expired"));
+        }
+        return Promise.reject(error);
+    }
+);
+
 export default apiClient;

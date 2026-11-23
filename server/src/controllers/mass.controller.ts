@@ -85,3 +85,66 @@ export async function toggleOpen(req: Request, res: Response) {
         return error(res, "Error toggling mass open status");
     }
 }
+
+/**
+ * Get mass team photo (on-demand)
+ */
+export async function getMassPhoto(req: Request, res: Response) {
+    try {
+        const { id } = req.params;
+        const photo = await massService.getMassPhoto(String(id));
+        if (!photo) {
+            return res.status(404).json({ error: "Nenhuma foto encontrada para esta missa (ou já expirou após 30 dias)." });
+        }
+        return success(res, photo);
+    } catch (err: any) {
+        console.error("Get mass photo error:", err);
+        return error(res, err.message || "Erro ao buscar foto da missa");
+    }
+}
+
+/**
+ * Upload mass team photo (escalated server on the day of mass or ADMIN)
+ */
+export async function uploadMassPhoto(req: Request, res: Response) {
+    try {
+        const { id } = req.params;
+        const { imageDataUrl } = req.body || {};
+        if (!req.userId) {
+            return res.status(401).json({ error: "Não autenticado." });
+        }
+        const result = await massService.saveMassPhoto(String(id), String(req.userId), imageDataUrl);
+        return success(res, result);
+    } catch (err: any) {
+        console.error("Upload mass photo error:", err);
+        return error(res, err.message || "Erro ao enviar foto da equipe");
+    }
+}
+
+/**
+ * Delete mass team photo (ADMIN only)
+ */
+export async function deleteMassPhoto(req: Request, res: Response) {
+    try {
+        const { id } = req.params;
+        await massService.deleteMassPhoto(String(id));
+        return success(res, { deleted: true });
+    } catch (err: any) {
+        console.error("Delete mass photo error:", err);
+        return error(res, err.message || "Erro ao remover foto da missa");
+    }
+}
+
+/**
+ * Confirm presence for all confirmed servers in a mass (ADMIN only)
+ */
+export async function confirmAllPresence(req: Request, res: Response) {
+    try {
+        const { id } = req.params;
+        const result = await massService.confirmAllMassPresence(String(id));
+        return success(res, result);
+    } catch (err: any) {
+        console.error("Confirm all presence error:", err);
+        return error(res, err.message || "Erro ao confirmar presença da equipe");
+    }
+}

@@ -22,19 +22,20 @@ import {
   Trash2,
   Filter,
   WifiOff,
-  RefreshCw,
-  ArrowRight
+  ArrowRight,
+  Camera,
+  Loader2,
+  Eye,
+  X
 } from "lucide-react";
-import { Mass, UserData, Notice, SwapRequest } from "../types/types";
+import { Mass, MassPhotoData, UserData, Notice, SwapRequest } from "../types/types";
 import { formatRole, getUserGender, setGlobalUserGenders } from "../constants/roles";
 import { getGoogleCalendarUrl, downloadMassICS } from "../utils/calendar.utils";
 import {
-  isWithinSantuarioRadius,
-  enqueueOfflineCheckin,
-  syncOfflineCheckins,
-  hasPendingOfflineCheckin,
-  getOfflineCheckinQueue,
-} from "../services/storage/offlineCheckin.service";
+  compressMassPhotoFile,
+  uploadMassPhoto,
+  getMassPhoto,
+} from "../services/api/mass.service";
 import {
   getUserMetadata,
   getMyUnavailabilities,
@@ -42,7 +43,6 @@ import {
   removeUnavailability,
   UnavailabilityItem
 } from "../services/api/user.service";
-import { selfCheckIn } from "../services/api/signup.service";
 import { api } from "../services/api";
 import * as swapRequestService from "../services/api/swap-request.service";
 import { CountdownTimer } from "./CountdownTimer";
@@ -162,39 +162,16 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
   }, [user?.id]);
 
   const [isOnline, setIsOnline] = useState(() => (typeof navigator !== "undefined" ? navigator.onLine : true));
-  const [pendingOfflineCount, setPendingOfflineCount] = useState(() => getOfflineCheckinQueue().length);
+  const [uploadingPhotoMassId, setUploadingPhotoMassId] = useState<string | null>(null);
+  const [viewingPhotoMass, setViewingPhotoMass] = useState<{
+    mass: Mass;
+    photo: MassPhotoData | null;
+    loading: boolean;
+  } | null>(null);
 
-  const handleManualSyncOffline = async () => {
-    const { syncedCount, failedMessages } = await syncOfflineCheckins();
-    setPendingOfflineCount(getOfflineCheckinQueue().length);
-    if (syncedCount > 0) {
-      show(
-        `${syncedCount} check-in(s) registrado(s) offline foi(ram) sincronizado(s) com sucesso!`,
-        "success",
-        6000
-      );
-      onUpdate?.();
-    }
-    if (failedMessages.length > 0) {
-      show(failedMessages[0], "error", 8000);
-    }
-  };
-
-  // --- SINCRONIZAÇÃO AUTOMÁTICA DE CHECK-INS OFFLINE QUANDO VOLTAR A INTERNET ---
   useEffect(() => {
-    if (!user) return;
-
-    const handleOnline = async () => {
-      setIsOnline(true);
-      await handleManualSyncOffline();
-    };
-    const handleOffline = () => {
-      setIsOnline(false);
-    };
-
-    if (navigator.onLine) {
-      handleManualSyncOffline();
-    }
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
@@ -202,137 +179,159 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, [user?.id]);
+  }, []);
 
-  // --- CHECK-IN AUTOMÁTICO VIA QR CODE DA SACRISTIA (online ou offline com fila) ---
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const urlToken = params.get("checkin");
-    const storedToken = sessionStorage.getItem("pending_qr_checkin_token");
-    const qrToken = urlToken || storedToken;
+  function isMassInPhotoWindow(massDateIso: string): boolean {
+    const now = new Date();
+    const massDate = new Date(massDateIso);
+    const diffHours = (now.getTime() - massDate.getTime()) / (1000 * 60 * 60);
+    const nowBrDay = now.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+    const massBrDay = massDate.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+    return nowBrDay === massBrDay || (diffHours >= -4 && diffHours <= 24);
+  }
 
-    if (qrToken && masses.length > 0 && user) {
-      sessionStorage.removeItem("pending_qr_checkin_token");
-      if (urlToken) {
-        window.history.replaceState({}, "", window.location.pathname);
-      }
+  async function handleUploadTeamPhoto(massId: string, e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
 
-      if (qrToken !== "SACRISTIA_ST_2026") {
-        show("Check-in permitido apenas escaneando o QR Code oficial na sacristia.", "error", 7000);
-        return;
-      }
+    try {
+      setUploadingPhotoMassId(massId);
+      const compressedDataUrl = await compressMassPhotoFile(file, 960, 0.74);
+      await uploadMassPhoto(massId, compressedDataUrl);
+      show("📸 Foto da equipe enviada com sucesso! A coordenação fará a conferência de presença.", "success", 6000);
+      onUpdate?.();
+    } catch (err: any) {
+      const msg = err?.response?.data?.error || err?.message || "Erro ao enviar a foto da equipe.";
+      show(msg, "error", 7000);
+    } finally {
+      setUploadingPhotoMassId(null);
+    }
+  }
 
-      const now = new Date();
-      const myWindowEntry = masses
-        .map((m) => ({
-          mass: m,
-          signup: m.signups.find((s) => s.userId === user.id && s.status !== "RESERVA"),
-        }))
-        .find(({ mass, signup }) => {
-          if (!signup) return false;
-          const diffMin = (now.getTime() - new Date(mass.date).getTime()) / 60000;
-          return diffMin >= -120 && diffMin <= 240;
-        });
+  async function handleViewTeamPhoto(mass: Mass) {
+    setViewingPhotoMass({ mass, photo: null, loading: true });
+    try {
+      const photo = await getMassPhoto(mass.id);
+      setViewingPhotoMass({ mass, photo, loading: false });
+    } catch (err: any) {
+      setViewingPhotoMass(null);
+      show(err?.response?.data?.error || "Não foi possível carregar a foto desta missa.", "error", 6000);
+    }
+  }
 
-      if (!myWindowEntry?.signup) {
-        show("Nenhuma escala sua encontrada para o horário de agora (o check-in abre 2h antes da missa).", "info", 7000);
-        return;
-      }
+  function renderTeamPhotoSection(mass: Mass, jaEstouInscrita: boolean, souReserva: boolean) {
+    if (!jaEstouInscrita || souReserva) return null;
+    const inWindow = isMassInPhotoWindow(mass.date);
+    if (!inWindow && !mass.hasPhoto) return null;
+    const isUploading = uploadingPhotoMassId === mass.id;
 
-      // Verifica se a missa é no Santuário (bloqueia capelas São Francisco, Santa Terezinha, Água Santa, etc.)
-      const massLocalNorm = (myWindowEntry.mass.local || "SANTUARIO")
-        .trim()
-        .toUpperCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
-
-      if (!massLocalNorm.includes("SANTUARIO") && !massLocalNorm.includes("MATRIZ")) {
-        show(
-          `O check-in por QR Code é exclusivo para missas no Santuário (sua escala de hoje é em ${myWindowEntry.mass.local}).`,
-          "error",
-          8000
-        );
-        return;
-      }
-
-      if (myWindowEntry.signup.present) {
-        show("Sua presença na missa de hoje no Santuário já está confirmada! Bom serviço no Altar!", "success", 6000);
-        return;
-      }
-
-      if (hasPendingOfflineCheckin(myWindowEntry.signup.id)) {
-        show("Sua presença já está salva no modo offline e será enviada assim que houver internet!", "info", 6000);
-        return;
-      }
-
-      if (!("geolocation" in navigator)) {
-        show("Seu navegador não suporta GPS. Procure a coordenação para confirmar sua presença.", "error", 7000);
-        return;
-      }
-
-      show("Validando sua localização no Santuário...", "info", 4000);
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          const scannedAt = new Date().toISOString();
-          const signupId = myWindowEntry.signup!.id;
-
-          const saveOfflineIfAllowed = () => {
-            if (!isWithinSantuarioRadius(lat, lng)) {
-              show(
-                "Check-in recusado: você precisa estar presencialmente na sacristia do Santuário para confirmar sua presença.",
-                "error",
-                8000
-              );
-              return;
-            }
-            enqueueOfflineCheckin({
-              signupId,
-              token: qrToken,
-              lat,
-              lng,
-              scannedAt,
-              massName: myWindowEntry.mass.name,
-            });
-            setPendingOfflineCount(getOfflineCheckinQueue().length);
-            show(
-              "Modo Offline: presença registrada no aparelho! Será enviada ao servidor assim que houver internet.",
-              "success",
-              8000
-            );
-          };
-
-          if (!navigator.onLine) {
-            saveOfflineIfAllowed();
-            return;
-          }
-
-          selfCheckIn(signupId, qrToken, lat, lng, scannedAt)
-            .then(() => {
-              show("Check-in no Santuário confirmado com sucesso! Bom serviço no Altar!", "success", 6000);
-              onUpdate?.();
-            })
-            .catch((err: any) => {
-              if (!err?.response) {
-                // Queda ou oscilação de rede dentro da igreja -> salva offline
-                saveOfflineIfAllowed();
-              } else {
-                show(err?.response?.data?.error || "Não foi possível confirmar o check-in agora.", "error", 8000);
-              }
-            });
-        },
-        () => {
-          show(
-            "Permita o acesso à localização (GPS) do celular ao ler o QR Code para confirmar que você está no Santuário.",
-            "error",
-            8000
-          );
-        },
-        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    if (mass.hasPhoto) {
+      return (
+        <div
+          style={{
+            marginTop: "8px",
+            padding: "8px 10px",
+            borderRadius: "9px",
+            background: "#F0FDF4",
+            border: "1px solid #BBF7D0",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "8px",
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#166534", fontSize: "0.76rem", fontWeight: 700 }}>
+            <Camera size={14} />
+            <span>
+              Foto da equipe enviada{mass.photoUploadedBy ? ` por ${mass.photoUploadedBy.split(" ")[0]}` : ""}
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <button
+              type="button"
+              onClick={() => handleViewTeamPhoto(mass)}
+              style={{
+                padding: "4px 8px",
+                borderRadius: "6px",
+                border: "1px solid #86EFAC",
+                background: "#FFFFFF",
+                color: "#166534",
+                fontSize: "0.72rem",
+                fontWeight: 800,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+              }}
+            >
+              <Eye size={12} /> Ver
+            </button>
+            {inWindow && (
+              <label
+                style={{
+                  padding: "4px 8px",
+                  borderRadius: "6px",
+                  border: `1px solid ${theme.colors.border}`,
+                  background: "#FFFFFF",
+                  color: theme.colors.primary,
+                  fontSize: "0.72rem",
+                  fontWeight: 700,
+                  cursor: isUploading ? "not-allowed" : "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  margin: 0,
+                }}
+              >
+                {isUploading ? <Loader2 size={12} className="animate-spin" /> : <Camera size={12} />}
+                <span>{isUploading ? "Enviando..." : "Trocar"}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleUploadTeamPhoto(mass.id, e)}
+                  style={{ display: "none" }}
+                  disabled={isUploading}
+                />
+              </label>
+            )}
+          </div>
+        </div>
       );
     }
-  }, [masses, user]);
+
+    return (
+      <label
+        style={{
+          marginTop: "8px",
+          padding: "10px 12px",
+          borderRadius: "9px",
+          background: "linear-gradient(135deg, #166534 0%, #15803D 100%)",
+          color: "#FFFFFF",
+          fontWeight: 800,
+          fontSize: "0.8rem",
+          cursor: isUploading ? "not-allowed" : "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "7px",
+          boxShadow: "0 3px 10px rgba(22, 101, 52, 0.25)",
+          textAlign: "center",
+        }}
+      >
+        {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+        <span>{isUploading ? "Comprimindo e enviando foto..." : "📸 Enviar Foto da Equipe (Presença)"}</span>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => handleUploadTeamPhoto(mass.id, e)}
+          style={{ display: "none" }}
+          disabled={isUploading}
+        />
+      </label>
+    );
+  }
 
   async function loadUnreadNotifications() {
     try {
@@ -1059,17 +1058,17 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
         </div>
       </div>
 
-      {/* FAIXA DE MODO OFFLINE / CHECK-IN PENDENTE */}
-      {(!isOnline || pendingOfflineCount > 0) && (
+      {/* FAIXA DE MODO OFFLINE */}
+      {!isOnline && (
         <div
           className="no-print"
           style={{
             margin: "12px 15px 0 15px",
             padding: "10px 14px",
             borderRadius: "10px",
-            background: pendingOfflineCount > 0 ? "#FEF3C7" : "#F3F4F6",
-            border: `1px solid ${pendingOfflineCount > 0 ? "#FCD34D" : "#D1D5DB"}`,
-            color: pendingOfflineCount > 0 ? "#92400E" : "#374151",
+            background: "#F3F4F6",
+            border: "1px solid #D1D5DB",
+            color: "#374151",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -1081,33 +1080,9 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <WifiOff size={16} style={{ flexShrink: 0 }} />
             <span>
-              {pendingOfflineCount > 0
-                ? `${pendingOfflineCount} check-in(s) salvo(s) offline — será(ão) enviado(s) automaticamente ao conectar.`
-                : "Modo Offline ativo — suas escalas em cache continuam disponíveis para consulta e QR Code."}
+              Modo Offline ativo — suas escalas em cache continuam disponíveis para consulta.
             </span>
           </div>
-          {pendingOfflineCount > 0 && isOnline && (
-            <button
-              type="button"
-              onClick={handleManualSyncOffline}
-              style={{
-                background: "#92400E",
-                color: "#fff",
-                border: "none",
-                borderRadius: "8px",
-                padding: "5px 10px",
-                fontSize: "0.72rem",
-                fontWeight: 800,
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "4px",
-                flexShrink: 0,
-              }}
-            >
-              <RefreshCw size={12} /> Sincronizar
-            </button>
-          )}
         </div>
       )}
 
@@ -1153,7 +1128,6 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                 ? formatRole(nextSignup.role, getUserGender(user.id, user.name))
                 : "Auxiliar";
               const isConfirmedPresent = Boolean(nextSignup.present);
-              const isPendingOffline = hasPendingOfflineCheckin(nextSignup.id);
 
               return (
                 <div
@@ -1178,9 +1152,9 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                       <span style={{ background: "#DCFCE7", color: "#166534", padding: "2px 8px", borderRadius: "10px", fontSize: "0.68rem", fontWeight: 800 }}>
                         ✓ Presença Confirmada
                       </span>
-                    ) : isPendingOffline ? (
-                      <span style={{ background: "#FEF3C7", color: "#92400E", padding: "2px 8px", borderRadius: "10px", fontSize: "0.68rem", fontWeight: 800 }}>
-                        ⏳ Aguardando Sincronizar
+                    ) : nextMass.hasPhoto ? (
+                      <span style={{ background: "#DCFCE7", color: "#166534", padding: "2px 8px", borderRadius: "10px", fontSize: "0.68rem", fontWeight: 800 }}>
+                        📸 Foto da Equipe Enviada
                       </span>
                     ) : (
                       <span style={{ background: "#F7F5F0", color: theme.colors.primary, border: `1px solid ${theme.colors.border}`, padding: "2px 8px", borderRadius: "10px", fontSize: "0.68rem", fontWeight: 700 }}>
@@ -1248,6 +1222,8 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                       </button>
                     )}
                   </div>
+
+                  {renderTeamPhotoSection(nextMass, true, false)}
                 </div>
               );
             })()}
@@ -1634,6 +1610,8 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                                 </div>
                               )}
 
+                              {renderTeamPhotoSection(mass, jaEstouInscrita, souReserva)}
+
                               {jaEstouInscrita && !souReserva && !prazoEncerrado && (() => {
                                 const mySignup = mass.signups.find(s => s.userId === user.id);
                                 const hasOpenRequest = swapRequests.some(sr => sr.signupId === mySignup?.id);
@@ -1928,6 +1906,8 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                                   </div>
                                 )}
 
+                                {renderTeamPhotoSection(mass, jaEstouInscrita, souReserva)}
+
                                 {jaEstouInscrita && !souReserva && !prazoEncerrado && (() => {
                                   const mySignup = mass.signups.find(s => s.userId === user.id);
                                   const hasOpenRequest = swapRequests.some(sr => sr.signupId === mySignup?.id);
@@ -2020,6 +2000,121 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
           onConfirm={confirmState.onConfirm}
           onCancel={() => setConfirmState(null)}
         />
+      )}
+
+      {/* MODAL DE VISUALIZAÇÃO DA FOTO DA EQUIPE */}
+      {viewingPhotoMass && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.75)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+            backdropFilter: "blur(3px)",
+          }}
+          onClick={() => setViewingPhotoMass(null)}
+        >
+          <div
+            style={{
+              background: "#FAF8F5",
+              width: "100%",
+              maxWidth: "460px",
+              maxHeight: "88vh",
+              borderRadius: "16px",
+              overflowY: "auto",
+              border: `1px solid ${theme.colors.border}`,
+              boxShadow: "0 20px 50px rgba(0,0,0,0.4)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                background: theme.colors.primaryGradient,
+                color: "#fff",
+                padding: "14px 16px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 800, fontSize: "0.96rem", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <Camera size={17} />
+                  <span>Foto da Equipe na Missa</span>
+                </div>
+                <div style={{ fontSize: "0.74rem", opacity: 0.9 }}>
+                  {new Date(viewingPhotoMass.mass.date).toLocaleDateString("pt-BR", {
+                    timeZone: "America/Sao_Paulo",
+                    day: "2-digit",
+                    month: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                  {viewingPhotoMass.mass.local ? ` • ${viewingPhotoMass.mass.local}` : ""}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingPhotoMass(null)}
+                style={{
+                  background: "rgba(255,255,255,0.22)",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: 30,
+                  height: 30,
+                  color: "#fff",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div style={{ padding: "14px", textAlign: "center" }}>
+              {viewingPhotoMass.loading ? (
+                <div style={{ padding: "40px 10px", color: theme.colors.textSecondary }}>
+                  <Loader2 size={28} className="animate-spin" style={{ margin: "0 auto 10px" }} />
+                  <div style={{ fontSize: "0.85rem", fontWeight: 600 }}>Carregando foto da equipe...</div>
+                </div>
+              ) : viewingPhotoMass.photo ? (
+                <div>
+                  <img
+                    src={viewingPhotoMass.photo.imageDataUrl}
+                    alt="Foto da Equipe"
+                    style={{
+                      width: "100%",
+                      maxHeight: "62vh",
+                      objectFit: "contain",
+                      borderRadius: "12px",
+                      border: `1px solid ${theme.colors.border}`,
+                      background: "#111",
+                    }}
+                  />
+                  <div style={{ marginTop: "10px", fontSize: "0.78rem", color: "#5A4332", fontWeight: 600 }}>
+                    Enviada por <strong>{viewingPhotoMass.photo.uploadedByName}</strong> em{" "}
+                    {new Date(viewingPhotoMass.photo.uploadedAt).toLocaleString("pt-BR", {
+                      timeZone: "America/Sao_Paulo",
+                      day: "2-digit",
+                      month: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </div>
+                  <div style={{ marginTop: "4px", fontSize: "0.7rem", color: "#8C7360" }}>
+                    As fotos são eliminadas automaticamente após 30 dias.
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* BARRA INFERIOR FIXA NO CELULAR */}

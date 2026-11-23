@@ -50,10 +50,21 @@ export interface Mass {
   open: boolean;
   isSolemnity?: boolean;
   points?: number; // <-- Adicionado para override manual
+  hasPhoto?: boolean;
+  photoUploadedBy?: string | null;
+  photoUploadedAt?: string | null;
   signups: Signup[];
   _count?: {
     signups: number;
   };
+}
+
+export interface MassPhotoData {
+  massId: string;
+  uploadedById: string;
+  uploadedByName: string;
+  uploadedAt: string;
+  imageDataUrl: string;
 }
 
 export interface Notice {
