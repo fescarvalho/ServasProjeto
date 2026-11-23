@@ -139,7 +139,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
       setNotices(res.data);
       try {
         localStorage.setItem("servas_notices_cache_v1", JSON.stringify(res.data));
-      } catch {}
+      } catch { }
     });
     loadSwapRequests();
     loadUnreadNotifications();
@@ -149,16 +149,16 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
           setMyUnavailabilities(list);
           try {
             localStorage.setItem(`servas_unav_${user.id}`, JSON.stringify(list));
-          } catch {}
+          } catch { }
         }
       })
-      .catch(() => {});
+      .catch(() => { });
 
     getUserMetadata()
       .then((meta) => {
         if (meta?.genders) setGlobalUserGenders(meta.genders);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [user?.id]);
 
   const [isOnline, setIsOnline] = useState(() => (typeof navigator !== "undefined" ? navigator.onLine : true));
@@ -483,7 +483,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
       setMyUnavailabilities(updated);
       try {
         localStorage.setItem(`servas_unav_${user.id}`, JSON.stringify(updated));
-      } catch {}
+      } catch { }
       setUnavDate("");
       setUnavReason("");
       show("Indisponibilidade registrada! Os coordenadores não incluirão você nesta data.", "success");
@@ -501,7 +501,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
       setMyUnavailabilities(updated);
       try {
         localStorage.setItem(`servas_unav_${user.id}`, JSON.stringify(updated));
-      } catch {}
+      } catch { }
       show("Data liberada novamente.", "info");
     } catch {
       show("Erro ao remover data.", "error");
@@ -1360,30 +1360,30 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                   style={
                     isMobile
                       ? {
-                          display: "flex",
-                          flexDirection: "row",
-                          alignItems: "flex-start",
-                          gap: "12px",
-                          overflowX: "auto",
-                          overflowY: "hidden",
-                          scrollSnapType: "x mandatory",
-                          WebkitOverflowScrolling: "touch",
-                          padding: "6px 18px 18px 18px",
-                          boxSizing: "border-box",
-                          width: "100%",
-                          height: "auto",
-                        }
+                        display: "flex",
+                        flexDirection: "row",
+                        alignItems: "flex-start",
+                        gap: "12px",
+                        overflowX: "auto",
+                        overflowY: "hidden",
+                        scrollSnapType: "x mandatory",
+                        WebkitOverflowScrolling: "touch",
+                        padding: "6px 18px 18px 18px",
+                        boxSizing: "border-box",
+                        width: "100%",
+                        height: "auto",
+                      }
                       : {
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "18px",
-                          padding: "0 30px 40px 30px",
-                          maxWidth: "820px",
-                          margin: "0 auto",
-                          width: "100%",
-                          height: "auto",
-                          boxSizing: "border-box",
-                        }
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "18px",
+                        padding: "0 30px 40px 30px",
+                        maxWidth: "820px",
+                        margin: "0 auto",
+                        width: "100%",
+                        height: "auto",
+                        boxSizing: "border-box",
+                      }
                   }
                 >
                   {groupedMassesByDay.map((group, groupIdx) => {
@@ -1576,14 +1576,14 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                                 style={
                                   mass.isSolemnity && btnClass === "btn-servir"
                                     ? {
-                                        background: "linear-gradient(135deg, #B45309 0%, #D97706 100%)",
-                                        color: "#FFFFFF",
-                                        boxShadow: "0 4px 12px rgba(217, 119, 6, 0.35)",
-                                        border: "1px solid #F59E0B",
-                                      }
+                                      background: "linear-gradient(135deg, #B45309 0%, #D97706 100%)",
+                                      color: "#FFFFFF",
+                                      boxShadow: "0 4px 12px rgba(217, 119, 6, 0.35)",
+                                      border: "1px solid #F59E0B",
+                                    }
                                     : isBlockedByUnav
-                                    ? { whiteSpace: "normal", lineHeight: 1.25 }
-                                    : undefined
+                                      ? { whiteSpace: "normal", lineHeight: 1.25 }
+                                      : undefined
                                 }
                               >
                                 {btnText}
@@ -1873,14 +1873,14 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                                   style={
                                     mass.isSolemnity && btnClass === "btn-servir"
                                       ? {
-                                          background: "linear-gradient(135deg, #B45309 0%, #D97706 100%)",
-                                          color: "#FFFFFF",
-                                          boxShadow: "0 4px 12px rgba(217, 119, 6, 0.35)",
-                                          border: "1px solid #F59E0B",
-                                        }
+                                        background: "linear-gradient(135deg, #B45309 0%, #D97706 100%)",
+                                        color: "#FFFFFF",
+                                        boxShadow: "0 4px 12px rgba(217, 119, 6, 0.35)",
+                                        border: "1px solid #F59E0B",
+                                      }
                                       : isBlockedByUnav
-                                      ? { whiteSpace: "normal", lineHeight: 1.25 }
-                                      : undefined
+                                        ? { whiteSpace: "normal", lineHeight: 1.25 }
+                                        : undefined
                                   }
                                 >
                                   {btnText}

@@ -30,7 +30,8 @@ import {
   UserCheck,
   LayoutGrid,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  AlertTriangle
 } from "lucide-react";
 import { Mass, MassPhotoData, User, Signup } from "../types/types";
 import { formatRole, setGlobalUserGenders, getUserGender } from "../constants/roles";
@@ -57,7 +58,11 @@ import {
   ServaData,
   UnavailabilityItem
 } from "../services/api/user.service";
-import { autoAssign } from "../utils/autoAssign";
+import {
+  autoAssign,
+  getConsecutiveRoleStreak,
+  getLastConsecutiveRole,
+} from "../utils/autoAssign";
 import { NoticeBoard } from "./NoticeBoard";
 import { theme } from "../theme/theme";
 import "./css/AdminPanel.css";
@@ -77,6 +82,7 @@ interface MassFormProps {
   localSignups?: Signup[];
   setLocalSignups?: React.Dispatch<React.SetStateAction<Signup[]>>;
   unavailabilitiesMap?: Record<string, UnavailabilityItem[]>;
+  onRoleStreakWarning?: (alert: { servaName: string; roleLabel: string; count: number; dates: string[]; isPreventive?: boolean }) => void;
   newName: string; setNewName: (v: string) => void;
   newLocal: string; setNewLocal: (v: string) => void;
   newDate: string; setNewDate: (v: string) => void;
@@ -88,7 +94,7 @@ interface MassFormProps {
   repeatWeekly: boolean; setRepeatWeekly: (v: boolean) => void;
   repeatUntil: string; setRepeatUntil: (v: string) => void;
   handleSubmit: (e: React.FormEvent) => void;
-  handleCancelEdit: () => void;
+  handleCancelEdit: (e?: any) => void;
 }
 
 function MassForm({
@@ -98,6 +104,7 @@ function MassForm({
   localSignups,
   setLocalSignups,
   unavailabilitiesMap = {},
+  onRoleStreakWarning,
   newName, setNewName,
   newLocal, setNewLocal,
   newDate, setNewDate,
@@ -196,6 +203,10 @@ function MassForm({
               {localSignups.map((s: Signup) => {
                 const targetDateStr = newDate || new Date(mass.date).toISOString().split("T")[0];
                 const unavItem = (unavailabilitiesMap[s.userId] || []).find((u) => u.date === targetDateStr);
+                const inlineStreak =
+                  s.status !== "RESERVA" && s.role
+                    ? getConsecutiveRoleStreak(s.userId, mass.id, mass.date, s.role, allMasses)
+                    : null;
                 return (
                   <div
                     key={s.id}
@@ -205,9 +216,9 @@ function MassForm({
                       alignItems: "center",
                       gap: "8px",
                       padding: "8px 10px",
-                      background: unavItem ? "#FFFBEB" : "#fff",
+                      background: unavItem || (inlineStreak && inlineStreak.count >= 3) ? "#FFFBEB" : "#fff",
                       borderRadius: "8px",
-                      border: `1px solid ${unavItem ? "#FDE68A" : "#E5DEC9"}`,
+                      border: `1px solid ${unavItem || (inlineStreak && inlineStreak.count >= 3) ? "#F59E0B" : "#E5DEC9"}`,
                     }}
                   >
                     <div style={{ minWidth: 0, flex: 1 }}>
@@ -218,6 +229,11 @@ function MassForm({
                         {s.status}
                         {unavItem && ` • ⚠️ Indisponível (${unavItem.reason || "Ausência"})`}
                       </div>
+                      {inlineStreak && inlineStreak.count >= 3 && (
+                        <div style={{ fontSize: "0.68rem", fontWeight: 800, color: "#B45309", marginTop: "2px" }}>
+                          ⚠️ {inlineStreak.count}ª escala seguida como {formatRole(s.role, s.user?.name, s.userId)} ({inlineStreak.massDates.join(", ")})
+                        </div>
+                      )}
                     </div>
                     <select
                       value={s.role || ""}
@@ -225,6 +241,17 @@ function MassForm({
                         const val = e.target.value;
                         if (setLocalSignups) {
                           setLocalSignups((prev: Signup[]) => prev.map((item: Signup) => item.id === s.id ? { ...item, role: val || null } : item));
+                        }
+                        if (val && s.status !== "RESERVA") {
+                          const streak = getConsecutiveRoleStreak(s.userId, mass.id, mass.date, val, allMasses);
+                          if (streak.count >= 3 && onRoleStreakWarning) {
+                            onRoleStreakWarning({
+                              servaName: s.user?.name || "Serva",
+                              roleLabel: formatRole(val, s.user?.name, s.userId),
+                              count: streak.count,
+                              dates: streak.massDates,
+                            });
+                          }
                         }
                       }}
                       className="role-select"
@@ -350,6 +377,13 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [photoModalLoading, setPhotoModalLoading] = useState(false);
   const [photoActionLoading, setPhotoActionLoading] = useState(false);
   const [onlyWithPhotos, setOnlyWithPhotos] = useState(false);
+  const [roleStreakAlert, setRoleStreakAlert] = useState<{
+    servaName: string;
+    roleLabel: string;
+    count: number;
+    dates: string[];
+    isPreventive?: boolean;
+  } | null>(null);
   const [showFilterSection, setShowFilterSection] = useState(false);
   const [expandedAddMassId, setExpandedAddMassId] = useState<string | null>(null);
   const [addSearchTerm, setAddSearchTerm] = useState("");
@@ -787,8 +821,25 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     }
   }
 
-  async function handleChangeRole(signupId: string, newRole: string) {
+  async function handleChangeRole(signupId: string, newRole: string, targetMass?: Mass, targetSignup?: Signup) {
     try {
+      if (targetMass && targetSignup && (targetSignup as any).status !== "RESERVA") {
+        const streak = getConsecutiveRoleStreak(
+          targetSignup.userId,
+          targetMass.id,
+          targetMass.date,
+          newRole,
+          masses
+        );
+        if (streak.count >= 3) {
+          setRoleStreakAlert({
+            servaName: targetSignup.user.name,
+            roleLabel: formatRole(newRole, targetSignup.user.name, targetSignup.userId),
+            count: streak.count,
+            dates: streak.massDates,
+          });
+        }
+      }
       await changeRole(signupId, newRole);
     } catch (error) {
       console.error(error);
@@ -836,6 +887,29 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   async function handleExecuteSwap() {
     if (!swappingSignupId || !selectedReplacementId) return;
     try {
+      const targetMass = masses.find((m) => m.signups.some((s) => s.id === swappingSignupId));
+      const oldSignup = targetMass?.signups.find((s) => s.id === swappingSignupId);
+      const repUser = allUsers.find((u) => u.id === selectedReplacementId);
+
+      if (targetMass && oldSignup && repUser && (oldSignup as any).status !== "RESERVA") {
+        const inheritedRole = oldSignup.role || "Auxiliar";
+        const streak = getConsecutiveRoleStreak(
+          repUser.id,
+          targetMass.id,
+          targetMass.date,
+          inheritedRole,
+          masses
+        );
+        if (streak.count >= 3) {
+          setRoleStreakAlert({
+            servaName: repUser.name,
+            roleLabel: formatRole(inheritedRole, repUser.name, repUser.id),
+            count: streak.count,
+            dates: streak.massDates,
+          });
+        }
+      }
+
       await swapSignup(swappingSignupId, selectedReplacementId);
       setSwappingSignupId(null);
       setSelectedReplacementId("");
@@ -853,6 +927,30 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     }
 
     try {
+      const targetMass = masses.find((m) => m.id === massId);
+      if (targetMass) {
+        for (const uid of usersIdsToAdd) {
+          const prevStreak = getLastConsecutiveRole(uid, targetMass.date, masses, targetMass.id);
+          if (prevStreak && prevStreak.count >= 2) {
+            const addedUser = allUsers.find((u) => u.id === uid);
+            const uName = addedUser?.name || "Serva";
+            const targetDateShort = new Date(targetMass.date).toLocaleDateString("pt-BR", {
+              timeZone: "America/Sao_Paulo",
+              day: "2-digit",
+              month: "2-digit",
+            });
+            setRoleStreakAlert({
+              servaName: uName,
+              roleLabel: formatRole(prevStreak.role, uName, uid),
+              count: prevStreak.count + 1,
+              dates: [...prevStreak.dates, targetDateShort],
+              isPreventive: prevStreak.role !== "Auxiliar",
+            });
+            break;
+          }
+        }
+      }
+
       await Promise.all(usersIdsToAdd.map(userId => toggleSignup(userId, massId)));
       setSelectedUserToAdd(prev => ({ ...prev, [massId]: [] }));
       setExpandedAddMassId(null);
@@ -919,6 +1017,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     allMasses: masses,
     localSignups, setLocalSignups,
     unavailabilitiesMap,
+    onRoleStreakWarning: setRoleStreakAlert,
     newName, setNewName,
     newLocal, setNewLocal,
     newDate, setNewDate,
@@ -1095,6 +1194,123 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         {showStatsModal && isAdmin && <StatisticsModal masses={masses} onClose={() => setShowStatsModal(false)} />}
         {showReminderModal && isAdmin && <ReminderModal masses={masses} onClose={() => setShowReminderModal(false)} />}
       </Suspense>
+
+      {/* ALERTA DE REPETIÇÃO DE FUNÇÃO (3+ ESCALAS SEGUIDAS NA MESMA FUNÇÃO) */}
+      {roleStreakAlert && isAdmin && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.65)",
+            zIndex: 10050,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+            backdropFilter: "blur(3px)",
+          }}
+          onClick={() => setRoleStreakAlert(null)}
+        >
+          <div
+            style={{
+              background: "#FFFBEB",
+              width: "100%",
+              maxWidth: "410px",
+              borderRadius: "16px",
+              border: "2px solid #F59E0B",
+              boxShadow: "0 20px 50px rgba(0,0,0,0.35)",
+              overflow: "hidden",
+              animation: "slideDown 0.2s ease",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                background: "linear-gradient(135deg, #B45309 0%, #D97706 100%)",
+                color: "#FFFFFF",
+                padding: "14px 16px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "10px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 800, fontSize: "0.96rem" }}>
+                <AlertTriangle size={20} />
+                <span>Alerta de Repetição de Função</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRoleStreakAlert(null)}
+                style={{
+                  background: "rgba(255,255,255,0.2)",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: 28,
+                  height: 28,
+                  color: "#fff",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div style={{ padding: "18px 16px", color: "#23170F", fontSize: "0.9rem", lineHeight: 1.5 }}>
+              {roleStreakAlert.isPreventive ? (
+                <p style={{ margin: "0 0 12px 0" }}>
+                  Atenção: <strong>{roleStreakAlert.servaName}</strong> já serviu nas últimas{" "}
+                  <strong>{roleStreakAlert.count - 1} escalas seguidas</strong> na função de{" "}
+                  <strong style={{ color: "#B45309" }}>{roleStreakAlert.roleLabel}</strong>. Se permanecer nessa mesma função nesta missa, completará{" "}
+                  <strong>{roleStreakAlert.count} escalas seguidas</strong>!
+                </p>
+              ) : (
+                <p style={{ margin: "0 0 12px 0" }}>
+                  Atenção: <strong>{roleStreakAlert.servaName}</strong> está sendo escalada(o) pela{" "}
+                  <strong style={{ color: "#B45309" }}>{roleStreakAlert.count}ª escala seguida</strong> na mesma função de{" "}
+                  <strong style={{ color: "#B45309" }}>{roleStreakAlert.roleLabel}</strong>!
+                </p>
+              )}
+
+              <div
+                style={{
+                  background: "#FFFFFF",
+                  border: "1px solid #FDE68A",
+                  borderRadius: "10px",
+                  padding: "10px 12px",
+                  fontSize: "0.8rem",
+                  color: "#78350F",
+                  fontWeight: 700,
+                  marginBottom: "14px",
+                }}
+              >
+                📅 Sequência de escalas: {roleStreakAlert.dates.join(" → ")}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setRoleStreakAlert(null)}
+                style={{
+                  width: "100%",
+                  padding: "11px",
+                  borderRadius: "10px",
+                  border: "none",
+                  background: "linear-gradient(135deg, #B45309 0%, #D97706 100%)",
+                  color: "#FFFFFF",
+                  fontWeight: 800,
+                  fontSize: "0.86rem",
+                  cursor: "pointer",
+                }}
+              >
+                Entendi, vou verificar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {photoModalMassId && isAdmin && (() => {
         const modalMass = masses.find((m) => m.id === photoModalMassId);
@@ -2404,6 +2620,17 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                                         const isReserva = (signup as any).status === "RESERVA";
                                         const isSwap = (signup as any).isSubstitution;
                                         const substName = (signup as any).substitutedName;
+                                        const rowStreak =
+                                          isAdmin && !isReserva && (Boolean(signup.role) || mass.published)
+                                            ? getConsecutiveRoleStreak(
+                                                signup.userId,
+                                                mass.id,
+                                                mass.date,
+                                                signup.role || "Auxiliar",
+                                                masses
+                                              )
+                                            : null;
+                                        const hasRowStreakWarning = Boolean(rowStreak && rowStreak.count >= 3);
 
                                         if (swappingSignupId === signup.id) {
                                           return (
@@ -2457,8 +2684,20 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                                               gap: "8px",
                                               padding: "8px 10px",
                                               borderRadius: "9px",
-                                              border: isReserva ? "1px solid #FDE68A" : signup.present ? "1px solid #BBF7D0" : "1px solid #EFECE6",
-                                              background: isReserva ? "#FFFBEB" : signup.present ? "#F0FDF4" : "#FFFFFF",
+                                              border: isReserva
+                                                ? "1px solid #FDE68A"
+                                                : hasRowStreakWarning
+                                                ? "1.5px solid #F59E0B"
+                                                : signup.present
+                                                ? "1px solid #BBF7D0"
+                                                : "1px solid #EFECE6",
+                                              background: isReserva
+                                                ? "#FFFBEB"
+                                                : hasRowStreakWarning
+                                                ? "#FFFBEB"
+                                                : signup.present
+                                                ? "#F0FDF4"
+                                                : "#FFFFFF",
                                               flexWrap: "wrap",
                                             }}
                                           >
@@ -2491,7 +2730,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                                                 <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#23170F", lineHeight: 1.2 }}>
                                                   {signup.user.name}
                                                 </div>
-                                                {(isReserva || (isSwap && substName)) && (
+                                                {(isReserva || (isSwap && substName) || hasRowStreakWarning) && (
                                                   <div style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: "2px", flexWrap: "wrap" }}>
                                                     {isReserva && (
                                                       <span style={{ fontSize: "0.65rem", background: "#FEF3C7", color: "#B45309", padding: "1px 5px", borderRadius: "4px", fontWeight: 800 }}>
@@ -2501,6 +2740,25 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                                                     {isSwap && substName && (
                                                       <span style={{ fontSize: "0.68rem", color: "#6B7280", fontWeight: 600 }}>
                                                         🔄 Subst. {substName}
+                                                      </span>
+                                                    )}
+                                                    {hasRowStreakWarning && rowStreak && (
+                                                      <span
+                                                        title={`Datas seguidas nesta função: ${rowStreak.massDates.join(" → ")}`}
+                                                        style={{
+                                                          fontSize: "0.66rem",
+                                                          background: "#FEF3C7",
+                                                          color: "#B45309",
+                                                          border: "1px solid #F59E0B",
+                                                          padding: "1px 6px",
+                                                          borderRadius: "5px",
+                                                          fontWeight: 800,
+                                                          display: "inline-flex",
+                                                          alignItems: "center",
+                                                          gap: "3px",
+                                                        }}
+                                                      >
+                                                        ⚠️ {rowStreak.count}ª seguida nesta função ({rowStreak.massDates.join(", ")})
                                                       </span>
                                                     )}
                                                   </div>
@@ -2515,7 +2773,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                                                   className="role-select"
                                                   style={{ minWidth: "118px", padding: "5px 8px" }}
                                                   value={signup.role || "Auxiliar"}
-                                                  onChange={(e) => handleChangeRole(signup.id, e.target.value)}
+                                                  onChange={(e) => handleChangeRole(signup.id, e.target.value, mass, signup)}
                                                 >
                                                   <option value="Auxiliar">Auxiliar</option>
                                                   <option value="Cerimoniária">{formatRole("Cerimoniária", signup.user.name, signup.userId)}</option>
