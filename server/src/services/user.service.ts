@@ -8,10 +8,22 @@ export interface UnavailabilityItem {
     reason?: string;
 }
 
+export interface ScaleSuspension {
+    from: string; // YYYY-MM-DD
+    until: string; // YYYY-MM-DD
+    reason?: string;
+    createdAt?: string;
+}
+
 export interface SystemUserMeta {
     genders: Record<string, "M" | "F">;
     unavailabilities: Record<string, UnavailabilityItem[]>;
     reactivatedAt?: Record<string, string>;
+    suspensions?: Record<string, ScaleSuspension>;
+}
+
+export function getBrazilTodayStr(): string {
+    return new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
 }
 
 const INACTIVITY_DAYS = 90; // 3 meses sem escalas
@@ -61,7 +73,7 @@ export async function getSystemUserMeta(): Promise<SystemUserMeta> {
         });
 
         if (!record) {
-            return { genders: {}, unavailabilities: {}, reactivatedAt: {} };
+            return { genders: {}, unavailabilities: {}, reactivatedAt: {}, suspensions: {} };
         }
 
         const jsonStr = record.text.slice(META_PREFIX.length);
@@ -70,10 +82,11 @@ export async function getSystemUserMeta(): Promise<SystemUserMeta> {
             genders: parsed.genders || {},
             unavailabilities: parsed.unavailabilities || {},
             reactivatedAt: parsed.reactivatedAt || {},
+            suspensions: parsed.suspensions || {},
         };
     } catch (err) {
         console.error("[UserMeta] Erro ao ler metadados:", err);
-        return { genders: {}, unavailabilities: {}, reactivatedAt: {} };
+        return { genders: {}, unavailabilities: {}, reactivatedAt: {}, suspensions: {} };
     }
 }
 
@@ -204,6 +217,7 @@ export async function getUsersListFull() {
     ]);
 
     const cutoff = new Date(Date.now() - INACTIVITY_DAYS * 24 * 60 * 60 * 1000);
+    const todayBr = getBrazilTodayStr();
     const autoInactivateIds: string[] = [];
 
     const mapped = users.map((u) => {
@@ -224,6 +238,9 @@ export async function getUsersListFull() {
             }
         }
 
+        const rawSusp = meta.suspensions?.[u.id];
+        const suspension = rawSusp && rawSusp.until >= todayBr ? rawSusp : null;
+
         return {
             id: u.id,
             name: u.name,
@@ -232,6 +249,7 @@ export async function getUsersListFull() {
             birthDate: u.birthDate,
             gender: meta.genders[u.id] || null,
             unavailabilities: meta.unavailabilities[u.id] || [],
+            suspension,
             lastMassDate,
             firstLoginDate,
         };
@@ -400,6 +418,72 @@ export async function removeUserUnavailability(userId: string, date: string) {
 }
 
 /**
+ * Retorna a suspensão ativa/agendada caso o usuário esteja bloqueado hoje ou na data da missa alvo
+ */
+export async function getActiveScaleSuspension(
+    userId: string,
+    targetMassDate?: Date | string,
+    existingMeta?: SystemUserMeta
+): Promise<ScaleSuspension | null> {
+    const meta = existingMeta || (await getSystemUserMeta());
+    const susp = meta.suspensions?.[userId];
+    if (!susp) return null;
+
+    const todayBr = getBrazilTodayStr();
+    if (susp.until < todayBr) return null;
+
+    const isActiveToday = todayBr >= susp.from && todayBr <= susp.until;
+    let isMassInRange = false;
+    if (targetMassDate) {
+        const massBrDay = new Date(targetMassDate).toLocaleDateString("en-CA", {
+            timeZone: "America/Sao_Paulo",
+        });
+        isMassInRange = massBrDay >= susp.from && massBrDay <= susp.until;
+    }
+
+    return isActiveToday || isMassInRange ? susp : null;
+}
+
+/**
+ * Define uma suspensão temporária de escalas (o membro mantém acesso ao app, mas não pode pegar escalas)
+ */
+export async function setUserSuspension(
+    userId: string,
+    data: { from: string; until: string; reason?: string }
+): Promise<ScaleSuspension> {
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(data.from) || !dateRegex.test(data.until)) {
+        throw new Error("INVALID_SUSPENSION_DATES");
+    }
+    if (data.until < data.from) {
+        throw new Error("INVALID_SUSPENSION_RANGE");
+    }
+
+    const meta = await getSystemUserMeta();
+    meta.suspensions = meta.suspensions || {};
+    const entry: ScaleSuspension = {
+        from: data.from,
+        until: data.until,
+        reason: data.reason?.trim() || undefined,
+        createdAt: new Date().toISOString(),
+    };
+    meta.suspensions[userId] = entry;
+    await saveSystemUserMeta(meta);
+    return entry;
+}
+
+/**
+ * Remove a suspensão temporária de escalas de um membro
+ */
+export async function removeUserSuspension(userId: string): Promise<void> {
+    const meta = await getSystemUserMeta();
+    if (meta.suspensions?.[userId]) {
+        delete meta.suspensions[userId];
+        await saveSystemUserMeta(meta);
+    }
+}
+
+/**
  * Delete a servo(a) and all related data (signups, logs, subscriptions, swap requests)
  */
 export async function deleteUser(id: string) {
@@ -451,6 +535,7 @@ export async function deleteUser(id: string) {
         const meta = await getSystemUserMeta();
         delete meta.genders[id];
         delete meta.unavailabilities[id];
+        if (meta.suspensions) delete meta.suspensions[id];
         await saveSystemUserMeta(meta);
     } catch (e) {
         console.error("[UserMeta] Erro ao limpar metadados do usuário removido:", e);

@@ -1,5 +1,6 @@
 import { prisma } from "../config/database";
 import { SIGNUP_STATUS } from "../constants";
+import { getActiveScaleSuspension } from "./user.service";
 
 /**
  * Promote the next person in line from RESERVE to CONFIRMED
@@ -67,6 +68,16 @@ export async function toggleSignup(userId: string, massId: string, isAdmin: bool
     }
 
     // SCENARIO B: JOIN (create signup)
+    if (!isAdmin) {
+        const suspension = await getActiveScaleSuspension(userId, mass.date);
+        if (suspension) {
+            const untilBr = new Date(suspension.until + "T12:00:00").toLocaleDateString("pt-BR");
+            throw new Error(
+                `Você está suspenso(a) de pegar escalas até ${untilBr}${suspension.reason ? ` (${suspension.reason})` : ""}. Seu acesso ao aplicativo continua normal.`
+            );
+        }
+    }
+
     const confirmedCount = mass.signups.filter(
         (s) => s.status === SIGNUP_STATUS.CONFIRMED
     ).length;

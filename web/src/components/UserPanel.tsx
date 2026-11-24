@@ -27,7 +27,8 @@ import {
   Camera,
   Loader2,
   Eye,
-  X
+  X,
+  Ban
 } from "lucide-react";
 import { Mass, MassPhotoData, UserData, Notice, SwapRequest } from "../types/types";
 import { formatRole, getUserGender, setGlobalUserGenders } from "../constants/roles";
@@ -49,7 +50,8 @@ import {
   getMyUnavailabilities,
   addUnavailability,
   removeUnavailability,
-  UnavailabilityItem
+  UnavailabilityItem,
+  ScaleSuspension
 } from "../services/api/user.service";
 import { api } from "../services/api";
 import * as swapRequestService from "../services/api/swap-request.service";
@@ -91,6 +93,14 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
   const [unavDate, setUnavDate] = useState("");
   const [unavReason, setUnavReason] = useState("");
   const [unavLoading, setUnavLoading] = useState(false);
+  const [mySuspension, setMySuspension] = useState<ScaleSuspension | null>(() => {
+    try {
+      const raw = localStorage.getItem(`servas_suspension_${user.id}`);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
   const [calendarModalMass, setCalendarModalMass] = useState<{ mass: Mass; roleLabel: string } | null>(null);
   const [notices, setNotices] = useState<Notice[]>(() => {
     try {
@@ -165,9 +175,34 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
     getUserMetadata()
       .then((meta) => {
         if (meta?.genders) setGlobalUserGenders(meta.genders);
+        if (meta && "mySuspension" in meta) {
+          const susp = meta.mySuspension || null;
+          setMySuspension(susp);
+          try {
+            if (susp) {
+              localStorage.setItem(`servas_suspension_${user.id}`, JSON.stringify(susp));
+            } else {
+              localStorage.removeItem(`servas_suspension_${user.id}`);
+            }
+          } catch { }
+        }
       })
       .catch(() => { });
   }, [user?.id]);
+
+  const todayBrStr = useMemo(() => {
+    return new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+  }, []);
+
+  const hasValidSuspension = Boolean(mySuspension && mySuspension.until >= todayBrStr);
+  const isActiveSuspensionToday = Boolean(
+    mySuspension && todayBrStr >= mySuspension.from && todayBrStr <= mySuspension.until
+  );
+
+  function isSuspendedForDate(dateKey: string): boolean {
+    if (!hasValidSuspension || !mySuspension) return false;
+    return isActiveSuspensionToday || (dateKey >= mySuspension.from && dateKey <= mySuspension.until);
+  }
 
   const [isOnline, setIsOnline] = useState(() => (typeof navigator !== "undefined" ? navigator.onLine : true));
   const [pendingOfflinePhotos, setPendingOfflinePhotos] = useState<OfflinePhotoItem[]>(() =>
@@ -1315,6 +1350,43 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
       )}
 
 
+      {/* AVISO DE SUSPENSÃO TEMPORÁRIA DE ESCALAS */}
+      {hasValidSuspension && mySuspension && (
+        <div
+          className="no-print"
+          style={{
+            margin: "12px 15px 0 15px",
+            padding: "12px 14px",
+            borderRadius: "12px",
+            background: "linear-gradient(135deg, #FEF2F2 0%, #FFF1F2 100%)",
+            border: "1.5px solid #F87171",
+            color: "#991B1B",
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "10px",
+            boxShadow: "0 4px 12px rgba(185, 28, 28, 0.1)",
+          }}
+        >
+          <div style={{ background: "#DC2626", padding: "7px", borderRadius: "50%", color: "#fff", flexShrink: 0, marginTop: "2px" }}>
+            <Ban size={18} />
+          </div>
+          <div style={{ fontSize: "0.82rem", lineHeight: 1.45 }}>
+            <div style={{ fontWeight: 900, fontSize: "0.86rem", textTransform: "uppercase", letterSpacing: "0.3px", marginBottom: "2px" }}>
+              Suspensão Temporária de Escalas
+            </div>
+            <div>
+              Você está suspenso(a) de pegar novas escalas no período de{" "}
+              <strong>{new Date(mySuspension.from + "T12:00:00").toLocaleDateString("pt-BR")}</strong> até{" "}
+              <strong>{new Date(mySuspension.until + "T12:00:00").toLocaleDateString("pt-BR")}</strong>
+              {mySuspension.reason ? ` (${mySuspension.reason})` : ""}.
+            </div>
+            <div style={{ marginTop: "3px", fontSize: "0.75rem", color: "#7F1D1D", fontWeight: 600 }}>
+              Seu acesso ao aplicativo (avisos, escala oficial e orações) continua normal.
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* AVISOS */}
       {notices.length > 0 && (
         <div className="no-print" style={{ margin: "15px 15px 5px 15px", display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -1538,7 +1610,9 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                 </div>
                 {swapRequests.map((sr) => {
                   const massDate = new Date(sr.signup.mass.date).toLocaleString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+                  const massDateBrKey = new Date(sr.signup.mass.date).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
                   const isMyRequest = sr.requesterId === user.id;
+                  const blockedSwapBySuspension = !isMyRequest && isSuspendedForDate(massDateBrKey);
                   return (
                     <div key={sr.id} style={{ padding: "12px 15px", borderBottom: `1px solid ${theme.colors.warningLight}`, display: "flex", flexDirection: "column", gap: "6px" }}>
                       <div style={{ fontSize: "0.9rem", color: theme.colors.textMain }}>
@@ -1556,10 +1630,24 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                       ) : (
                         <button
                           onClick={() => handleAcceptSwap(sr.id)}
-                          disabled={swapLoading === sr.id}
-                          style={{ alignSelf: "flex-start", padding: "6px 14px", borderRadius: "20px", border: "none", background: theme.colors.successLight, color: theme.colors.successDark, fontWeight: "bold", cursor: "pointer", fontSize: "0.8rem" }}
+                          disabled={swapLoading === sr.id || blockedSwapBySuspension}
+                          style={{
+                            alignSelf: "flex-start",
+                            padding: "6px 14px",
+                            borderRadius: "20px",
+                            border: "none",
+                            background: blockedSwapBySuspension ? "#FEE2E2" : theme.colors.successLight,
+                            color: blockedSwapBySuspension ? "#991B1B" : theme.colors.successDark,
+                            fontWeight: "bold",
+                            cursor: blockedSwapBySuspension ? "not-allowed" : "pointer",
+                            fontSize: "0.8rem",
+                          }}
                         >
-                          {swapLoading === sr.id ? "..." : "✅ Aceitar e entrar no lugar"}
+                          {swapLoading === sr.id
+                            ? "..."
+                            : blockedSwapBySuspension
+                            ? "🚫 Suspenso(a) de escalas"
+                            : "✅ Aceitar e entrar no lugar"}
                         </button>
                       )}
                     </div>
@@ -1664,7 +1752,8 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
 
                       const myUnavForDay = myUnavailabilities.find((u) => u.date === group.dateKey);
                       const isBlockedByUnav = !jaEstouInscrita && Boolean(myUnavForDay);
-                      const botaoDesabilitadoFinal = botaoDesabilitado || isBlockedByUnav;
+                      const isBlockedBySuspension = !jaEstouInscrita && isSuspendedForDate(group.dateKey);
+                      const botaoDesabilitadoFinal = botaoDesabilitado || isBlockedByUnav || isBlockedBySuspension;
 
                       let btnClass = "btn-servir";
                       let btnText: React.ReactNode = <><Check size={16} strokeWidth={2.5} /> QUERO SERVIR</>;
@@ -1677,6 +1766,10 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                           btnClass = "btn-desistir";
                           btnText = souReserva ? "SAIR DA RESERVA" : "DESISTIR";
                         }
+                      } else if (isBlockedBySuspension && mySuspension) {
+                        const shortUntil = new Date(mySuspension.until + "T12:00:00").toLocaleDateString("pt-BR");
+                        btnClass = "btn-disabled";
+                        btnText = `🚫 SUSPENSO ATÉ ${shortUntil}`;
                       } else if (isBlockedByUnav) {
                         btnClass = "btn-disabled";
                         btnText = `AUSENTE: ${myUnavForDay?.reason || "Indisponível"}`;
@@ -1813,7 +1906,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                                       boxShadow: "0 4px 12px rgba(217, 119, 6, 0.35)",
                                       border: "1px solid #F59E0B",
                                     }
-                                    : isBlockedByUnav
+                                    : (isBlockedByUnav || isBlockedBySuspension)
                                       ? { whiteSpace: "normal", lineHeight: 1.25 }
                                       : undefined
                                 }
@@ -1984,7 +2077,8 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
 
                             const myUnavForDay = myUnavailabilities.find((u) => u.date === group.dateKey);
                             const isBlockedByUnav = !jaEstouInscrita && Boolean(myUnavForDay);
-                            const botaoDesabilitadoFinal = botaoDesabilitado || isBlockedByUnav;
+                            const isBlockedBySuspension = !jaEstouInscrita && isSuspendedForDate(group.dateKey);
+                            const botaoDesabilitadoFinal = botaoDesabilitado || isBlockedByUnav || isBlockedBySuspension;
 
                             let btnClass = "btn-servir";
                             let btnText: React.ReactNode = <><Check size={16} strokeWidth={2.5} /> QUERO SERVIR</>;
@@ -1997,6 +2091,10 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                                 btnClass = "btn-desistir";
                                 btnText = souReserva ? "SAIR DA RESERVA" : "DESISTIR";
                               }
+                            } else if (isBlockedBySuspension && mySuspension) {
+                              const shortUntil = new Date(mySuspension.until + "T12:00:00").toLocaleDateString("pt-BR");
+                              btnClass = "btn-disabled";
+                              btnText = `🚫 SUSPENSO ATÉ ${shortUntil}`;
                             } else if (isBlockedByUnav) {
                               btnClass = "btn-disabled";
                               btnText = `AUSENTE: ${myUnavForDay?.reason || "Indisponível"}`;
@@ -2110,7 +2208,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                                         boxShadow: "0 4px 12px rgba(217, 119, 6, 0.35)",
                                         border: "1px solid #F59E0B",
                                       }
-                                      : isBlockedByUnav
+                                      : (isBlockedByUnav || isBlockedBySuspension)
                                         ? { whiteSpace: "normal", lineHeight: 1.25 }
                                         : undefined
                                   }

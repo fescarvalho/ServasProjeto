@@ -31,7 +31,8 @@ import {
   LayoutGrid,
   ChevronDown,
   ChevronUp,
-  AlertTriangle
+  AlertTriangle,
+  Ban
 } from "lucide-react";
 import { Mass, MassPhotoData, User, Signup } from "../types/types";
 import { formatRole, setGlobalUserGenders, getUserGender } from "../constants/roles";
@@ -55,8 +56,11 @@ import {
   updateServa,
   deleteServa,
   getUserMetadata,
+  setUserSuspension,
+  removeUserSuspension,
   ServaData,
-  UnavailabilityItem
+  UnavailabilityItem,
+  ScaleSuspension
 } from "../services/api/user.service";
 import {
   autoAssign,
@@ -401,11 +405,24 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   // ── CRUD DE SERVOS ──
   const [servasList, setServasList] = useState<ServaData[]>([]);
   const [servaSearch, setServaSearch] = useState("");
-  const [servaFilter, setServaFilter] = useState<"ALL" | "ACTIVE" | "FORMACAO" | "INATIVO" | "M" | "F">("ALL");
+  const [servaFilter, setServaFilter] = useState<"ALL" | "ACTIVE" | "SUSPENDED" | "FORMACAO" | "INATIVO" | "M" | "F">("ALL");
   const [servaSortByDays, setServaSortByDays] = useState(false);
   const [unavModalServa, setUnavModalServa] = useState<{ name: string; items: UnavailabilityItem[] } | null>(null);
   const [showAllUnavModal, setShowAllUnavModal] = useState(false);
   const [dismissedUnavBanner, setDismissedUnavBanner] = useState(false);
+  const [suspensionsMap, setSuspensionsMap] = useState<Record<string, ScaleSuspension>>({});
+  const [dismissedAbsenceBanner, setDismissedAbsenceBanner] = useState(false);
+  const [showMonthlyAbsencesModal, setShowMonthlyAbsencesModal] = useState(false);
+  const [suspensionModalServa, setSuspensionModalServa] = useState<{
+    id: string;
+    name: string;
+    absencesCount?: number;
+    current?: ScaleSuspension | null;
+  } | null>(null);
+  const [suspensionFrom, setSuspensionFrom] = useState("");
+  const [suspensionUntil, setSuspensionUntil] = useState("");
+  const [suspensionReason, setSuspensionReason] = useState("");
+  const [suspensionLoading, setSuspensionLoading] = useState(false);
   const [showServaModal, setShowServaModal] = useState(false);
   const [editingServa, setEditingServa] = useState<ServaData | null>(null);
   const [servaForm, setServaForm] = useState<{ name: string; email: string; password: string; birthDate: string; role: string; gender: "M" | "F" | "" }>({
@@ -437,6 +454,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
       .then((meta) => {
         if (meta?.genders) setGlobalUserGenders(meta.genders);
         if (meta?.unavailabilities) setUnavailabilitiesMap(meta.unavailabilities);
+        if (meta?.suspensions) setSuspensionsMap(meta.suspensions);
       })
       .catch(() => {});
 
@@ -453,6 +471,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
       const [list, meta] = await Promise.all([getServasList(), getUserMetadata()]);
       if (meta?.genders) setGlobalUserGenders(meta.genders);
       if (meta?.unavailabilities) setUnavailabilitiesMap(meta.unavailabilities);
+      if (meta?.suspensions) setSuspensionsMap(meta.suspensions);
       setServasList(list.filter(s => s.role !== "ADMIN"));
     } catch (err) {
       console.error("Erro ao carregar servos:", err);
@@ -460,6 +479,83 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
       setServaLoading(false);
     }
   };
+
+  function getTodayBrDateStr(): string {
+    return new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+  }
+
+  function addDaysToDateStr(baseYmd: string, days: number): string {
+    const d = new Date(baseYmd + "T12:00:00");
+    d.setDate(d.getDate() + days);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function handleOpenSuspensionModal(
+    servaId: string,
+    servaName: string,
+    presetReason?: string,
+    absencesCount?: number
+  ) {
+    const todayBr = getTodayBrDateStr();
+    const current = suspensionsMap[servaId] && suspensionsMap[servaId].until >= todayBr ? suspensionsMap[servaId] : null;
+    setSuspensionFrom(current?.from || todayBr);
+    setSuspensionUntil(current?.until || addDaysToDateStr(todayBr, 15));
+    setSuspensionReason(current?.reason || presetReason || "");
+    setSuspensionModalServa({ id: servaId, name: servaName, absencesCount, current });
+  }
+
+  async function handleSaveSuspension(e: React.FormEvent) {
+    e.preventDefault();
+    if (!suspensionModalServa) return;
+    if (!suspensionFrom || !suspensionUntil || suspensionUntil < suspensionFrom) {
+      alert("A data final deve ser igual ou posterior à data inicial.");
+      return;
+    }
+
+    try {
+      setSuspensionLoading(true);
+      const saved = await setUserSuspension(suspensionModalServa.id, {
+        from: suspensionFrom,
+        until: suspensionUntil,
+        reason: suspensionReason.trim() || undefined,
+      });
+      setSuspensionsMap((prev) => ({ ...prev, [suspensionModalServa.id]: saved }));
+      setSuspensionModalServa(null);
+      if (activeTab === "servas") {
+        await loadServas();
+      }
+    } catch (err: any) {
+      alert(err?.response?.data?.error || "Erro ao registrar suspensão.");
+    } finally {
+      setSuspensionLoading(false);
+    }
+  }
+
+  async function handleRemoveSuspension(servaId: string) {
+    if (!confirm("Remover a suspensão de escalas deste(a) servo(a)? Ele(a) poderá voltar a pegar escalas imediatamente.")) {
+      return;
+    }
+    try {
+      setSuspensionLoading(true);
+      await removeUserSuspension(servaId);
+      setSuspensionsMap((prev) => {
+        const next = { ...prev };
+        delete next[servaId];
+        return next;
+      });
+      setSuspensionModalServa(null);
+      if (activeTab === "servas") {
+        await loadServas();
+      }
+    } catch (err: any) {
+      alert(err?.response?.data?.error || "Erro ao remover suspensão.");
+    } finally {
+      setSuspensionLoading(false);
+    }
+  }
 
   useEffect(() => {
     if (isAdmin && activeTab === "servas") {
@@ -1162,6 +1258,53 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     };
   };
 
+  const todayBrStr = getTodayBrDateStr();
+
+  const monthlyAbsencesData = useMemo(() => {
+    const now = new Date();
+    const brNowStr = now.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+    const currentYearMonth = brNowStr.slice(0, 7); // YYYY-MM
+    const nowMs = now.getTime();
+
+    const byUser: Record<string, { userId: string; userName: string; count: number; dates: string[] }> = {};
+
+    for (const mass of masses) {
+      if (mass.name?.includes("Ajuste de Pontos")) continue;
+      const massMs = new Date(mass.date).getTime();
+      if (isNaN(massMs) || massMs >= nowMs) continue;
+
+      const massBrDay = new Date(mass.date).toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+      if (!massBrDay.startsWith(currentYearMonth)) continue;
+
+      const dateLabel = new Date(mass.date).toLocaleString("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      for (const s of mass.signups) {
+        if ((s as any).status === "RESERVA" || s.present) continue;
+        const servaObj = servasList.find((sv) => sv.id === s.userId);
+        if (servaObj && (servaObj.role === "INATIVO" || servaObj.role === "ADMIN")) continue;
+
+        const name = servaObj?.name || allUsers.find((u) => u.id === s.userId)?.name || s.user?.name || "Servo(a)";
+        if (!byUser[s.userId]) {
+          byUser[s.userId] = { userId: s.userId, userName: name, count: 0, dates: [] };
+        }
+        byUser[s.userId].count += 1;
+        byUser[s.userId].dates.push(dateLabel);
+      }
+    }
+
+    const listThreePlus = Object.values(byUser)
+      .filter((item) => item.count >= 3)
+      .sort((a, b) => b.count - a.count || a.userName.localeCompare(b.userName));
+
+    return { byUser, listThreePlus };
+  }, [masses, servasList, allUsers]);
+
   const filteredServasList = servasList
     .filter((s) => {
       const matchesSearch =
@@ -1171,7 +1314,9 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
       if (!matchesSearch) return false;
 
       const g = s.gender || getUserGender(s.id, s.name);
+      const activeSusp = suspensionsMap[s.id] && suspensionsMap[s.id].until >= todayBrStr;
       if (servaFilter === "ACTIVE") return s.role === "USER" || (!s.role);
+      if (servaFilter === "SUSPENDED") return Boolean(activeSusp);
       if (servaFilter === "FORMACAO") return s.role === "em_formacao";
       if (servaFilter === "INATIVO") return s.role === "INATIVO";
       if (servaFilter === "M") return g === "M" && s.role !== "INATIVO";
@@ -1968,6 +2113,83 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
           <span>Sair</span>
         </button>
       </header>
+
+      {/* ALERTA DE 3+ FALTAS (SEM PRESENÇA) NO MÊS ATUAL */}
+      {isAdmin && !dismissedAbsenceBanner && monthlyAbsencesData.listThreePlus.length > 0 && (() => {
+        const list = monthlyAbsencesData.listThreePlus;
+        const previewNames = list
+          .slice(0, 2)
+          .map((item) => `${item.userName.split(" ")[0]} (${item.count} faltas)`)
+          .join(" • ");
+
+        return (
+          <div
+            className="no-print"
+            style={{
+              margin: "0 0 12px 0",
+              padding: "12px 14px",
+              borderRadius: "12px",
+              background: "linear-gradient(135deg, #FEE2E2 0%, #FEF2F2 100%)",
+              border: "1.5px solid #EF4444",
+              boxShadow: "0 4px 12px rgba(185, 28, 28, 0.14)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "10px",
+            }}
+          >
+            <div
+              onClick={() => setShowMonthlyAbsencesModal(true)}
+              style={{ flex: 1, minWidth: 0, cursor: "pointer" }}
+            >
+              <div style={{ fontWeight: 800, fontSize: "0.84rem", color: "#991B1B", display: "flex", alignItems: "center", gap: "6px" }}>
+                <AlertTriangle size={16} />
+                <span>
+                  {list.length} {list.length === 1 ? "servo(a) com 3+ faltas neste mês" : "servos(as) com 3+ faltas neste mês"}
+                </span>
+              </div>
+              <div style={{ fontSize: "0.76rem", color: "#7F1D1D", marginTop: "3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {previewNames}{list.length > 2 ? ` e +${list.length - 2}` : ""}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+              <button
+                type="button"
+                onClick={() => setShowMonthlyAbsencesModal(true)}
+                style={{
+                  background: "#B91C1C",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "6px 10px",
+                  fontSize: "0.74rem",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                Ver e Suspender
+              </button>
+              <button
+                type="button"
+                onClick={() => setDismissedAbsenceBanner(true)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#991B1B",
+                  cursor: "pointer",
+                  padding: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+                title="Ocultar aviso"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* AVISO AO LOGAR: AUSÊNCIAS PROGRAMADAS FUTURAS */}
       {isAdmin && !dismissedUnavBanner && (() => {
@@ -3096,6 +3318,10 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
             {[
               { id: "ALL", label: `Todos (${servasList.length})` },
               { id: "ACTIVE", label: `Ativos (${servasList.filter(s => s.role !== "em_formacao" && s.role !== "INATIVO").length})` },
+              {
+                id: "SUSPENDED",
+                label: `Suspensos (${servasList.filter(s => suspensionsMap[s.id] && suspensionsMap[s.id].until >= todayBrStr).length})`,
+              },
               { id: "FORMACAO", label: `Formação (${servasList.filter(s => s.role === "em_formacao").length})` },
               { id: "INATIVO", label: `Inativos (${servasList.filter(s => s.role === "INATIVO").length})` },
               { id: "M", label: "Servos (M)" },
@@ -3192,6 +3418,8 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                   .join("");
 
                 const isInactive = serva.role === "INATIVO";
+                const activeSusp = suspensionsMap[serva.id] && suspensionsMap[serva.id].until >= todayBrStr ? suspensionsMap[serva.id] : null;
+                const monthAbsInfo = monthlyAbsencesData.byUser[serva.id];
                 const daysInfo = getDaysWithoutScaleInfo(serva);
                 const age = getAgeFromBirthDate(serva.birthDate);
 
@@ -3258,6 +3486,59 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                               <span>{daysInfo.label}</span>
                             </span>
                           )}
+                          {activeSusp && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenSuspensionModal(serva.id, serva.name)}
+                              style={{
+                                fontSize: "0.68rem",
+                                background: "#FEE2E2",
+                                color: "#991B1B",
+                                border: "1px solid #FCA5A5",
+                                padding: "2px 7px",
+                                borderRadius: "6px",
+                                fontWeight: 800,
+                                cursor: "pointer",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                              }}
+                              title={`Suspenso de escalas de ${new Date(activeSusp.from + "T12:00:00").toLocaleDateString("pt-BR")} até ${new Date(activeSusp.until + "T12:00:00").toLocaleDateString("pt-BR")}`}
+                            >
+                              <Ban size={11} />
+                              <span>Suspenso até {new Date(activeSusp.until + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</span>
+                            </button>
+                          )}
+                          {monthAbsInfo && monthAbsInfo.count >= 3 && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleOpenSuspensionModal(
+                                  serva.id,
+                                  serva.name,
+                                  `${monthAbsInfo.count} faltas no mês`,
+                                  monthAbsInfo.count
+                                )
+                              }
+                              style={{
+                                fontSize: "0.68rem",
+                                background: "#FEF2F2",
+                                color: "#B91C1C",
+                                border: "1px solid #F87171",
+                                padding: "2px 7px",
+                                borderRadius: "6px",
+                                fontWeight: 800,
+                                cursor: "pointer",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                              }}
+                              title={`Faltas no mês atual: ${monthAbsInfo.dates.join(", ")}`}
+                            >
+                              <AlertTriangle size={11} />
+                              <span>{monthAbsInfo.count} faltas no mês</span>
+                            </button>
+                          )}
                           {unavList.length > 0 && (
                             <button
                               type="button"
@@ -3282,6 +3563,21 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                     </div>
 
                     <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
+                      {!isInactive && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenSuspensionModal(serva.id, serva.name)}
+                          className="btn-card-icon"
+                          style={
+                            activeSusp
+                              ? { background: "#FEE2E2", color: "#991B1B", borderColor: "#F87171" }
+                              : { background: "#FAF8F5", color: "#5A4332", borderColor: theme.colors.border }
+                          }
+                          title={activeSusp ? "Gerenciar/Remover suspensão de escalas" : "Suspender de pegar escalas por período (mantém acesso ao app)"}
+                        >
+                          <Ban size={15} />
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => handleToggleActiveServa(serva)}
@@ -3485,6 +3781,342 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                 ));
               })()}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: SERVOS COM 3+ FALTAS NO MÊS */}
+      {showMonthlyAbsencesModal && isAdmin && (
+        <div
+          onClick={() => setShowMonthlyAbsencesModal(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0,0,0,0.6)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+            backdropFilter: "blur(3px)",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: "#FAF8F5",
+              width: "100%",
+              maxWidth: "460px",
+              maxHeight: "82vh",
+              borderRadius: "16px",
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+              border: "1.5px solid #EF4444",
+              boxShadow: "0 20px 50px rgba(0,0,0,0.35)",
+            }}
+          >
+            <div
+              style={{
+                background: "linear-gradient(135deg, #991B1B 0%, #DC2626 100%)",
+                color: "#fff",
+                padding: "14px 16px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 800, fontSize: "1rem", display: "flex", alignItems: "center", gap: "7px" }}>
+                  <AlertTriangle size={18} />
+                  <span>Servos com 3+ Faltas no Mês</span>
+                </div>
+                <div style={{ fontSize: "0.74rem", opacity: 0.92 }}>
+                  Escalados em missas já encerradas sem confirmação de presença
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMonthlyAbsencesModal(false)}
+                style={{
+                  background: "rgba(255,255,255,0.22)",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: 30,
+                  height: 30,
+                  color: "#fff",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div style={{ padding: "14px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "10px" }}>
+              {monthlyAbsencesData.listThreePlus.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "24px 10px", color: "#888", fontSize: "0.86rem" }}>
+                  Nenhum servo atingiu 3 faltas neste mês.
+                </div>
+              ) : (
+                monthlyAbsencesData.listThreePlus.map((item) => {
+                  const activeSusp =
+                    suspensionsMap[item.userId] && suspensionsMap[item.userId].until >= todayBrStr
+                      ? suspensionsMap[item.userId]
+                      : null;
+
+                  return (
+                    <div
+                      key={item.userId}
+                      style={{
+                        background: "#fff",
+                        border: "1px solid #FECACA",
+                        borderRadius: "12px",
+                        padding: "12px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "8px",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                        <div style={{ fontWeight: 800, fontSize: "0.92rem", color: "#23170F" }}>
+                          {item.userName}
+                        </div>
+                        <span
+                          style={{
+                            background: "#FEE2E2",
+                            color: "#991B1B",
+                            border: "1px solid #F87171",
+                            padding: "2px 8px",
+                            borderRadius: "8px",
+                            fontSize: "0.74rem",
+                            fontWeight: 800,
+                          }}
+                        >
+                          {item.count} faltas no mês
+                        </span>
+                      </div>
+                      <div style={{ fontSize: "0.76rem", color: "#5A4332", fontWeight: 600 }}>
+                        Missas sem presença: {item.dates.join(" • ")}
+                      </div>
+                      {activeSusp && (
+                        <div style={{ fontSize: "0.74rem", color: "#991B1B", fontWeight: 800, background: "#FEF2F2", padding: "5px 8px", borderRadius: "7px" }}>
+                          🚫 Já suspenso(a) até {new Date(activeSusp.until + "T12:00:00").toLocaleDateString("pt-BR")}
+                          {activeSusp.reason ? ` (${activeSusp.reason})` : ""}
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowMonthlyAbsencesModal(false);
+                          handleOpenSuspensionModal(
+                            item.userId,
+                            item.userName,
+                            `${item.count} faltas no mês`,
+                            item.count
+                          );
+                        }}
+                        style={{
+                          padding: "8px 12px",
+                          borderRadius: "8px",
+                          border: "none",
+                          background: activeSusp ? "#4A3222" : "#B91C1C",
+                          color: "#fff",
+                          fontWeight: 800,
+                          fontSize: "0.78rem",
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "6px",
+                        }}
+                      >
+                        <Ban size={14} />
+                        <span>{activeSusp ? "Gerenciar Suspensão" : "Suspender de Pegar Escalas"}</span>
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: SUSPENDER DE PEGAR ESCALAS POR PERÍODO */}
+      {suspensionModalServa && isAdmin && (
+        <div
+          onClick={() => setSuspensionModalServa(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0,0,0,0.6)",
+            zIndex: 10020,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+            backdropFilter: "blur(3px)",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: "#FAF8F5",
+              width: "100%",
+              maxWidth: "420px",
+              borderRadius: "16px",
+              overflow: "hidden",
+              border: `1.5px solid ${theme.colors.border}`,
+              boxShadow: "0 20px 50px rgba(0,0,0,0.35)",
+            }}
+          >
+            <div
+              style={{
+                background: "linear-gradient(135deg, #7F1D1D 0%, #B91C1C 100%)",
+                color: "#fff",
+                padding: "14px 16px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 800, fontSize: "0.98rem", display: "flex", alignItems: "center", gap: "7px" }}>
+                  <Ban size={18} />
+                  <span>Suspender Escalas — {suspensionModalServa.name}</span>
+                </div>
+                <div style={{ fontSize: "0.73rem", opacity: 0.92 }}>
+                  Mantém acesso ao app, mas impede de pegar novas escalas no período
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSuspensionModalServa(null)}
+                style={{
+                  background: "rgba(255,255,255,0.22)",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: 30,
+                  height: 30,
+                  color: "#fff",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveSuspension} style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div style={{ fontSize: "0.76rem", color: "#5A4332", fontWeight: 700 }}>
+                Atalhos rápidos a partir de hoje:
+              </div>
+              <div style={{ display: "flex", gap: "8px" }}>
+                {[7, 15, 30].map((days) => (
+                  <button
+                    key={days}
+                    type="button"
+                    onClick={() => {
+                      const t = getTodayBrDateStr();
+                      setSuspensionFrom(t);
+                      setSuspensionUntil(addDaysToDateStr(t, days));
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: "7px 8px",
+                      borderRadius: "8px",
+                      border: `1px solid ${theme.colors.border}`,
+                      background: "#FFFFFF",
+                      color: theme.colors.primary,
+                      fontWeight: 800,
+                      fontSize: "0.76rem",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {days} dias
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <div className="form-group">
+                  <label>De (Início) *</label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={suspensionFrom}
+                    onChange={(e) => setSuspensionFrom(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Até (Fim) *</label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={suspensionUntil}
+                    min={suspensionFrom || undefined}
+                    onChange={(e) => setSuspensionUntil(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Motivo (Opcional — exibido para o membro)</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={suspensionReason}
+                  onChange={(e) => setSuspensionReason(e.target.value)}
+                  placeholder="Ex: 3 faltas sem aviso no mês"
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: "8px", marginTop: "4px", flexWrap: "wrap" }}>
+                <button
+                  type="submit"
+                  disabled={suspensionLoading}
+                  style={{
+                    flex: 1,
+                    padding: "11px 14px",
+                    borderRadius: "9px",
+                    border: "none",
+                    background: "#B91C1C",
+                    color: "#fff",
+                    fontWeight: 800,
+                    fontSize: "0.84rem",
+                    cursor: suspensionLoading ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {suspensionLoading ? "Salvando..." : "Confirmar Suspensão"}
+                </button>
+                {suspensionModalServa.current && (
+                  <button
+                    type="button"
+                    disabled={suspensionLoading}
+                    onClick={() => handleRemoveSuspension(suspensionModalServa.id)}
+                    style={{
+                      padding: "11px 12px",
+                      borderRadius: "9px",
+                      border: "1px solid #BBF7D0",
+                      background: "#DCFCE7",
+                      color: "#166534",
+                      fontWeight: 800,
+                      fontSize: "0.8rem",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Remover Suspensão
+                  </button>
+                )}
+              </div>
+            </form>
           </div>
         </div>
       )}

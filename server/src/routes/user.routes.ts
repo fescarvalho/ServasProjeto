@@ -18,6 +18,8 @@ router.delete("/unavailability/:date", authMiddleware, userController.removeUnav
 router.get("/list-full", authMiddleware, adminMiddleware, userController.getUsersListFull);
 router.post("/", authMiddleware, adminMiddleware, userController.createUser);
 router.put("/:id", authMiddleware, adminMiddleware, userController.updateUser);
+router.put("/:id/suspension", authMiddleware, adminMiddleware, userController.setSuspension);
+router.delete("/:id/suspension", authMiddleware, adminMiddleware, userController.removeSuspension);
 router.delete("/:id", authMiddleware, adminMiddleware, userController.deleteUser);
 
 export default router;

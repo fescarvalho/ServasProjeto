@@ -5,6 +5,13 @@ export interface UnavailabilityItem {
     reason?: string;
 }
 
+export interface ScaleSuspension {
+    from: string;
+    until: string;
+    reason?: string;
+    createdAt?: string;
+}
+
 export interface ServaData {
     id: string;
     name: string;
@@ -13,6 +20,7 @@ export interface ServaData {
     birthDate: string | null;
     gender?: "M" | "F" | null;
     unavailabilities?: UnavailabilityItem[];
+    suspension?: ScaleSuspension | null;
     lastMassDate?: string | null;
     firstLoginDate?: string | null;
 }
@@ -21,6 +29,8 @@ export interface UserMetadataResponse {
     genders: Record<string, "M" | "F">;
     unavailabilities: Record<string, UnavailabilityItem[]>;
     myUnavailabilities?: UnavailabilityItem[];
+    suspensions?: Record<string, ScaleSuspension>;
+    mySuspension?: ScaleSuspension | null;
 }
 
 /**
@@ -98,4 +108,22 @@ export async function updateServa(
  */
 export async function deleteServa(id: string): Promise<void> {
     await apiClient.delete(`/users/${id}`);
+}
+
+/**
+ * Define suspensão temporária de escalas (o membro mantém acesso ao app, mas não pode pegar escalas)
+ */
+export async function setUserSuspension(
+    id: string,
+    data: { from: string; until: string; reason?: string }
+): Promise<ScaleSuspension> {
+    const response = await apiClient.put<ScaleSuspension>(`/users/${id}/suspension`, data);
+    return response.data;
+}
+
+/**
+ * Remove a suspensão temporária de escalas de um membro
+ */
+export async function removeUserSuspension(id: string): Promise<void> {
+    await apiClient.delete(`/users/${id}/suspension`);
 }

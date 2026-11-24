@@ -45,11 +45,22 @@ export async function getUserMeta(req: Request, res: Response) {
             userService.getSystemUserMeta(),
             isRequestAdmin(req.userId),
         ]);
+        const todayBr = userService.getBrazilTodayStr();
+        const activeSuspensions: Record<string, userService.ScaleSuspension> = {};
+        for (const [uid, s] of Object.entries(meta.suspensions || {})) {
+            if (s && s.until >= todayBr) {
+                activeSuspensions[uid] = s;
+            }
+        }
+        const mySuspension = req.userId ? activeSuspensions[req.userId] || null : null;
+
         if (isAdmin) {
             return success(res, {
                 genders: meta.genders,
                 unavailabilities: meta.unavailabilities,
                 myUnavailabilities: req.userId ? meta.unavailabilities[req.userId] || [] : [],
+                suspensions: activeSuspensions,
+                mySuspension,
             });
         }
         return success(res, {
@@ -59,6 +70,7 @@ export async function getUserMeta(req: Request, res: Response) {
                     ? { [req.userId]: meta.unavailabilities[req.userId] }
                     : {},
             myUnavailabilities: req.userId ? meta.unavailabilities[req.userId] || [] : [],
+            mySuspension,
         });
     } catch (err) {
         console.error("Get user meta error:", err);
@@ -186,5 +198,43 @@ export async function deleteUser(req: Request, res: Response) {
     } catch (err) {
         console.error("Delete user error:", err);
         return error(res, "Erro ao remover cadastro");
+    }
+}
+
+/**
+ * Set temporary scale suspension for a servo(a) (admin only)
+ */
+export async function setSuspension(req: Request, res: Response) {
+    try {
+        const id = req.params.id as string;
+        const { from, until, reason } = req.body || {};
+        if (!from || !until) {
+            return badRequest(res, "Informe a data inicial e final da suspensão.");
+        }
+        const suspension = await userService.setUserSuspension(id, { from, until, reason });
+        return success(res, suspension);
+    } catch (err: any) {
+        if (err.message === "INVALID_SUSPENSION_DATES") {
+            return badRequest(res, "Formato de data inválido.");
+        }
+        if (err.message === "INVALID_SUSPENSION_RANGE") {
+            return badRequest(res, "A data final deve ser igual ou posterior à data inicial.");
+        }
+        console.error("Set suspension error:", err);
+        return error(res, "Erro ao registrar suspensão");
+    }
+}
+
+/**
+ * Remove scale suspension for a servo(a) (admin only)
+ */
+export async function removeSuspension(req: Request, res: Response) {
+    try {
+        const id = req.params.id as string;
+        await userService.removeUserSuspension(id);
+        return success(res, { removed: true });
+    } catch (err) {
+        console.error("Remove suspension error:", err);
+        return error(res, "Erro ao remover suspensão");
     }
 }

@@ -1,5 +1,6 @@
 import { prisma } from "../config/database";
 import { swapSignup } from "./signup.service";
+import { getActiveScaleSuspension } from "./user.service";
 
 /**
  * List all PENDING swap requests with related data
@@ -80,7 +81,7 @@ export async function createSwapRequest(signupId: string, requesterId: string) {
 export async function acceptSwapRequest(swapRequestId: string, acceptorId: string) {
     const swapReq = await prisma.swapRequest.findUnique({
         where: { id: swapRequestId },
-        include: { signup: true },
+        include: { signup: { include: { mass: true } } },
     });
 
     if (!swapReq) throw new Error("Pedido de substituição não encontrado.");
@@ -89,6 +90,14 @@ export async function acceptSwapRequest(swapRequestId: string, acceptorId: strin
     // Acceptor cannot be the same as the requester
     if (swapReq.requesterId === acceptorId) {
         throw new Error("Você não pode aceitar seu próprio pedido de substituição.");
+    }
+
+    const suspension = await getActiveScaleSuspension(acceptorId, swapReq.signup.mass.date);
+    if (suspension) {
+        const untilBr = new Date(suspension.until + "T12:00:00").toLocaleDateString("pt-BR");
+        throw new Error(
+            `Você está suspenso(a) de pegar escalas até ${untilBr}${suspension.reason ? ` (${suspension.reason})` : ""}.`
+        );
     }
 
     // Check acceptor isn't already signed up for this mass
