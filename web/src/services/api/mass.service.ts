@@ -142,12 +142,18 @@ export async function getMassPhoto(massId: string): Promise<MassPhotoData> {
 }
 
 /**
- * Envia/substitui a foto da equipe de uma missa
+ * Envia/substitui a foto da equipe de uma missa (com timeout para detectar rede fraca e salvar offline)
  */
-export async function uploadMassPhoto(massId: string, imageDataUrl: string): Promise<{ uploadedById: string; uploadedByName: string; uploadedAt: string }> {
-    const response = await apiClient.post<{ uploadedById: string; uploadedByName: string; uploadedAt: string }>(`/masses/${massId}/photo`, {
-        imageDataUrl,
-    });
+export async function uploadMassPhoto(
+    massId: string,
+    imageDataUrl: string,
+    capturedAt?: string
+): Promise<{ uploadedById: string; uploadedByName: string; uploadedAt: string }> {
+    const response = await apiClient.post<{ uploadedById: string; uploadedByName: string; uploadedAt: string }>(
+        `/masses/${massId}/photo`,
+        { imageDataUrl, capturedAt },
+        { timeout: 25000 }
+    );
     return response.data;
 }
 

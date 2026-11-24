@@ -274,7 +274,8 @@ export async function getMassPhoto(massId: string): Promise<MassPhotoPayload | n
 export async function saveMassPhoto(
     massId: string,
     userId: string,
-    imageDataUrl: string
+    imageDataUrl: string,
+    capturedAt?: string
 ): Promise<MassPhotoMeta> {
     if (!imageDataUrl || typeof imageDataUrl !== "string" || !imageDataUrl.startsWith("data:image/")) {
         throw new Error("Formato de imagem inválido. Envie uma foto válida.");
@@ -309,13 +310,27 @@ export async function saveMassPhoto(
         }
 
         // Janela permitida: mesmo dia da missa (fuso Brasil) ou de 4h antes até 24h após o horário da missa
+        // Suporta horário capturado offline (até 7 dias atrás) para sincronizar quando voltar a internet
         const now = new Date();
+        let checkTime = now;
+        if (capturedAt) {
+            const parsedCapture = new Date(capturedAt);
+            const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+            if (
+                !isNaN(parsedCapture.getTime()) &&
+                parsedCapture.getTime() <= now.getTime() + 5 * 60 * 1000 &&
+                now.getTime() - parsedCapture.getTime() <= sevenDaysMs
+            ) {
+                checkTime = parsedCapture;
+            }
+        }
+
         const massDate = new Date(mass.date);
-        const diffHours = (now.getTime() - massDate.getTime()) / (1000 * 60 * 60);
-        const nowBrDay = now.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+        const diffHours = (checkTime.getTime() - massDate.getTime()) / (1000 * 60 * 60);
+        const checkBrDay = checkTime.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
         const massBrDay = massDate.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
 
-        if (nowBrDay !== massBrDay && (diffHours < -4 || diffHours > 24)) {
+        if (checkBrDay !== massBrDay && (diffHours < -4 || diffHours > 24)) {
             throw new Error("O envio da foto da equipe só fica disponível no dia da missa.");
         }
     }

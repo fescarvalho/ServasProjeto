@@ -109,11 +109,16 @@ export async function getMassPhoto(req: Request, res: Response) {
 export async function uploadMassPhoto(req: Request, res: Response) {
     try {
         const { id } = req.params;
-        const { imageDataUrl } = req.body || {};
+        const { imageDataUrl, capturedAt } = req.body || {};
         if (!req.userId) {
             return res.status(401).json({ error: "Não autenticado." });
         }
-        const result = await massService.saveMassPhoto(String(id), String(req.userId), imageDataUrl);
+        const result = await massService.saveMassPhoto(
+            String(id),
+            String(req.userId),
+            imageDataUrl,
+            typeof capturedAt === "string" ? capturedAt : undefined
+        );
         return success(res, result);
     } catch (err: any) {
         console.error("Upload mass photo error:", err);

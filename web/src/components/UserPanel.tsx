@@ -22,6 +22,7 @@ import {
   Trash2,
   Filter,
   WifiOff,
+  RefreshCw,
   ArrowRight,
   Camera,
   Loader2,
@@ -36,6 +37,13 @@ import {
   uploadMassPhoto,
   getMassPhoto,
 } from "../services/api/mass.service";
+import {
+  getOfflinePhotoQueue,
+  getOfflinePhotoForMass,
+  enqueueOfflinePhoto,
+  syncOfflinePhotos,
+  OfflinePhotoItem,
+} from "../services/storage/offlinePhoto.service";
 import {
   getUserMetadata,
   getMyUnavailabilities,
@@ -162,6 +170,10 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
   }, [user?.id]);
 
   const [isOnline, setIsOnline] = useState(() => (typeof navigator !== "undefined" ? navigator.onLine : true));
+  const [pendingOfflinePhotos, setPendingOfflinePhotos] = useState<OfflinePhotoItem[]>(() =>
+    getOfflinePhotoQueue(user.id)
+  );
+  const [isSyncingPhotos, setIsSyncingPhotos] = useState(false);
   const [uploadingPhotoMassId, setUploadingPhotoMassId] = useState<string | null>(null);
   const [photoSourcePickerMass, setPhotoSourcePickerMass] = useState<Mass | null>(null);
   const [viewingPhotoMass, setViewingPhotoMass] = useState<{
@@ -170,17 +182,57 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
     loading: boolean;
   } | null>(null);
 
+  const handleSyncOfflinePhotos = async (manual = false) => {
+    setIsSyncingPhotos(true);
+    try {
+      const { syncedCount, failedMessages } = await syncOfflinePhotos(user.id);
+      setPendingOfflinePhotos(getOfflinePhotoQueue(user.id));
+
+      if (syncedCount > 0) {
+        show(
+          `📸 ${syncedCount} foto(s) da equipe salva(s) offline foi(ram) enviada(s) com sucesso!`,
+          "success",
+          6000
+        );
+        onUpdate?.();
+      } else if (manual && failedMessages.length === 0) {
+        show("Sem conexão estável no momento. As fotos continuam salvas com segurança no celular.", "info", 5000);
+      }
+
+      if (failedMessages.length > 0) {
+        show(failedMessages[0], "error", 8000);
+      }
+    } finally {
+      setIsSyncingPhotos(false);
+    }
+  };
+
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
+    const handleOnline = () => {
+      setIsOnline(true);
+      handleSyncOfflinePhotos(false);
+    };
     const handleOffline = () => setIsOnline(false);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible" && navigator.onLine) {
+        handleSyncOfflinePhotos(false);
+      }
+    };
+
+    setPendingOfflinePhotos(getOfflinePhotoQueue(user.id));
+    if (navigator.onLine && getOfflinePhotoQueue(user.id).length > 0) {
+      handleSyncOfflinePhotos(false);
+    }
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
+    document.addEventListener("visibilitychange", handleVisibility);
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, []);
+  }, [user?.id]);
 
   function isMassInPhotoWindow(massDateIso: string): boolean {
     const now = new Date();
@@ -196,14 +248,62 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
     e.target.value = "";
     if (!file) return;
 
+    const capturedAt = new Date().toISOString();
+
     try {
       setUploadingPhotoMassId(massId);
       const compressedDataUrl = await compressMassPhotoFile(file, 960, 0.74);
-      await uploadMassPhoto(massId, compressedDataUrl);
-      show("📸 Foto da equipe enviada com sucesso! A coordenação fará a conferência de presença.", "success", 6000);
-      onUpdate?.();
+
+      const saveLocally = async (reasonMsg: string) => {
+        let saved = enqueueOfflinePhoto({
+          massId,
+          userId: user.id,
+          userName: user.name,
+          imageDataUrl: compressedDataUrl,
+          capturedAt,
+        });
+        if (!saved) {
+          const compactDataUrl = await compressMassPhotoFile(file, 720, 0.6);
+          saved = enqueueOfflinePhoto({
+            massId,
+            userId: user.id,
+            userName: user.name,
+            imageDataUrl: compactDataUrl,
+            capturedAt,
+          });
+        }
+        if (saved) {
+          setPendingOfflinePhotos(getOfflinePhotoQueue(user.id));
+          show(
+            `📶 ${reasonMsg} A foto foi salva no celular e será enviada automaticamente assim que a internet voltar!`,
+            "warning",
+            8000
+          );
+        } else {
+          show("Sem internet e sem espaço suficiente no navegador para salvar a foto offline.", "error", 7000);
+        }
+      };
+
+      if (!navigator.onLine) {
+        await saveLocally("Você está sem internet agora.");
+        return;
+      }
+
+      try {
+        await uploadMassPhoto(massId, compressedDataUrl, capturedAt);
+        show("📸 Foto da equipe enviada com sucesso! A coordenação fará a conferência de presença.", "success", 6000);
+        onUpdate?.();
+      } catch (uploadErr: any) {
+        const status = uploadErr?.response?.status;
+        if (!uploadErr?.response || status >= 500 || status === 401) {
+          await saveLocally("Sinal fraco ou sem conexão com o servidor.");
+        } else {
+          const msg = uploadErr?.response?.data?.error || "Erro ao enviar a foto da equipe.";
+          show(msg, "error", 7000);
+        }
+      }
     } catch (err: any) {
-      const msg = err?.response?.data?.error || err?.message || "Erro ao enviar a foto da equipe.";
+      const msg = err?.message || "Erro ao processar a foto da equipe.";
       show(msg, "error", 7000);
     } finally {
       setUploadingPhotoMassId(null);
@@ -211,6 +311,24 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
   }
 
   async function handleViewTeamPhoto(mass: Mass) {
+    if (!mass.hasPhoto) {
+      const localPending = getOfflinePhotoForMass(mass.id, user.id);
+      if (localPending) {
+        setViewingPhotoMass({
+          mass,
+          photo: {
+            massId: mass.id,
+            uploadedById: localPending.userId,
+            uploadedByName: `${localPending.userName} (salva offline)`,
+            uploadedAt: localPending.capturedAt,
+            imageDataUrl: localPending.imageDataUrl,
+          },
+          loading: false,
+        });
+        return;
+      }
+    }
+
     setViewingPhotoMass({ mass, photo: null, loading: true });
     try {
       const photo = await getMassPhoto(mass.id);
@@ -224,8 +342,97 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
   function renderTeamPhotoSection(mass: Mass, jaEstouInscrita: boolean, souReserva: boolean) {
     if (!jaEstouInscrita || souReserva) return null;
     const inWindow = isMassInPhotoWindow(mass.date);
-    if (!inWindow && !mass.hasPhoto) return null;
+    const pendingLocal = !mass.hasPhoto ? pendingOfflinePhotos.find((p) => p.massId === mass.id) : undefined;
+    if (!inWindow && !mass.hasPhoto && !pendingLocal) return null;
     const isUploading = uploadingPhotoMassId === mass.id;
+
+    if (pendingLocal) {
+      return (
+        <div
+          style={{
+            marginTop: "8px",
+            padding: "9px 10px",
+            borderRadius: "9px",
+            background: "#FFFBEB",
+            border: "1.5px solid #FCD34D",
+            display: "flex",
+            flexDirection: "column",
+            gap: "7px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#92400E", fontSize: "0.76rem", fontWeight: 800 }}>
+              <Camera size={14} />
+              <span>⏳ Foto salva no celular (aguardando internet)</span>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={() => handleViewTeamPhoto(mass)}
+              style={{
+                padding: "5px 9px",
+                borderRadius: "6px",
+                border: "1px solid #FCD34D",
+                background: "#FFFFFF",
+                color: "#92400E",
+                fontSize: "0.72rem",
+                fontWeight: 800,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+              }}
+            >
+              <Eye size={12} /> Ver
+            </button>
+            <button
+              type="button"
+              onClick={() => setPhotoSourcePickerMass(mass)}
+              disabled={isUploading}
+              style={{
+                padding: "5px 9px",
+                borderRadius: "6px",
+                border: `1px solid ${theme.colors.border}`,
+                background: "#FFFFFF",
+                color: theme.colors.primary,
+                fontSize: "0.72rem",
+                fontWeight: 700,
+                cursor: isUploading ? "not-allowed" : "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+              }}
+            >
+              <Camera size={12} /> Trocar
+            </button>
+            {isOnline && (
+              <button
+                type="button"
+                onClick={() => handleSyncOfflinePhotos(true)}
+                disabled={isSyncingPhotos}
+                style={{
+                  padding: "5px 9px",
+                  borderRadius: "6px",
+                  border: "none",
+                  background: "#92400E",
+                  color: "#FFFFFF",
+                  fontSize: "0.72rem",
+                  fontWeight: 800,
+                  cursor: isSyncingPhotos ? "not-allowed" : "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                }}
+              >
+                <RefreshCw size={12} className={isSyncingPhotos ? "animate-spin" : ""} />
+                <span>{isSyncingPhotos ? "Enviando..." : "Enviar agora"}</span>
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
 
     if (mass.hasPhoto) {
       return (
@@ -1053,17 +1260,17 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
         </div>
       </div>
 
-      {/* FAIXA DE MODO OFFLINE */}
-      {!isOnline && (
+      {/* FAIXA DE MODO OFFLINE / FOTOS PENDENTES */}
+      {(!isOnline || pendingOfflinePhotos.length > 0) && (
         <div
           className="no-print"
           style={{
             margin: "12px 15px 0 15px",
             padding: "10px 14px",
             borderRadius: "10px",
-            background: "#F3F4F6",
-            border: "1px solid #D1D5DB",
-            color: "#374151",
+            background: pendingOfflinePhotos.length > 0 ? "#FEF3C7" : "#F3F4F6",
+            border: `1px solid ${pendingOfflinePhotos.length > 0 ? "#FCD34D" : "#D1D5DB"}`,
+            color: pendingOfflinePhotos.length > 0 ? "#92400E" : "#374151",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -1075,9 +1282,35 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <WifiOff size={16} style={{ flexShrink: 0 }} />
             <span>
-              Modo Offline ativo — suas escalas em cache continuam disponíveis para consulta.
+              {pendingOfflinePhotos.length > 0
+                ? `${pendingOfflinePhotos.length} foto(s) da equipe salva(s) offline — será(ão) enviada(s) automaticamente ao conectar.`
+                : "Modo Offline ativo — você pode consultar escalas e salvar a foto da equipe no celular para envio automático depois."}
             </span>
           </div>
+          {pendingOfflinePhotos.length > 0 && isOnline && (
+            <button
+              type="button"
+              onClick={() => handleSyncOfflinePhotos(true)}
+              disabled={isSyncingPhotos}
+              style={{
+                background: "#92400E",
+                color: "#fff",
+                border: "none",
+                borderRadius: "8px",
+                padding: "5px 10px",
+                fontSize: "0.72rem",
+                fontWeight: 800,
+                cursor: isSyncingPhotos ? "not-allowed" : "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+                flexShrink: 0,
+              }}
+            >
+              <RefreshCw size={12} className={isSyncingPhotos ? "animate-spin" : ""} />
+              <span>{isSyncingPhotos ? "Enviando..." : "Sincronizar"}</span>
+            </button>
+          )}
         </div>
       )}
 
@@ -1150,6 +1383,10 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                     ) : nextMass.hasPhoto ? (
                       <span style={{ background: "#DCFCE7", color: "#166534", padding: "2px 8px", borderRadius: "10px", fontSize: "0.68rem", fontWeight: 800 }}>
                         📸 Foto da Equipe Enviada
+                      </span>
+                    ) : pendingOfflinePhotos.some((p) => p.massId === nextMass.id) ? (
+                      <span style={{ background: "#FEF3C7", color: "#92400E", padding: "2px 8px", borderRadius: "10px", fontSize: "0.68rem", fontWeight: 800 }}>
+                        ⏳ Foto Salva Offline
                       </span>
                     ) : (
                       <span style={{ background: "#F7F5F0", color: theme.colors.primary, border: `1px solid ${theme.colors.border}`, padding: "2px 8px", borderRadius: "10px", fontSize: "0.68rem", fontWeight: 700 }}>
