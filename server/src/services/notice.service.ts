@@ -1,5 +1,18 @@
 import { prisma } from "../config/database";
 
+function formatNameList(names: string[]): string {
+    if (names.length === 0) return "";
+    if (names.length === 1) return names[0];
+    if (names.length === 2) return `${names[0]} e ${names[1]}`;
+    return `${names.slice(0, -1).join(", ")} e ${names[names.length - 1]}`;
+}
+
+function computeAge(birthDate: Date, today: Date): number | null {
+    const birthYear = birthDate.getUTCFullYear();
+    const age = today.getFullYear() - birthYear;
+    return age > 0 && age < 120 ? age : null;
+}
+
 /**
  * Get all active notices
  */
@@ -18,21 +31,33 @@ export async function getActiveNotices() {
         where: { birthDate: { not: null }, role: { not: "INATIVO" } }
     });
 
-    const birthdayGirls = usersWithBirthday.filter((u) => {
-        if (!u.birthDate) return false;
-        return (
-            u.birthDate.getUTCMonth() + 1 === currentMonth &&
-            u.birthDate.getUTCDate() === currentDay
-        );
-    });
+    const birthdayUsers = usersWithBirthday
+        .filter((u) => {
+            if (!u.birthDate) return false;
+            return (
+                u.birthDate.getUTCMonth() + 1 === currentMonth &&
+                u.birthDate.getUTCDate() === currentDay
+            );
+        })
+        .sort((a, b) => a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }));
 
-    if (birthdayGirls.length > 0) {
-        const names = birthdayGirls.map(u => u.name.split(" ")[0]).join(" e ");
-        const prefix = "Hoje celebramos o aniversário de";
+    if (birthdayUsers.length > 0) {
+        const birthdayPeople = birthdayUsers.map((u) => ({
+            id: u.id,
+            name: u.name.trim(),
+            age: u.birthDate ? computeAge(u.birthDate, today) : null,
+        }));
+        const formattedNames = formatNameList(birthdayPeople.map((p) => p.name));
+        const blessing =
+            birthdayPeople.length > 1
+                ? "Parabéns e que Deus abençoe muito as suas vidas e o serviço no Altar!"
+                : "Parabéns e que Deus abençoe muito a sua vida e o seu serviço no Altar!";
         const birthdayNotice = {
             id: "birthday-notice-auto",
-            text: `🎉 ${prefix} ${names}! Parabéns e que Deus abençoe muito a sua vida! 🎉`,
+            text: `🎂 Hoje celebramos o aniversário de ${formattedNames}! ${blessing} 🎉`,
             active: true,
+            isBirthday: true,
+            birthdayPeople,
             createdAt: new Date(),
             updatedAt: new Date(),
         };

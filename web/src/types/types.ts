@@ -72,6 +72,8 @@ export interface Notice {
   text: string;
   active: boolean;
   createdAt: string;
+  isBirthday?: boolean;
+  birthdayPeople?: { id: string; name: string; age?: number | null }[];
 }
 
 export interface SwapRequest {

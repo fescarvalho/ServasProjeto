@@ -28,7 +28,10 @@ import {
   Loader2,
   Eye,
   X,
-  Ban
+  Ban,
+  Cake,
+  Sparkles,
+  MessageCircle
 } from "lucide-react";
 import { Mass, MassPhotoData, UserData, Notice, SwapRequest } from "../types/types";
 import { formatRole, getUserGender, setGlobalUserGenders } from "../constants/roles";
@@ -1390,17 +1393,155 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
       {/* AVISOS */}
       {notices.length > 0 && (
         <div className="no-print" style={{ margin: "15px 15px 5px 15px", display: "flex", flexDirection: "column", gap: "10px" }}>
-          {notices.map((notice) => (
-            <div key={notice.id} className="notice-animated" style={{ background: theme.colors.warningLight, borderLeft: `5px solid ${theme.colors.warning}`, color: theme.colors.warningDark, padding: "15px", borderRadius: theme.borderRadius.md, display: "flex", alignItems: "center", gap: "12px", boxShadow: theme.colors.shadowBase }}>
-              <div style={{ background: theme.colors.warning, padding: "8px", borderRadius: "50%", color: "white" }}>
-                <Megaphone size={20} fill="white" />
+          {notices.map((notice) => {
+            const isBirthday = notice.id === "birthday-notice-auto" || Boolean(notice.isBirthday);
+
+            if (isBirthday) {
+              const people = notice.birthdayPeople && notice.birthdayPeople.length > 0 ? notice.birthdayPeople : [];
+              const isMyBirthday = people.some((p) => p.id === user.id);
+              const others = people.filter((p) => p.id !== user.id);
+              const namesForWa = (others.length > 0 ? others : people).map((p) => p.name);
+              const formattedWaNames =
+                namesForWa.length <= 1
+                  ? namesForWa[0] || ""
+                  : namesForWa.length === 2
+                    ? `${namesForWa[0]} e ${namesForWa[1]}`
+                    : `${namesForWa.slice(0, -1).join(", ")} e ${namesForWa[namesForWa.length - 1]}`;
+              const waText = `🎂 Parabéns, ${formattedWaNames}! Que Deus abençoe muito ${namesForWa.length > 1 ? "vocês" : "você"} e o serviço no Altar! 🙏🎉`;
+
+              return (
+                <div
+                  key={notice.id}
+                  className="notice-animated"
+                  style={{
+                    background: "linear-gradient(135deg, #FFFBF0 0%, #FDF2D6 55%, #FCE7B2 100%)",
+                    border: "1.5px solid #D4A44C",
+                    borderLeft: "5px solid #B8925A",
+                    color: "#4A3222",
+                    padding: "16px",
+                    borderRadius: theme.borderRadius.md,
+                    boxShadow: "0 6px 18px rgba(184, 146, 90, 0.22)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div
+                      style={{
+                        background: "linear-gradient(135deg, #B8925A 0%, #8C6530 100%)",
+                        width: "42px",
+                        height: "42px",
+                        borderRadius: "50%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                        boxShadow: "0 3px 8px rgba(140, 101, 48, 0.3)",
+                      }}
+                    >
+                      <Cake size={22} color="#FFFFFF" />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "5px",
+                          fontSize: "0.74rem",
+                          fontWeight: 800,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.07em",
+                          color: "#8C6530",
+                        }}
+                      >
+                        {isMyBirthday ? (
+                          <>
+                            <Sparkles size={13} />
+                            <span>Feliz Aniversário!</span>
+                          </>
+                        ) : (
+                          <span>
+                            {people.length > 1 ? "🎂 Aniversariantes do Dia" : "🎂 Aniversariante do Dia"}
+                          </span>
+                        )}
+                      </div>
+                      {people.length === 0 && (
+                        <div style={{ fontSize: "0.98rem", fontWeight: 700, color: "#4A3222", marginTop: "3px" }}>
+                          {notice.text}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {people.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                      {people.map((person) => (
+                        <span
+                          key={person.id}
+                          style={{
+                            background: "rgba(255, 255, 255, 0.9)",
+                            border: "1px solid #E2BE72",
+                            borderRadius: "999px",
+                            padding: "6px 12px",
+                            fontSize: "0.96rem",
+                            fontWeight: 800,
+                            color: "#4A3222",
+                            boxShadow: "0 1px 4px rgba(74, 50, 34, 0.08)",
+                          }}
+                        >
+                          🎉 {person.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={{ fontSize: "0.88rem", color: "#5C4028", lineHeight: 1.45, fontWeight: 500 }}>
+                    {isMyBirthday
+                      ? "Hoje é o seu dia especial! Que Deus abençoe grandemente a sua vida e o seu serviço no Altar do Senhor! 🙏✨"
+                      : `Vamos parabenizar e rezar! Que Deus abençoe muito ${people.length > 1 ? "as suas vidas" : "a sua vida"} e o serviço no Altar! 🙏✨`}
+                  </div>
+
+                  {people.length > 0 && others.length > 0 && (
+                    <div>
+                      <a
+                        href={`https://wa.me/?text=${encodeURIComponent(waText)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          background: "#4A3222",
+                          color: "#FFFFFF",
+                          textDecoration: "none",
+                          fontSize: "0.78rem",
+                          fontWeight: 700,
+                          padding: "7px 12px",
+                          borderRadius: "8px",
+                        }}
+                      >
+                        <MessageCircle size={14} />
+                        <span>Parabenizar no WhatsApp</span>
+                      </a>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            return (
+              <div key={notice.id} className="notice-animated" style={{ background: theme.colors.warningLight, borderLeft: `5px solid ${theme.colors.warning}`, color: theme.colors.warningDark, padding: "15px", borderRadius: theme.borderRadius.md, display: "flex", alignItems: "center", gap: "12px", boxShadow: theme.colors.shadowBase }}>
+                <div style={{ background: theme.colors.warning, padding: "8px", borderRadius: "50%", color: "white" }}>
+                  <Megaphone size={20} fill="white" />
+                </div>
+                <div>
+                  <strong style={{ display: "block", fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "0.5px", color: theme.colors.warningDark, marginBottom: "2px" }}>Comunicado do Grupo</strong>
+                  <span style={{ fontSize: "0.98rem", fontWeight: "bold" }}>{notice.text}</span>
+                </div>
               </div>
-              <div>
-                <strong style={{ display: "block", fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "0.5px", color: theme.colors.warningDark, marginBottom: "2px" }}>Comunicado do Grupo</strong>
-                <span style={{ fontSize: "0.98rem", fontWeight: "bold" }}>{notice.text}</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -1646,8 +1787,8 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                           {swapLoading === sr.id
                             ? "..."
                             : blockedSwapBySuspension
-                            ? "🚫 Suspenso(a) de escalas"
-                            : "✅ Aceitar e entrar no lugar"}
+                              ? "🚫 Suspenso(a) de escalas"
+                              : "✅ Aceitar e entrar no lugar"}
                         </button>
                       )}
                     </div>

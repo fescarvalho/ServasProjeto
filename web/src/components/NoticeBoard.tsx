@@ -116,36 +116,59 @@ export function NoticeBoard({ readOnly = false }: NoticeBoardProps) {
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        {notices.map((notice) => (
-          <div
-            key={notice.id}
-            style={{
-              background: "white",
-              padding: "15px",
-              borderRadius: "8px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
-            }}
-          >
-            <span style={{ color: "#333", lineHeight: "1.4" }}>{notice.text}</span>
+        {notices.map((notice) => {
+          const isBirthday = notice.id === "birthday-notice-auto" || Boolean(notice.isBirthday);
+          return (
+            <div
+              key={notice.id}
+              style={{
+                background: isBirthday ? "#FFFBF0" : "white",
+                border: isBirthday ? "1px solid #E6C77E" : undefined,
+                padding: "15px",
+                borderRadius: "8px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "10px",
+                boxShadow: "0 2px 5px rgba(0,0,0,0.05)",
+              }}
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: 1 }}>
+                {isBirthday && (
+                  <span
+                    style={{
+                      alignSelf: "flex-start",
+                      fontSize: "0.7rem",
+                      fontWeight: 700,
+                      color: "#8C6530",
+                      background: "#FDF2D6",
+                      border: "1px solid #E6C77E",
+                      borderRadius: "999px",
+                      padding: "2px 8px",
+                    }}
+                  >
+                    🎂 Automático
+                  </span>
+                )}
+                <span style={{ color: "#333", lineHeight: "1.4" }}>{notice.text}</span>
+              </div>
 
-            {!readOnly && (
-              <button
-                onClick={() => handleDeleteNotice(notice.id)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "#d32f2f",
-                  cursor: "pointer",
-                }}
-              >
-                <Trash2 size={18} />
-              </button>
-            )}
-          </div>
-        ))}
+              {!readOnly && !isBirthday && (
+                <button
+                  onClick={() => handleDeleteNotice(notice.id)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#d32f2f",
+                    cursor: "pointer",
+                  }}
+                >
+                  <Trash2 size={18} />
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

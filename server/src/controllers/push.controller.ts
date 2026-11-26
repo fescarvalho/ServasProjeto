@@ -154,7 +154,7 @@ export const notifyCron = async (req: Request, res: Response): Promise<void> => 
         const currentDay = todayForBday.getDate();
 
         const usersWithBirthday = await prisma.user.findMany({
-            where: { birthDate: { not: null } } as any,
+            where: { birthDate: { not: null }, role: { not: "INATIVO" } } as any,
             include: { pushSubscriptions: true } as any,
         });
 
@@ -167,9 +167,9 @@ export const notifyCron = async (req: Request, res: Response): Promise<void> => 
         });
 
         for (const user of birthdayGirls) {
-            const userName = user.name.split(" ")[0];
+            const fullName = user.name.trim();
             const bdayPayload = JSON.stringify({
-                title: `Parabéns ${userName}! 🎉`,
+                title: `🎂 Parabéns, ${fullName}! 🎉`,
                 body: `Que a alegria de servir ao altar transborde em todos os dias da sua vida. Seu zelo e carinho nas missas no Santuário são um testemunho lindo de fé para todos nós. Que Deus te abençoe com muita saúde, paz e que sua caminhada seja sempre guiada pelo amor!`,
             });
 

@@ -32,7 +32,9 @@ import {
   ChevronDown,
   ChevronUp,
   AlertTriangle,
-  Ban
+  Ban,
+  Cake,
+  MessageCircle
 } from "lucide-react";
 import { Mass, MassPhotoData, User, Signup } from "../types/types";
 import { formatRole, setGlobalUserGenders, getUserGender } from "../constants/roles";
@@ -42,7 +44,7 @@ import { getRoleWeight } from "../utils/format.utils";
 import { getMassPoints } from "../utils/ranking.utils";
 import { toLocalDate, toLocalDateTime } from "../utils/date.utils";
 import { APP_CONFIG } from "../constants/config";
-import { getUsersList } from "../services/api/notice.service";
+import { getUsersList, getNotices } from "../services/api/notice.service";
 import {
   getMassPhoto,
   uploadMassPhoto,
@@ -412,6 +414,8 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [dismissedUnavBanner, setDismissedUnavBanner] = useState(false);
   const [suspensionsMap, setSuspensionsMap] = useState<Record<string, ScaleSuspension>>({});
   const [dismissedAbsenceBanner, setDismissedAbsenceBanner] = useState(false);
+  const [todayBirthdayPeople, setTodayBirthdayPeople] = useState<{ id: string; name: string; age?: number | null }[]>([]);
+  const [dismissedBirthdayBanner, setDismissedBirthdayBanner] = useState(false);
   const [showMonthlyAbsencesModal, setShowMonthlyAbsencesModal] = useState(false);
   const [suspensionModalServa, setSuspensionModalServa] = useState<{
     id: string;
@@ -456,12 +460,18 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         if (meta?.unavailabilities) setUnavailabilitiesMap(meta.unavailabilities);
         if (meta?.suspensions) setSuspensionsMap(meta.suspensions);
       })
-      .catch(() => {});
+      .catch(() => { });
 
     if (isAdmin) {
       getUsersList()
         .then((users) => setAllUsers(users))
         .catch(console.error);
+      getNotices()
+        .then((list) => {
+          const bday = list.find((n) => n.id === "birthday-notice-auto" || n.isBirthday);
+          setTodayBirthdayPeople(bday?.birthdayPeople || []);
+        })
+        .catch(() => { });
     }
   }, [isAdmin]);
 
@@ -1231,8 +1241,8 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
       days === 0
         ? "Escalado(a) hoje"
         : days === 1
-        ? "1 dia sem escala"
-        : `${days} dias sem escala`;
+          ? "1 dia sem escala"
+          : `${days} dias sem escala`;
     const suffix = serva.lastMassDate ? ` (${shortDate})` : " (1º acesso)";
 
     let bg = "#FAF8F5";
@@ -2114,6 +2124,89 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         </button>
       </header>
 
+      {/* ANIVERSARIANTE(S) DO DIA */}
+      {isAdmin && !dismissedBirthdayBanner && todayBirthdayPeople.length > 0 && (() => {
+        const namesLabel = todayBirthdayPeople
+          .map((p) => (p.age ? `${p.name} (${p.age} anos)` : p.name))
+          .join(" • ");
+        const waNames =
+          todayBirthdayPeople.length === 1
+            ? todayBirthdayPeople[0].name
+            : todayBirthdayPeople.length === 2
+              ? `${todayBirthdayPeople[0].name} e ${todayBirthdayPeople[1].name}`
+              : `${todayBirthdayPeople.slice(0, -1).map((p) => p.name).join(", ")} e ${todayBirthdayPeople[todayBirthdayPeople.length - 1].name}`;
+        const waText = `🎂 Parabéns, ${waNames}! Que Deus abençoe muito ${todayBirthdayPeople.length > 1 ? "vocês" : "você"} e o serviço no Altar! 🙏🎉`;
+
+        return (
+          <div
+            className="no-print"
+            style={{
+              margin: "0 0 12px 0",
+              padding: "12px 14px",
+              borderRadius: "12px",
+              background: "linear-gradient(135deg, #FFFBF0 0%, #FDF2D6 55%, #FCE7B2 100%)",
+              border: "1.5px solid #D4A44C",
+              boxShadow: "0 4px 12px rgba(184, 146, 90, 0.18)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "10px",
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 800, fontSize: "0.84rem", color: "#8C6530", display: "flex", alignItems: "center", gap: "6px" }}>
+                <Cake size={16} />
+                <span>
+                  {todayBirthdayPeople.length > 1 ? "Aniversariantes de hoje" : "Aniversariante de hoje"}
+                </span>
+              </div>
+              <div style={{ fontSize: "0.82rem", color: "#4A3222", fontWeight: 700, marginTop: "3px" }}>
+                🎉 {namesLabel}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(waText)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  background: "#4A3222",
+                  color: "#fff",
+                  textDecoration: "none",
+                  borderRadius: "8px",
+                  padding: "6px 10px",
+                  fontSize: "0.74rem",
+                  fontWeight: 800,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "5px",
+                }}
+              >
+                <MessageCircle size={13} />
+                <span>WhatsApp</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => setDismissedBirthdayBanner(true)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#8C6530",
+                  cursor: "pointer",
+                  padding: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+                title="Ocultar aviso"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ALERTA DE 3+ FALTAS (SEM PRESENÇA) NO MÊS ATUAL */}
       {isAdmin && !dismissedAbsenceBanner && monthlyAbsencesData.listThreePlus.length > 0 && (() => {
         const list = monthlyAbsencesData.listThreePlus;
@@ -2898,12 +2991,12 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                                         const rowStreak =
                                           isAdmin && !isReserva && (Boolean(signup.role) || mass.published)
                                             ? getConsecutiveRoleStreak(
-                                                signup.userId,
-                                                mass.id,
-                                                mass.date,
-                                                signup.role || "Auxiliar",
-                                                masses
-                                              )
+                                              signup.userId,
+                                              mass.id,
+                                              mass.date,
+                                              signup.role || "Auxiliar",
+                                              masses
+                                            )
                                             : null;
                                         const hasRowStreakWarning = Boolean(rowStreak && rowStreak.count >= 3);
 
@@ -2962,17 +3055,17 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                                               border: isReserva
                                                 ? "1px solid #FDE68A"
                                                 : hasRowStreakWarning
-                                                ? "1.5px solid #F59E0B"
-                                                : signup.present
-                                                ? "1px solid #BBF7D0"
-                                                : "1px solid #EFECE6",
+                                                  ? "1.5px solid #F59E0B"
+                                                  : signup.present
+                                                    ? "1px solid #BBF7D0"
+                                                    : "1px solid #EFECE6",
                                               background: isReserva
                                                 ? "#FFFBEB"
                                                 : hasRowStreakWarning
-                                                ? "#FFFBEB"
-                                                : signup.present
-                                                ? "#F0FDF4"
-                                                : "#FFFFFF",
+                                                  ? "#FFFBEB"
+                                                  : signup.present
+                                                    ? "#F0FDF4"
+                                                    : "#FFFFFF",
                                               flexWrap: "wrap",
                                             }}
                                           >
@@ -3713,21 +3806,21 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
               {(() => {
                 const rows = unavModalServa
                   ? unavModalServa.items.map((item) => ({
-                      userName: unavModalServa.name,
+                    userName: unavModalServa.name,
+                    date: item.date,
+                    reason: item.reason,
+                  }))
+                  : Object.entries(unavailabilitiesMap).flatMap(([uid, items]) => {
+                    const memberName =
+                      servasList.find((s) => s.id === uid)?.name ||
+                      allUsers.find((u) => u.id === uid)?.name ||
+                      "Membro";
+                    return (items || []).map((item) => ({
+                      userName: memberName,
                       date: item.date,
                       reason: item.reason,
-                    }))
-                  : Object.entries(unavailabilitiesMap).flatMap(([uid, items]) => {
-                      const memberName =
-                        servasList.find((s) => s.id === uid)?.name ||
-                        allUsers.find((u) => u.id === uid)?.name ||
-                        "Membro";
-                      return (items || []).map((item) => ({
-                        userName: memberName,
-                        date: item.date,
-                        reason: item.reason,
-                      }));
-                    });
+                    }));
+                  });
 
                 rows.sort((a, b) => a.date.localeCompare(b.date));
 
