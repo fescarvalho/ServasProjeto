@@ -3,7 +3,7 @@ import { parseDateTime, parseDeadline } from "../utils/date.utils";
 
 const PHOTO_DATA_PREFIX = "__MASS_PHOTO_DATA__:";
 const PHOTO_META_PREFIX = "__MASS_PHOTO_META__:";
-const PHOTO_RETENTION_DAYS = 30;
+const PHOTO_RETENTION_DAYS = 7;
 const PHOTO_RETENTION_MS = PHOTO_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 
 export interface MassPhotoMeta {
@@ -84,7 +84,7 @@ async function saveMassPhotoMetaIndex(map: Record<string, MassPhotoMeta>, existi
 }
 
 /**
- * Remove automaticamente fotos com mais de 30 dias e retorna o índice atualizado
+ * Remove automaticamente fotos com mais de 7 dias e retorna o índice atualizado
  */
 export async function cleanupExpiredMassPhotos(): Promise<Record<string, MassPhotoMeta>> {
     const cutoffDate = new Date(Date.now() - PHOTO_RETENTION_MS);
@@ -269,7 +269,7 @@ export async function getMassPhoto(massId: string): Promise<MassPhotoPayload | n
 }
 
 /**
- * Save or replace team photo for a mass (retains for 30 days)
+ * Save or replace team photo for a mass (retains for 7 days)
  */
 export async function saveMassPhoto(
     massId: string,
@@ -350,7 +350,7 @@ export async function saveMassPhoto(
     const prefix = `${PHOTO_DATA_PREFIX}${massId}:`;
     const serializedData = prefix + JSON.stringify(fullPayload);
 
-    // Remove eventual foto anterior desta missa e cria novo registro com createdAt de agora (para contagem de 30 dias)
+    // Remove eventual foto anterior desta missa e cria novo registro com createdAt de agora (para contagem de 7 dias)
     await prisma.notice.deleteMany({
         where: {
             active: false,

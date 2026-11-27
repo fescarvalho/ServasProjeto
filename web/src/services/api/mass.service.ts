@@ -171,3 +171,60 @@ export async function confirmAllMassPresence(massId: string): Promise<{ count: n
     const response = await apiClient.post<{ count: number }>(`/masses/${massId}/confirm-all-presence`);
     return response.data;
 }
+
+/**
+ * Faz o download da foto da equipe (converte dataURL em Blob para compatibilidade mobile e desktop)
+ */
+export function downloadMassPhotoFile(imageDataUrl: string, massDateIso: string): void {
+    const d = new Date(massDateIso);
+    const dateSlug = isNaN(d.getTime())
+        ? "missa"
+        : d
+              .toLocaleString("pt-BR", {
+                  timeZone: "America/Sao_Paulo",
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+              })
+              .replace(/[^\d]+/g, "-");
+
+    const mimeMatch = imageDataUrl.match(/^data:image\/([a-zA-Z0-9+.-]+);base64,/);
+    const rawExt = mimeMatch ? mimeMatch[1].toLowerCase() : "jpeg";
+    const ext = rawExt === "jpeg" ? "jpg" : rawExt;
+    const filename = `foto-equipe-${dateSlug}.${ext}`;
+
+    try {
+        const commaIdx = imageDataUrl.indexOf(",");
+        if (commaIdx !== -1) {
+            const header = imageDataUrl.slice(0, commaIdx);
+            const base64 = imageDataUrl.slice(commaIdx + 1);
+            const mime = header.match(/data:([^;]+)/)?.[1] || "image/jpeg";
+            const binary = atob(base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            const blob = new Blob([bytes], { type: mime });
+            const blobUrl = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = blobUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+            return;
+        }
+    } catch {
+        // fallback para dataURL direto abaixo
+    }
+
+    const a = document.createElement("a");
+    a.href = imageDataUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}

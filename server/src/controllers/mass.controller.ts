@@ -94,7 +94,7 @@ export async function getMassPhoto(req: Request, res: Response) {
         const { id } = req.params;
         const photo = await massService.getMassPhoto(String(id));
         if (!photo) {
-            return res.status(404).json({ error: "Nenhuma foto encontrada para esta missa (ou já expirou após 30 dias)." });
+            return res.status(404).json({ error: "Nenhuma foto encontrada para esta missa (ou já expirou após 7 dias)." });
         }
         return success(res, photo);
     } catch (err: any) {

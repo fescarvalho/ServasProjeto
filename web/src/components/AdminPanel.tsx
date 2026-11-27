@@ -34,7 +34,8 @@ import {
   AlertTriangle,
   Ban,
   Cake,
-  MessageCircle
+  MessageCircle,
+  Download
 } from "lucide-react";
 import { Mass, MassPhotoData, User, Signup } from "../types/types";
 import { formatRole, setGlobalUserGenders, getUserGender } from "../constants/roles";
@@ -51,6 +52,7 @@ import {
   deleteMassPhoto,
   confirmAllMassPresence,
   compressMassPhotoFile,
+  downloadMassPhotoFile,
 } from "../services/api/mass.service";
 import {
   getServasList,
@@ -1598,9 +1600,29 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                         })}
                       </div>
                       <div style={{ marginTop: "2px", fontSize: "0.7rem", color: "#8C7360" }}>
-                        As fotos são eliminadas automaticamente após 30 dias.
+                        As fotos são eliminadas automaticamente após 7 dias.
                       </div>
                       <div style={{ display: "flex", justifyContent: "center", gap: "8px", marginTop: "10px", flexWrap: "wrap" }}>
+                        <button
+                          type="button"
+                          onClick={() => downloadMassPhotoFile(photoModalData.imageDataUrl, modalMass.date)}
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: "8px",
+                            border: `1px solid ${theme.colors.primary}`,
+                            background: theme.colors.primary,
+                            color: "#FFFFFF",
+                            fontSize: "0.76rem",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                          }}
+                        >
+                          <Download size={14} />
+                          <span>Baixar Foto</span>
+                        </button>
                         <label
                           style={{
                             padding: "6px 12px",
@@ -2460,7 +2482,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                       alignItems: "center",
                       gap: "4px",
                     }}
-                    title="Filtrar apenas missas com foto enviada pela equipe (últimos 30 dias)"
+                    title="Filtrar apenas missas com foto enviada pela equipe (últimos 7 dias)"
                   >
                     <Camera size={12} />
                     <span>{onlyWithPhotos ? "Mostrando Fotos (Ver todas)" : `${massesWithPhotoCount} foto(s)`}</span>

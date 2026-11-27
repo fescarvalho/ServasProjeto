@@ -31,7 +31,8 @@ import {
   Ban,
   Cake,
   Sparkles,
-  MessageCircle
+  MessageCircle,
+  Download
 } from "lucide-react";
 import { Mass, MassPhotoData, UserData, Notice, SwapRequest } from "../types/types";
 import { formatRole, getUserGender, setGlobalUserGenders } from "../constants/roles";
@@ -41,6 +42,7 @@ import {
   compressMassPhotoFile,
   uploadMassPhoto,
   getMassPhoto,
+  downloadMassPhotoFile,
 } from "../services/api/mass.service";
 import {
   getOfflinePhotoQueue,
@@ -2743,8 +2745,38 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                     })}
                   </div>
                   <div style={{ marginTop: "4px", fontSize: "0.7rem", color: "#8C7360" }}>
-                    As fotos são eliminadas automaticamente após 30 dias.
+                    As fotos são eliminadas automaticamente após 7 dias.
                   </div>
+                  {(viewingPhotoMass.photo.uploadedById === user.id || user.role === "ADMIN") && (
+                    <div style={{ marginTop: "12px", display: "flex", justifyContent: "center" }}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          downloadMassPhotoFile(
+                            viewingPhotoMass.photo!.imageDataUrl,
+                            viewingPhotoMass.mass.date
+                          )
+                        }
+                        style={{
+                          padding: "8px 16px",
+                          borderRadius: "8px",
+                          border: "none",
+                          background: theme.colors.primary,
+                          color: "#FFFFFF",
+                          fontSize: "0.82rem",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          boxShadow: "0 2px 8px rgba(74, 50, 34, 0.2)",
+                        }}
+                      >
+                        <Download size={15} />
+                        <span>Baixar Foto</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : null}
             </div>
