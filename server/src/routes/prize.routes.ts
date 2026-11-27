@@ -13,5 +13,7 @@ router.post("/pop", authMiddleware, prizeController.popBalloon);
 router.get("/admin", authMiddleware, adminMiddleware, prizeController.getAdminOverview);
 router.put("/admin/config", authMiddleware, adminMiddleware, prizeController.updatePrizesConfig);
 router.patch("/admin/claims/:ymKey/delivered", authMiddleware, adminMiddleware, prizeController.toggleClaimDelivered);
+router.post("/admin/test/start", authMiddleware, adminMiddleware, prizeController.startTestBalloon);
+router.delete("/admin/test", authMiddleware, adminMiddleware, prizeController.clearTestBalloon);
 
 export default router;

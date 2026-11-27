@@ -33,6 +33,7 @@ export interface MyPendingPrizeResponse {
 export interface AdminPrizeOverview {
     prizes: [string, string, string];
     claims: PrizeClaimRecord[];
+    testActive?: boolean;
     prizeStartYm?: string;
     notStartedYet?: boolean;
     lastClosedMonth: {
@@ -97,4 +98,12 @@ export async function setPrizeDelivered(
         { delivered }
     );
     return res.data;
+}
+
+export async function startOrResetTestBalloon(): Promise<void> {
+    await apiClient.post("/prizes/admin/test/start");
+}
+
+export async function clearTestBalloon(): Promise<void> {
+    await apiClient.delete("/prizes/admin/test");
 }

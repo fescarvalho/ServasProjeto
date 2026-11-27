@@ -2185,10 +2185,13 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
       {isAdmin && !dismissedPrizeBanner && (() => {
         const undelivered = prizeOverview?.claims?.find((c) => !c.delivered);
         if (!undelivered) return null;
-        const monthLabel = [
-          "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-          "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
-        ][undelivered.month] || "";
+        const monthLabel =
+          undelivered.ymKey === "TESTE-SIMULACAO"
+            ? "Simulação"
+            : `${[
+                "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+                "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+              ][undelivered.month] || ""}/${undelivered.year}`;
 
         return (
           <div
@@ -2214,7 +2217,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
               <div style={{ fontWeight: 800, fontSize: "0.84rem", color: "#92400E", display: "flex", alignItems: "center", gap: "6px" }}>
                 <Gift size={16} />
                 <span>
-                  🎈 Balão estourado ({monthLabel}/{undelivered.year}) — Prêmio pendente de entrega!
+                  🎈 Balão estourado ({monthLabel}) — Prêmio pendente de entrega!
                 </span>
               </div>
               <div style={{ fontSize: "0.82rem", color: "#4A3222", fontWeight: 700, marginTop: "3px" }}>

@@ -75,3 +75,23 @@ export async function toggleClaimDelivered(req: Request, res: Response) {
         return badRequest(res, err.message || "Erro ao atualizar entrega do prêmio");
     }
 }
+
+export async function startTestBalloon(req: Request, res: Response) {
+    try {
+        await prizeService.startOrResetTestBalloon();
+        return success(res, { ok: true });
+    } catch (err: any) {
+        console.error("Start test balloon error:", err);
+        return error(res, err.message || "Erro ao iniciar teste de balão");
+    }
+}
+
+export async function clearTestBalloon(req: Request, res: Response) {
+    try {
+        await prizeService.clearTestBalloon();
+        return success(res, { ok: true });
+    } catch (err: any) {
+        console.error("Clear test balloon error:", err);
+        return error(res, err.message || "Erro ao limpar teste de balão");
+    }
+}

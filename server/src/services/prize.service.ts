@@ -5,6 +5,8 @@ const PRIZE_META_PREFIX = "__SYS_PRIZE_STATE__:";
 
 // A premiação dos balões passa a valer somente a partir do fechamento de Novembro/2026 (liberado em 01/12/2026)
 export const PRIZE_START_YM = "2026-11";
+export const TEST_CLAIM_KEY = "TESTE-SIMULACAO";
+const TEST_ACCOUNT_EMAIL = "teste@servas.com";
 
 export const DEFAULT_BALLOON_PRIZES: [string, string, string] = [
     "🍫 Kit Chocolate Especial",
@@ -33,6 +35,7 @@ export interface PrizeClaimRecord {
 export interface SystemPrizeState {
     prizes: [string, string, string];
     claims: Record<string, PrizeClaimRecord>;
+    testActive?: boolean;
 }
 
 export interface RankedMonthlyCandidate {
@@ -108,6 +111,7 @@ export async function getSystemPrizeState(): Promise<SystemPrizeState> {
         return {
             prizes,
             claims: parsed?.claims && typeof parsed.claims === "object" ? parsed.claims : {},
+            testActive: Boolean(parsed?.testActive),
         };
     } catch (err) {
         console.error("[PrizeState] Erro ao ler estado de prêmios:", err);
@@ -357,6 +361,42 @@ function listClosedMonthsSinceStart(
  * Enquanto não estourar um balão, continua retornando alreadyClaimed=false em todos os logins!
  */
 export async function getMyPendingBalloonStatus(userId: string) {
+    const state = await getSystemPrizeState();
+
+    // Modo de simulação exclusivo para a conta Serva Teste (teste@servas.com)
+    if (state.testActive) {
+        const u = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true, email: true },
+        });
+        if (u && u.email.trim().toLowerCase() === TEST_ACCOUNT_EMAIL) {
+            const testClaim = state.claims[TEST_CLAIM_KEY];
+            if (testClaim) {
+                return {
+                    eligible: true,
+                    alreadyClaimed: true,
+                    ymKey: TEST_CLAIM_KEY,
+                    year: 2026,
+                    month: 10,
+                    score: testClaim.score,
+                    totalPresences: testClaim.totalPresences,
+                    specialPresences: testClaim.specialPresences,
+                    claim: testClaim,
+                };
+            }
+            return {
+                eligible: true,
+                alreadyClaimed: false,
+                ymKey: TEST_CLAIM_KEY,
+                year: 2026,
+                month: 10,
+                score: 12,
+                totalPresences: 7,
+                specialPresences: 5,
+            };
+        }
+    }
+
     const { year: curYear, month: curMonth } = getBrazilCurrentYearMonth();
     const closedMonths = listClosedMonthsSinceStart(curYear, curMonth);
 
@@ -364,8 +404,6 @@ export async function getMyPendingBalloonStatus(userId: string) {
     if (closedMonths.length === 0) {
         return { eligible: false };
     }
-
-    const state = await getSystemPrizeState();
 
     // 1º Prioridade: qualquer mês fechado (>= 2026-11) vencido por este servo que AINDA NÃO teve balão estourado
     for (const m of closedMonths) {
@@ -418,6 +456,42 @@ export async function popWinnerBalloon(
         throw new Error("Escolha um balão válido (1, 2 ou 3).");
     }
 
+    const state = await getSystemPrizeState();
+
+    // Suporte isolado para a conta Serva Teste quando o modo de teste está ativo
+    if (state.testActive) {
+        const u = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true, name: true, email: true },
+        });
+        if (u && u.email.trim().toLowerCase() === TEST_ACCOUNT_EMAIL) {
+            if (state.claims[TEST_CLAIM_KEY]) {
+                return state.claims[TEST_CLAIM_KEY];
+            }
+            const shuffledTest = shuffleThreePrizes(state.prizes);
+            const testClaim: PrizeClaimRecord = {
+                ymKey: TEST_CLAIM_KEY,
+                year: 2026,
+                month: 10,
+                winnerId: u.id,
+                winnerName: `${u.name} (Simulação)`,
+                score: 12,
+                totalPresences: 7,
+                specialPresences: 5,
+                balloonIndex,
+                prizeWon: shuffledTest[balloonIndex],
+                allBalloons: shuffledTest,
+                claimedAt: new Date().toISOString(),
+                delivered: false,
+                deliveredAt: null,
+                skippedPrevWinnerName: null,
+            };
+            state.claims[TEST_CLAIM_KEY] = testClaim;
+            await saveSystemPrizeState(state);
+            return testClaim;
+        }
+    }
+
     const { year: curYear, month: curMonth } = getBrazilCurrentYearMonth();
     const isCompletedMonth =
         year < curYear || (year === curYear && monthZeroBased < curMonth);
@@ -425,7 +499,6 @@ export async function popWinnerBalloon(
         throw new Error("A premiação deste mês só é liberada após o encerramento do mês.");
     }
 
-    const state = await getSystemPrizeState();
     const ymKey = formatYmKey(year, monthZeroBased);
 
     if (ymKey < PRIZE_START_YM) {
@@ -505,6 +578,20 @@ export async function setPrizeClaimDelivered(ymKey: string, delivered: boolean):
     return claim;
 }
 
+export async function startOrResetTestBalloon(): Promise<void> {
+    const state = await getSystemPrizeState();
+    state.testActive = true;
+    delete state.claims[TEST_CLAIM_KEY];
+    await saveSystemPrizeState(state);
+}
+
+export async function clearTestBalloon(): Promise<void> {
+    const state = await getSystemPrizeState();
+    state.testActive = false;
+    delete state.claims[TEST_CLAIM_KEY];
+    await saveSystemPrizeState(state);
+}
+
 /**
  * Retorna visão completa de prêmios, último mês fechado e histórico de ganhadores para o Admin
  */
@@ -523,6 +610,7 @@ export async function getAdminPrizeOverview() {
         return {
             prizes: state.prizes,
             claims: claimsList,
+            testActive: Boolean(state.testActive),
             prizeStartYm: PRIZE_START_YM,
             notStartedYet: true,
             lastClosedMonth: {
@@ -550,6 +638,7 @@ export async function getAdminPrizeOverview() {
     return {
         prizes: state.prizes,
         claims: claimsList,
+        testActive: Boolean(state.testActive),
         prizeStartYm: PRIZE_START_YM,
         notStartedYet: false,
         lastClosedMonth: {

@@ -3,8 +3,10 @@ import { X, Gift, Save, CheckCircle2, Clock, AlertCircle, Loader2, Trophy } from
 import { theme } from "../theme/theme";
 import {
     AdminPrizeOverview,
+    clearTestBalloon,
     getAdminPrizeOverview,
     setPrizeDelivered,
+    startOrResetTestBalloon,
     updateBalloonPrizes,
 } from "../services/api/prize.service";
 
@@ -467,7 +469,7 @@ export function PrizeManagerModal({ onClose, onUpdated }: PrizeManagerModalProps
                                             >
                                                 <div style={{ flex: 1, minWidth: "180px" }}>
                                                     <div style={{ fontSize: "0.72rem", fontWeight: 800, color: "#8C6530", textTransform: "uppercase" }}>
-                                                        {MONTHS[c.month]}/{c.year} • Balão {c.balloonIndex + 1}
+                                                        {c.ymKey === "TESTE-SIMULACAO" ? "🧪 Simulação" : `${MONTHS[c.month]}/${c.year}`} • Balão {c.balloonIndex + 1}
                                                     </div>
                                                     <div style={{ fontSize: "0.88rem", fontWeight: 800, color: "#4A3222" }}>
                                                         {c.winnerName}
@@ -502,6 +504,86 @@ export function PrizeManagerModal({ onClose, onUpdated }: PrizeManagerModalProps
                                         ))}
                                     </div>
                                 )}
+                            </div>
+
+                            {/* MODO DE SIMULAÇÃO COM SERVA TESTE */}
+                            <div
+                                style={{
+                                    background: "#F5F3FF",
+                                    border: "1px dashed #A78BFA",
+                                    borderRadius: "14px",
+                                    padding: "12px 14px",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "8px",
+                                }}
+                            >
+                                <div style={{ fontWeight: 800, fontSize: "0.84rem", color: "#5B21B6" }}>
+                                    🧪 Modo de Teste (Serva Teste — teste@servas.com)
+                                </div>
+                                <div style={{ fontSize: "0.75rem", color: "#4C1D95", lineHeight: 1.4 }}>
+                                    {overview?.testActive
+                                        ? "✅ Teste ATIVO para teste@servas.com! Faça login nessa conta para testar os balões. Ao terminar, clique em 'Encerrar e Limpar Teste'."
+                                        : "Libere um balão de simulação exclusivo para a conta teste@servas.com sem afetar nenhum servo real."}
+                                </div>
+                                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                                    <button
+                                        type="button"
+                                        onClick={async () => {
+                                            try {
+                                                await startOrResetTestBalloon();
+                                                setFeedback({
+                                                    type: "ok",
+                                                    text: "Balão de teste liberado/resetado para teste@servas.com!",
+                                                });
+                                                await loadData();
+                                            } catch {
+                                                setFeedback({ type: "err", text: "Erro ao ativar teste." });
+                                            }
+                                        }}
+                                        style={{
+                                            padding: "7px 12px",
+                                            borderRadius: "8px",
+                                            border: "none",
+                                            background: "#6D28D9",
+                                            color: "#FFFFFF",
+                                            fontSize: "0.76rem",
+                                            fontWeight: 800,
+                                            cursor: "pointer",
+                                        }}
+                                    >
+                                        {overview?.testActive ? "🔄 Resetar Balão de Teste" : "🎈 Liberar Balão p/ Serva Teste"}
+                                    </button>
+                                    {(overview?.testActive || overview?.claims?.some((c) => c.ymKey === "TESTE-SIMULACAO")) && (
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                try {
+                                                    await clearTestBalloon();
+                                                    setFeedback({
+                                                        type: "ok",
+                                                        text: "Modo de teste encerrado e limpo!",
+                                                    });
+                                                    await loadData();
+                                                } catch {
+                                                    setFeedback({ type: "err", text: "Erro ao limpar teste." });
+                                                }
+                                            }}
+                                            style={{
+                                                padding: "7px 12px",
+                                                borderRadius: "8px",
+                                                border: "1px solid #C4B5FD",
+                                                background: "#FFFFFF",
+                                                color: "#5B21B6",
+                                                fontSize: "0.76rem",
+                                                fontWeight: 800,
+                                                cursor: "pointer",
+                                            }}
+                                        >
+                                            🧹 Encerrar e Limpar Teste
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </>
                     )}
