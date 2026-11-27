@@ -3,6 +3,7 @@ import autoTable from "jspdf-autotable";
 import { ClipboardList, Download } from "lucide-react";
 import { Mass } from "../types/types";
 import { formatRole } from "../constants/roles";
+import { formatServoName, registerUsersFromMasses } from "../utils/format.utils";
 
 interface MonthlyReportProps {
   masses: Mass[];
@@ -10,6 +11,7 @@ interface MonthlyReportProps {
 
 export function MonthlyReport({ masses }: MonthlyReportProps) {
   const generateMonthlyPDF = () => {
+    registerUsersFromMasses(masses);
     const doc = new jsPDF();
     const now = new Date();
 
@@ -27,8 +29,8 @@ export function MonthlyReport({ masses }: MonthlyReportProps) {
 
     pastMasses.forEach((mass) => {
       mass.signups.forEach((signup) => {
-        const name = signup.user.name;
-        const role = formatRole(signup.role);
+        const name = formatServoName(signup.user.name, signup.userId);
+        const role = formatRole(signup.role, signup.user.name, signup.userId);
 
         if (signup.present) {
           // Presença confirmada

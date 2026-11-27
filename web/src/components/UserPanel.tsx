@@ -32,7 +32,8 @@ import {
   Cake,
   Sparkles,
   MessageCircle,
-  Download
+  Download,
+  Gift
 } from "lucide-react";
 import { Mass, MassPhotoData, UserData, Notice, SwapRequest } from "../types/types";
 import { formatRole, getUserGender, setGlobalUserGenders } from "../constants/roles";
@@ -59,6 +60,11 @@ import {
   UnavailabilityItem,
   ScaleSuspension
 } from "../services/api/user.service";
+import {
+  getMyPendingPrize,
+  MyPendingPrizeResponse,
+  PrizeClaimRecord,
+} from "../services/api/prize.service";
 import { api } from "../services/api";
 import * as swapRequestService from "../services/api/swap-request.service";
 import { CountdownTimer } from "./CountdownTimer";
@@ -123,7 +129,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
   const { toasts, remove, show } = useToast();
 
   const [showWinnerModal, setShowWinnerModal] = useState(false);
-  const [winnerDetails, setWinnerDetails] = useState<{ score: number; month: number; year: number } | null>(null);
+  const [pendingPrize, setPendingPrize] = useState<MyPendingPrizeResponse | null>(null);
 
   // Confirm modal state
   const [confirmState, setConfirmState] = useState<{ message: string; onConfirm: () => void } | null>(null);
@@ -625,47 +631,58 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
     };
   }, []);
 
-  // --- Lógica da Serva Campeã ---
+  // --- Lógica da Premiação Mensal (3 Balões) ---
+  // Verifica no servidor se o(a) servo(a) venceu a premiação do último mês fechado (com regra de não repetir mês seguido)
   useEffect(() => {
-    if (masses.length === 0 || !user) return;
+    if (!user?.id) return;
+    let cancelled = false;
 
-    const now = new Date();
-    const day = now.getDate();
-    const month = now.getMonth();
-    const year = now.getFullYear();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-    let checkMonth = month;
-    let checkYear = year;
-    let shouldCheck = false;
-
-    // Últimos 3 dias do mês ou primeiros 5 dias do próximo mês
-    if (day >= daysInMonth - 2) {
-      shouldCheck = true;
-    } else if (day <= 5) {
-      shouldCheck = true;
-      checkMonth = month === 0 ? 11 : month - 1;
-      checkYear = month === 0 ? year - 1 : year;
-    }
-
-    if (shouldCheck) {
-      const storageKey = `winner_notified_${checkYear}_${checkMonth}`;
-      const alreadyNotified = localStorage.getItem(storageKey);
-
-      if (!alreadyNotified) {
-        const ranking = calculateRanking(masses, checkMonth, checkYear);
-        // Se eu sou a primeira colocada e tenho pontuação maior que 0
-        if (ranking.length > 0 && ranking[0].id === user.id && ranking[0].score > 0) {
-          setWinnerDetails({ score: ranking[0].score, month: checkMonth, year: checkYear });
-          setShowWinnerModal(true);
+    getMyPendingPrize()
+      .then((res) => {
+        if (cancelled) return;
+        if (!res?.eligible) {
+          setPendingPrize(null);
+          return;
         }
-      }
-    }
-  }, [masses, user]);
+        setPendingPrize(res);
+
+        // Se ainda não estourou o balão, abre o modal automaticamente!
+        if (!res.alreadyClaimed) {
+          setShowWinnerModal(true);
+        } else if (res.claim) {
+          const seenKey = `winner_claim_seen_${res.claim.ymKey}_${user.id}`;
+          if (!localStorage.getItem(seenKey)) {
+            setShowWinnerModal(true);
+          }
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  const handleBalloonClaimed = (claim: PrizeClaimRecord) => {
+    try {
+      localStorage.setItem(`winner_claim_seen_${claim.ymKey}_${user.id}`, "true");
+    } catch {}
+    setPendingPrize((prev) =>
+      prev
+        ? {
+            ...prev,
+            alreadyClaimed: true,
+            claim,
+          }
+        : prev
+    );
+  };
 
   const handleCloseWinnerModal = () => {
-    if (winnerDetails) {
-      localStorage.setItem(`winner_notified_${winnerDetails.year}_${winnerDetails.month}`, "true");
+    if (pendingPrize?.claim?.ymKey) {
+      try {
+        localStorage.setItem(`winner_claim_seen_${pendingPrize.claim.ymKey}_${user.id}`, "true");
+      } catch {}
     }
     setShowWinnerModal(false);
   };
@@ -906,12 +923,15 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
             onClose={() => setShowRanking(false)}
           />
         )}
-        {showWinnerModal && winnerDetails && (
+        {showWinnerModal && pendingPrize?.eligible && pendingPrize.year !== undefined && pendingPrize.month !== undefined && (
           <WinnerModal
-            score={winnerDetails.score}
-            month={winnerDetails.month}
-            year={winnerDetails.year}
+            score={pendingPrize.score || 0}
+            totalPresences={pendingPrize.totalPresences}
+            month={pendingPrize.month}
+            year={pendingPrize.year}
             userName={formatServoName(user.name, user.id)}
+            initialClaim={pendingPrize.claim || null}
+            onClaimed={handleBalloonClaimed}
             onClose={handleCloseWinnerModal}
           />
         )}
@@ -1362,6 +1382,68 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
         </div>
       )}
 
+
+      {/* BANNER DE PREMIAÇÃO DO MÊS (BALÃO PENDENTE OU PRÊMIO AGUARDANDO ENTREGA) */}
+      {pendingPrize?.eligible && (!pendingPrize.alreadyClaimed || (pendingPrize.claim && !pendingPrize.claim.delivered)) && (
+        <div
+          className="no-print"
+          onClick={() => setShowWinnerModal(true)}
+          style={{
+            margin: "12px 15px 0 15px",
+            padding: "13px 15px",
+            borderRadius: "14px",
+            background: "linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)",
+            border: "2px solid #D97706",
+            color: "#4A3222",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
+            cursor: "pointer",
+            boxShadow: "0 6px 16px rgba(217, 119, 6, 0.22)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
+            <div style={{ background: "#D97706", color: "#fff", padding: "8px", borderRadius: "50%", flexShrink: 0, display: "flex" }}>
+              <Gift size={18} />
+            </div>
+            <div style={{ fontSize: "0.82rem", lineHeight: 1.35 }}>
+              {!pendingPrize.alreadyClaimed ? (
+                <>
+                  <div style={{ fontWeight: 900, fontSize: "0.88rem", color: "#78350F" }}>
+                    🎈 Você venceu o Destaque do Mês!
+                  </div>
+                  <div style={{ fontWeight: 600, color: "#92400E" }}>
+                    Toque aqui para escolher e estourar seu balão premiado!
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontWeight: 900, fontSize: "0.85rem", color: "#78350F" }}>
+                    🎁 Seu prêmio: {pendingPrize.claim?.prizeWon}
+                  </div>
+                  <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#92400E" }}>
+                    Procure a coordenação para retirar seu presente!
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+          <span
+            style={{
+              background: "#4A3222",
+              color: "#FFF",
+              padding: "6px 11px",
+              borderRadius: "999px",
+              fontSize: "0.74rem",
+              fontWeight: 800,
+              flexShrink: 0,
+            }}
+          >
+            {!pendingPrize.alreadyClaimed ? "Estourar 🎈" : "Ver"}
+          </span>
+        </div>
+      )}
 
       {/* AVISO DE SUSPENSÃO TEMPORÁRIA DE ESCALAS */}
       {hasValidSuspension && mySuspension && (

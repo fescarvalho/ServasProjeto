@@ -1,5 +1,6 @@
 import { prisma } from "../config/database";
 import { buildShortNamesData, getActiveShortNamesData } from "./user.service";
+import { getBrazilCurrentYearMonth, getPreviousMonth, resolveMonthlyWinner } from "./prize.service";
 
 function formatNameList(names: string[]): string {
     if (names.length === 0) return "";
@@ -97,38 +98,16 @@ export async function deleteNotice(id: string) {
     return await prisma.notice.delete({ where: { id } });
 }
 
-function getMassPoints(dateInput: string | Date, manualPoints?: number | null) {
-    if (manualPoints !== undefined && manualPoints !== null) return manualPoints;
-
-    const normalized =
-        typeof dateInput === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)
-            ? `${dateInput}T12:00:00`
-            : dateInput;
-    const d = new Date(normalized);
-    if (isNaN(d.getTime())) return 1;
-
-    const brDate = new Date(d.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-    // Domingo (0) = 1 ponto; Dias de semana (1 a 6) = 2 pontos
-    return brDate.getDay() === 0 ? 1 : 2;
-}
-
 /**
  * Automatically post a notice for the monthly champion
  */
 export async function postMonthlyChampionNotice() {
-    const today = new Date();
-    // Get first day of the current month
-    const firstDayCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    // Get last day of previous month
-    const lastDayPreviousMonth = new Date(firstDayCurrentMonth.getTime() - 1);
-    // Get first day of previous month
-    const firstDayPreviousMonth = new Date(lastDayPreviousMonth.getFullYear(), lastDayPreviousMonth.getMonth(), 1);
+    const { year: curYear, month: curMonth } = getBrazilCurrentYearMonth();
+    const prev = getPreviousMonth(curYear, curMonth);
 
-    // Month name in pt-BR
     const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-    const previousMonthName = monthNames[lastDayPreviousMonth.getMonth()];
+    const previousMonthName = monthNames[prev.month];
 
-    // Check if notice already exists
     const existingNotice = await prisma.notice.findFirst({
         where: {
             text: { contains: `mês de ${previousMonthName}` }
@@ -139,70 +118,21 @@ export async function postMonthlyChampionNotice() {
         return { success: false, message: "Notice already exists for the previous month." };
     }
 
-    const masses = await prisma.mass.findMany({
-        where: {
-            date: {
-                gte: firstDayPreviousMonth,
-                lte: lastDayPreviousMonth
-            }
-        },
-        include: {
-            signups: {
-                include: { user: true }
-            }
-        }
-    });
-
-    const scores: Record<string, { id: string; count: number; score: number; absences: number; name: string }> = {};
-
-    masses.forEach(mass => {
-        const points = getMassPoints(mass.date, (mass as any).points);
-
-        mass.signups.forEach(signup => {
-            const userId = signup.user?.id;
-            const userName = signup.user?.name || "Serva Desconhecida";
-            if (userId) {
-                if (!scores[userId]) {
-                    scores[userId] = { id: userId, count: 0, score: 0, absences: 0, name: userName };
-                }
-                if (signup.present) {
-                    scores[userId].count += 1;
-                    scores[userId].score += points;
-                } else {
-                    scores[userId].absences += 1;
-                }
-            }
-        });
-    });
-
-    const ranking = Object.values(scores)
-        // Somente quem teve alguma pontuação/presença deve participar (remover quem só teve faltas)
-        .filter(s => s.count > 0)
-        .sort((a, b) => {
-            if (b.score !== a.score) return b.score - a.score;
-            if (b.count !== a.count) return b.count - a.count;
-            return a.absences - b.absences;
-        });
-
-    if (ranking.length === 0) {
+    const resolution = await resolveMonthlyWinner(prev.year, prev.month);
+    if (!resolution.winner) {
         return { success: false, message: "No presences found for the previous month." };
     }
 
-    const championScore = ranking[0].score;
-    const championCount = ranking[0].count;
-    const championAbsences = ranking[0].absences;
-    
     const shortNames = await getActiveShortNamesData();
-    const champions = ranking.filter(r => r.score === championScore && r.count === championCount && r.absences === championAbsences);
-    const championNames = formatNameList(
-        champions.map(c => shortNames.byId[c.id] || c.name.trim().split(/\s+/)[0])
-    );
-    
-    const text = `🏆 Parabéns ${championNames}! ${champions.length > 1 ? 'Vocês foram os Destaques do mês' : 'Você foi o Destaque do mês'} de ${previousMonthName} com ${championCount} presenças e ${championScore} pontos! Deus abençoe! 🏆`;
+    const championName =
+        shortNames.byId[resolution.winner.userId] ||
+        resolution.winner.name.trim().split(/\s+/)[0];
+
+    const text = `🏆 Parabéns ${championName}! Você foi o Destaque do mês de ${previousMonthName} com ${resolution.winner.totalPresences} presenças e ${resolution.winner.score} pontos! Deus abençoe! 🏆`;
 
     await prisma.notice.create({
         data: { text, active: true }
     });
 
-    return { success: true, message: `Champion notice created for ${previousMonthName}: ${championNames}` };
+    return { success: true, message: `Champion notice created for ${previousMonthName}: ${championName}` };
 }

@@ -35,7 +35,8 @@ import {
   Ban,
   Cake,
   MessageCircle,
-  Download
+  Download,
+  Gift
 } from "lucide-react";
 import { Mass, MassPhotoData, User, Signup } from "../types/types";
 import { formatRole, setGlobalUserGenders, getUserGender } from "../constants/roles";
@@ -67,6 +68,11 @@ import {
   ScaleSuspension
 } from "../services/api/user.service";
 import {
+  AdminPrizeOverview,
+  getAdminPrizeOverview,
+  setPrizeDelivered,
+} from "../services/api/prize.service";
+import {
   autoAssign,
   getConsecutiveRoleStreak,
   getLastConsecutiveRole,
@@ -81,6 +87,7 @@ const StatisticsModal = lazy(() => import("./StatisticsModal").then((m) => ({ de
 const RankingModal = lazy(() => import("./RankingModal").then((m) => ({ default: m.RankingModal })));
 const LoginLogs = lazy(() => import("./LoginLogs").then((m) => ({ default: m.LoginLogs })));
 const ReminderModal = lazy(() => import("./ReminderModal").then((m) => ({ default: m.ReminderModal })));
+const PrizeManagerModal = lazy(() => import("./PrizeManagerModal").then((m) => ({ default: m.PrizeManagerModal })));
 
 // ── MassForm extracted OUTSIDE AdminPanel to prevent unmount on every keystroke ──
 interface MassFormProps {
@@ -418,6 +425,9 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [dismissedAbsenceBanner, setDismissedAbsenceBanner] = useState(false);
   const [todayBirthdayPeople, setTodayBirthdayPeople] = useState<{ id: string; name: string; fullName?: string; age?: number | null }[]>([]);
   const [dismissedBirthdayBanner, setDismissedBirthdayBanner] = useState(false);
+  const [prizeOverview, setPrizeOverview] = useState<AdminPrizeOverview | null>(null);
+  const [showPrizeModal, setShowPrizeModal] = useState(false);
+  const [dismissedPrizeBanner, setDismissedPrizeBanner] = useState(false);
   const [showMonthlyAbsencesModal, setShowMonthlyAbsencesModal] = useState(false);
   const [suspensionModalServa, setSuspensionModalServa] = useState<{
     id: string;
@@ -474,6 +484,9 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
           const bday = list.find((n) => n.id === "birthday-notice-auto" || n.isBirthday);
           setTodayBirthdayPeople(bday?.birthdayPeople || []);
         })
+        .catch(() => { });
+      getAdminPrizeOverview()
+        .then((overview) => setPrizeOverview(overview))
         .catch(() => { });
     }
   }, [isAdmin]);
@@ -1352,6 +1365,12 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         {showRankingModal && isAdmin && <RankingModal masses={masses} onClose={() => setShowRankingModal(false)} />}
         {showStatsModal && isAdmin && <StatisticsModal masses={masses} onClose={() => setShowStatsModal(false)} />}
         {showReminderModal && isAdmin && <ReminderModal masses={masses} onClose={() => setShowReminderModal(false)} />}
+        {showPrizeModal && isAdmin && (
+          <PrizeManagerModal
+            onClose={() => setShowPrizeModal(false)}
+            onUpdated={(data) => setPrizeOverview(data)}
+          />
+        )}
       </Suspense>
 
       {/* ALERTA DE REPETIÇÃO DE FUNÇÃO (3+ ESCALAS SEGUIDAS NA MESMA FUNÇÃO) */}
@@ -1980,6 +1999,20 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                     className="tool-card-btn"
                     style={{ padding: "12px 10px" }}
                     onClick={() => {
+                      setShowPrizeModal(true);
+                      setShowToolsModal(false);
+                    }}
+                  >
+                    <div className="tool-card-icon" style={{ background: "#FEF3C7", color: "#D97706" }}>
+                      <Gift size={18} />
+                    </div>
+                    <span>Premiação & Balões</span>
+                  </button>
+
+                  <button
+                    className="tool-card-btn"
+                    style={{ padding: "12px 10px" }}
+                    onClick={() => {
                       setShowTextModal(true);
                       setShowToolsModal(false);
                     }}
@@ -2147,6 +2180,110 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
           <span>Sair</span>
         </button>
       </header>
+
+      {/* ALERTA DE PRÊMIO MENSAL SORTEADO (PENDENTE DE ENTREGA PELO ADMIN) */}
+      {isAdmin && !dismissedPrizeBanner && (() => {
+        const undelivered = prizeOverview?.claims?.find((c) => !c.delivered);
+        if (!undelivered) return null;
+        const monthLabel = [
+          "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+          "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+        ][undelivered.month] || "";
+
+        return (
+          <div
+            className="no-print"
+            style={{
+              margin: "0 0 12px 0",
+              padding: "12px 14px",
+              borderRadius: "12px",
+              background: "linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)",
+              border: "1.5px solid #D97706",
+              boxShadow: "0 4px 12px rgba(217, 119, 6, 0.18)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "10px",
+              flexWrap: "wrap",
+            }}
+          >
+            <div
+              onClick={() => setShowPrizeModal(true)}
+              style={{ flex: 1, minWidth: "200px", cursor: "pointer" }}
+            >
+              <div style={{ fontWeight: 800, fontSize: "0.84rem", color: "#92400E", display: "flex", alignItems: "center", gap: "6px" }}>
+                <Gift size={16} />
+                <span>
+                  🎈 Balão estourado ({monthLabel}/{undelivered.year}) — Prêmio pendente de entrega!
+                </span>
+              </div>
+              <div style={{ fontSize: "0.82rem", color: "#4A3222", fontWeight: 700, marginTop: "3px" }}>
+                <strong>{undelivered.winnerName}</strong> escolheu o Balão {undelivered.balloonIndex + 1} e ganhou:{" "}
+                <span style={{ color: "#B45309", fontWeight: 900 }}>{undelivered.prizeWon}</span>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await setPrizeDelivered(undelivered.ymKey, true);
+                    const fresh = await getAdminPrizeOverview();
+                    setPrizeOverview(fresh);
+                  } catch {
+                    alert("Erro ao marcar prêmio como entregue.");
+                  }
+                }}
+                style={{
+                  background: "#166534",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "6px 10px",
+                  fontSize: "0.74rem",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                Entregue ✅
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPrizeModal(true)}
+                style={{
+                  background: "#4A3222",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "6px 10px",
+                  fontSize: "0.74rem",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                Prêmios
+              </button>
+              <button
+                type="button"
+                onClick={() => setDismissedPrizeBanner(true)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#92400E",
+                  cursor: "pointer",
+                  padding: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+                title="Ocultar aviso"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ANIVERSARIANTE(S) DO DIA */}
       {isAdmin && !dismissedBirthdayBanner && todayBirthdayPeople.length > 0 && (() => {

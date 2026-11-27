@@ -10,6 +10,7 @@ import pushRoutes from "./push.routes";
 import liturgyRoutes from "./liturgy.routes";
 import adminRoutes from "./admin.routes";
 import quizRoutes from "./quiz.routes";
+import prizeRoutes from "./prize.routes";
 
 const router = Router();
 
@@ -25,6 +26,7 @@ router.use("/push", pushRoutes);
 router.use("/liturgy", liturgyRoutes);
 router.use("/admin", adminRoutes);
 router.use("/quizzes", quizRoutes);
+router.use("/prizes", prizeRoutes);
 
 export default router;
 

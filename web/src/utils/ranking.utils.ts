@@ -18,10 +18,12 @@ export interface ServaRanking {
     score: number;
     countSpecial: number; // Semana, Dom 10h (2pts) ou Semana Santa (3pts)
     countNormal: number; // Outras (1pt)
+    absences?: number;
 }
 
 export function calculateRanking(masses: Mass[], month: number, year: number): ServaRanking[] {
     const stats: Record<string, ServaRanking> = {};
+    const now = new Date();
 
     const filteredMasses = masses.filter((m) => {
         const d = new Date(m.date);
@@ -32,10 +34,12 @@ export function calculateRanking(masses: Mass[], month: number, year: number): S
     });
 
     filteredMasses.forEach((mass) => {
+        const isPast = new Date(mass.date) < now;
         // Usa a pontuação manual se existir, senão usa a lógica automática
         const points = (mass.points !== undefined && mass.points !== null) ? mass.points : getMassPoints(mass.date);
 
         mass.signups.forEach((signup) => {
+            if ((signup as any).status === "RESERVA") return;
             if (signup.present) {
                 if (!stats[signup.userId]) {
                     stats[signup.userId] = {
@@ -44,6 +48,7 @@ export function calculateRanking(masses: Mass[], month: number, year: number): S
                         score: 0,
                         countSpecial: 0,
                         countNormal: 0,
+                        absences: 0,
                     };
                 }
 
@@ -57,23 +62,42 @@ export function calculateRanking(masses: Mass[], month: number, year: number): S
                 } else {
                     stats[signup.userId].countNormal += 1;
                 }
+            } else if (isPast) {
+                if (!stats[signup.userId]) {
+                    stats[signup.userId] = {
+                        id: signup.userId,
+                        name: signup.user.name,
+                        score: 0,
+                        countSpecial: 0,
+                        countNormal: 0,
+                        absences: 0,
+                    };
+                }
+                stats[signup.userId].absences = (stats[signup.userId].absences || 0) + 1;
             }
         });
     });
 
-    return Object.values(stats).sort((a, b) => {
-        // 1º Critério: Pontuação Total
-        if (b.score !== a.score) return b.score - a.score;
+    return Object.values(stats)
+        .filter((s) => s.score > 0 && s.countSpecial + s.countNormal > 0)
+        .sort((a, b) => {
+            // 1º Critério: Pontuação Total
+            if (b.score !== a.score) return b.score - a.score;
 
-        // 2º Critério: Total de Presenças (Dedicada quem vai mais vezes)
-        const totalA = a.countSpecial + a.countNormal;
-        const totalB = b.countSpecial + b.countNormal;
-        if (totalB !== totalA) return totalB - totalA;
+            // 2º Critério: Mais Escalas Totais (Presenças)
+            const totalA = a.countSpecial + a.countNormal;
+            const totalB = b.countSpecial + b.countNormal;
+            if (totalB !== totalA) return totalB - totalA;
 
-        // 3º Critério: Número de Missas Especiais (2 ou 3 pontos)
-        if (b.countSpecial !== a.countSpecial) return b.countSpecial - a.countSpecial;
+            // 3º Critério: Mais Escalas de 2+ pontos
+            if (b.countSpecial !== a.countSpecial) return b.countSpecial - a.countSpecial;
 
-        // 4º Critério: Ordem Alfabética (Garante ordem consistente)
-        return a.name.localeCompare(b.name);
-    });
+            // 4º Critério: Menos Faltas no mês
+            const absA = a.absences || 0;
+            const absB = b.absences || 0;
+            if (absA !== absB) return absA - absB;
+
+            // 5º Critério: Ordem Alfabética
+            return a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" });
+        });
 }
