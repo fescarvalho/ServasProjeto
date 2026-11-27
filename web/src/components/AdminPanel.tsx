@@ -42,7 +42,7 @@ import { Mass, MassPhotoData, User, Signup } from "../types/types";
 import { formatRole, setGlobalUserGenders, getUserGender } from "../constants/roles";
 import { useMasses } from "../hooks/useMasses";
 import { useSignup } from "../hooks/useSignup";
-import { getRoleWeight, setGlobalShortNames } from "../utils/format.utils";
+import { getRoleWeight, setGlobalShortNames, formatServoName, registerUsersFromMasses } from "../utils/format.utils";
 import { getMassPoints } from "../utils/ranking.utils";
 import { toLocalDate, toLocalDateTime } from "../utils/date.utils";
 import { APP_CONFIG } from "../constants/config";
@@ -238,7 +238,7 @@ function MassForm({
                   >
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div style={{ fontSize: "0.84rem", fontWeight: 700, color: "#23170F" }}>
-                        {s.user?.name || "Desconhecido"}
+                        {formatServoName(s.user?.name, s.userId) || "Desconhecido"}
                       </div>
                       <div style={{ fontSize: "0.7rem", fontWeight: 700, color: s.status === "CONFIRMADO" ? "#2E7D32" : "#D97706" }}>
                         {s.status}
@@ -261,7 +261,7 @@ function MassForm({
                           const streak = getConsecutiveRoleStreak(s.userId, mass.id, mass.date, val, allMasses);
                           if (streak.count >= 3 && onRoleStreakWarning) {
                             onRoleStreakWarning({
-                              servaName: s.user?.name || "Serva",
+                              servaName: formatServoName(s.user?.name, s.userId) || "Servo(a)",
                               roleLabel: formatRole(val, s.user?.name, s.userId),
                               count: streak.count,
                               dates: streak.massDates,
@@ -463,13 +463,18 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
 
   // ESTADO PARA ADICIONAR SERVO
   const [selectedUserToAdd, setSelectedUserToAdd] = useState<Record<string, string[]>>({});
+  const [, setShortNamesRev] = useState(0);
+  registerUsersFromMasses(masses, allUsers);
 
   // Carrega lista de usuários e metadados para o Admin
   useEffect(() => {
     getUserMetadata()
       .then((meta) => {
         if (meta?.genders) setGlobalUserGenders(meta.genders);
-        if (meta?.shortNames) setGlobalShortNames(meta.shortNames, meta.shortNamesByFull);
+        if (meta?.shortNames) {
+          setGlobalShortNames(meta.shortNames, meta.shortNamesByFull);
+          setShortNamesRev((v) => v + 1);
+        }
         if (meta?.unavailabilities) setUnavailabilitiesMap(meta.unavailabilities);
         if (meta?.suspensions) setSuspensionsMap(meta.suspensions);
       })
@@ -956,7 +961,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         );
         if (streak.count >= 3) {
           setRoleStreakAlert({
-            servaName: targetSignup.user.name,
+            servaName: formatServoName(targetSignup.user.name, targetSignup.userId),
             roleLabel: formatRole(newRole, targetSignup.user.name, targetSignup.userId),
             count: streak.count,
             dates: streak.massDates,
@@ -1025,7 +1030,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         );
         if (streak.count >= 3) {
           setRoleStreakAlert({
-            servaName: repUser.name,
+            servaName: formatServoName(repUser.name, repUser.id),
             roleLabel: formatRole(inheritedRole, repUser.name, repUser.id),
             count: streak.count,
             dates: streak.massDates,
@@ -1063,7 +1068,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
               month: "2-digit",
             });
             setRoleStreakAlert({
-              servaName: uName,
+              servaName: formatServoName(uName, uid),
               roleLabel: formatRole(prevStreak.role, uName, uid),
               count: prevStreak.count + 1,
               dates: [...prevStreak.dates, targetDateShort],
@@ -1609,7 +1614,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                         }}
                       />
                       <div style={{ marginTop: "8px", fontSize: "0.78rem", color: "#5A4332", fontWeight: 600 }}>
-                        Enviada por <strong>{photoModalData.uploadedByName}</strong> em{" "}
+                        Enviada por <strong>{formatServoName(photoModalData.uploadedByName, photoModalData.uploadedById)}</strong> em{" "}
                         {new Date(photoModalData.uploadedAt).toLocaleString("pt-BR", {
                           timeZone: "America/Sao_Paulo",
                           day: "2-digit",
@@ -1852,7 +1857,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                         >
                           <div>
                             <div style={{ fontWeight: 700, fontSize: "0.86rem", color: "#23170F" }}>
-                              {s.user.name}
+                              {formatServoName(s.user.name, s.userId)}
                             </div>
                             <div style={{ fontSize: "0.72rem", color: "#6B7280", fontWeight: 600 }}>
                               {formatRole(s.role, s.user.name, s.userId)}
@@ -3192,7 +3197,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                                           return (
                                             <div key={signup.id} className="admin-signup-row" style={{ background: "#EFF6FF", borderColor: "#BFDBFE" }}>
                                               <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#1E40AF" }}>
-                                                Substituir {signup.user.name} por:
+                                                Substituir {formatServoName(signup.user.name, signup.userId)} por:
                                               </div>
                                               <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                                                 <select
@@ -3208,7 +3213,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                                                       return !(unavailabilitiesMap[u.id] || []).some((unav) => unav.date === massDateBr);
                                                     })
                                                     .map((u) => (
-                                                      <option key={u.id} value={u.id}>{u.name}</option>
+                                                      <option key={u.id} value={u.id}>{formatServoName(u.name, u.id)}</option>
                                                     ))}
                                                 </select>
                                                 <button
@@ -3284,7 +3289,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                                               )}
                                               <div style={{ minWidth: 0 }}>
                                                 <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#23170F", lineHeight: 1.2 }}>
-                                                  {signup.user.name}
+                                                  {formatServoName(signup.user.name, signup.userId)}
                                                 </div>
                                                 {(isReserva || (isSwap && substName) || hasRowStreakWarning) && (
                                                   <div style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: "2px", flexWrap: "wrap" }}>
@@ -3295,7 +3300,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                                                     )}
                                                     {isSwap && substName && (
                                                       <span style={{ fontSize: "0.68rem", color: "#6B7280", fontWeight: 600 }}>
-                                                        🔄 Subst. {substName}
+                                                        🔄 Subst. {formatServoName(substName)}
                                                       </span>
                                                     )}
                                                     {hasRowStreakWarning && rowStreak && (
@@ -3468,7 +3473,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
                                                     cursor: "pointer",
                                                   }}
                                                 >
-                                                  <span>{u.name}</span>
+                                                  <span>{formatServoName(u.name, u.id)}</span>
                                                   {isSelected && <Check size={15} />}
                                                 </button>
                                               );
