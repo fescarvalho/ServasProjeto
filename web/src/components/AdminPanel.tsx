@@ -2181,17 +2181,14 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
         </button>
       </header>
 
-      {/* ALERTA DE PRÊMIO MENSAL SORTEADO (PENDENTE DE ENTREGA PELO ADMIN) */}
+      {/* ALERTA DE PRÊMIO(S) SORTEADO(S) (PENDENTES DE ENTREGA PELO ADMIN) */}
       {isAdmin && !dismissedPrizeBanner && (() => {
-        const undelivered = prizeOverview?.claims?.find((c) => !c.delivered);
-        if (!undelivered) return null;
-        const monthLabel =
-          undelivered.ymKey === "TESTE-SIMULACAO"
-            ? "Simulação"
-            : `${[
-                "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-                "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
-              ][undelivered.month] || ""}/${undelivered.year}`;
+        const undeliveredList = (prizeOverview?.claims || []).filter((c) => !c.delivered);
+        if (undeliveredList.length === 0) return null;
+        const mNames = [
+          "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+          "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+        ];
 
         return (
           <div
@@ -2204,86 +2201,110 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
               border: "1.5px solid #D97706",
               boxShadow: "0 4px 12px rgba(217, 119, 6, 0.18)",
               display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: "10px",
-              flexWrap: "wrap",
+              flexDirection: "column",
+              gap: "8px",
             }}
           >
-            <div
-              onClick={() => setShowPrizeModal(true)}
-              style={{ flex: 1, minWidth: "200px", cursor: "pointer" }}
-            >
-              <div style={{ fontWeight: 800, fontSize: "0.84rem", color: "#92400E", display: "flex", alignItems: "center", gap: "6px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
+              <div
+                onClick={() => setShowPrizeModal(true)}
+                style={{ fontWeight: 800, fontSize: "0.84rem", color: "#92400E", display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}
+              >
                 <Gift size={16} />
                 <span>
-                  🎈 Balão estourado ({monthLabel}) — Prêmio pendente de entrega!
+                  🎈 {undeliveredList.length === 1 ? "Balão estourado — Prêmio pendente de entrega!" : `${undeliveredList.length} balões estourados — Prêmios pendentes de entrega!`}
                 </span>
               </div>
-              <div style={{ fontSize: "0.82rem", color: "#4A3222", fontWeight: 700, marginTop: "3px" }}>
-                <strong>{undelivered.winnerName}</strong> escolheu o Balão {undelivered.balloonIndex + 1} e ganhou:{" "}
-                <span style={{ color: "#B45309", fontWeight: 900 }}>{undelivered.prizeWon}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowPrizeModal(true)}
+                  style={{
+                    background: "#4A3222",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "5px 9px",
+                    fontSize: "0.72rem",
+                    fontWeight: 800,
+                    cursor: "pointer",
+                  }}
+                >
+                  Prêmios
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDismissedPrizeBanner(true)}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "#92400E",
+                    cursor: "pointer",
+                    padding: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                  title="Ocultar aviso"
+                >
+                  <X size={16} />
+                </button>
               </div>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    await setPrizeDelivered(undelivered.ymKey, true);
-                    const fresh = await getAdminPrizeOverview();
-                    setPrizeOverview(fresh);
-                  } catch {
-                    alert("Erro ao marcar prêmio como entregue.");
-                  }
-                }}
-                style={{
-                  background: "#166534",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "8px",
-                  padding: "6px 10px",
-                  fontSize: "0.74rem",
-                  fontWeight: 800,
-                  cursor: "pointer",
-                }}
-              >
-                Entregue ✅
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowPrizeModal(true)}
-                style={{
-                  background: "#4A3222",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "8px",
-                  padding: "6px 10px",
-                  fontSize: "0.74rem",
-                  fontWeight: 800,
-                  cursor: "pointer",
-                }}
-              >
-                Prêmios
-              </button>
-              <button
-                type="button"
-                onClick={() => setDismissedPrizeBanner(true)}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "#92400E",
-                  cursor: "pointer",
-                  padding: "4px",
-                  display: "flex",
-                  alignItems: "center",
-                }}
-                title="Ocultar aviso"
-              >
-                <X size={16} />
-              </button>
-            </div>
+            {undeliveredList.map((undelivered) => {
+              const monthLabel =
+                undelivered.ymKey === "TESTE-SIMULACAO"
+                  ? "Simulação"
+                  : undelivered.customLabel || `${mNames[undelivered.month] || ""}/${undelivered.year}`;
+
+              return (
+                <div
+                  key={undelivered.ymKey}
+                  style={{
+                    background: "rgba(255,255,255,0.72)",
+                    border: "1px solid #F59E0B",
+                    borderRadius: "9px",
+                    padding: "8px 10px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "8px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div style={{ fontSize: "0.8rem", color: "#4A3222", fontWeight: 700, flex: 1, minWidth: "180px" }}>
+                    <span style={{ color: "#92400E", fontWeight: 800 }}>[{monthLabel}]</span>{" "}
+                    <strong>{undelivered.winnerName}</strong> (Balão {undelivered.balloonIndex + 1}) →{" "}
+                    <span style={{ color: "#B45309", fontWeight: 900 }}>{undelivered.prizeWon}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await setPrizeDelivered(undelivered.ymKey, true);
+                        const fresh = await getAdminPrizeOverview();
+                        setPrizeOverview(fresh);
+                      } catch {
+                        alert("Erro ao marcar prêmio como entregue.");
+                      }
+                    }}
+                    style={{
+                      background: "#166534",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: "7px",
+                      padding: "5px 10px",
+                      fontSize: "0.73rem",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      flexShrink: 0,
+                    }}
+                  >
+                    Entregue ✅
+                  </button>
+                </div>
+              );
+            })}
           </div>
         );
       })()}

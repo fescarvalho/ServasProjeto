@@ -21,7 +21,7 @@ export async function popBalloon(req: Request, res: Response) {
         if (!req.userId) {
             return res.status(401).json({ error: "Não autenticado." });
         }
-        const { year, month, balloonIndex } = req.body || {};
+        const { year, month, balloonIndex, ymKey } = req.body || {};
         if (
             typeof year !== "number" ||
             typeof month !== "number" ||
@@ -33,7 +33,8 @@ export async function popBalloon(req: Request, res: Response) {
             String(req.userId),
             year,
             month,
-            balloonIndex
+            balloonIndex,
+            typeof ymKey === "string" ? ymKey : undefined
         );
         return success(res, claim);
     } catch (err: any) {
@@ -93,5 +94,35 @@ export async function clearTestBalloon(req: Request, res: Response) {
     } catch (err: any) {
         console.error("Clear test balloon error:", err);
         return error(res, err.message || "Erro ao limpar teste de balão");
+    }
+}
+
+export async function createManualGrant(req: Request, res: Response) {
+    try {
+        const { userId, year, month, customLabel } = req.body || {};
+        if (!userId || typeof year !== "number" || typeof month !== "number") {
+            return badRequest(res, "Informe o(a) servo(a) e o mês de referência.");
+        }
+        const grant = await prizeService.createManualBalloonGrant({
+            userId: String(userId),
+            year,
+            month,
+            customLabel: typeof customLabel === "string" ? customLabel : undefined,
+        });
+        return success(res, grant);
+    } catch (err: any) {
+        console.error("Create manual grant error:", err);
+        return badRequest(res, err.message || "Erro ao disparar balões para o(a) servo(a)");
+    }
+}
+
+export async function deleteManualGrant(req: Request, res: Response) {
+    try {
+        const { grantId } = req.params;
+        await prizeService.removeManualBalloonGrant(String(grantId));
+        return success(res, { ok: true });
+    } catch (err: any) {
+        console.error("Delete manual grant error:", err);
+        return badRequest(res, err.message || "Erro ao cancelar disparo pendente");
     }
 }

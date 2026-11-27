@@ -23,7 +23,8 @@ export const DEFAULT_BALLOON_PRIZES: string[] = [
 ];
 
 export interface PrizeClaimRecord {
-    ymKey: string; // "YYYY-MM" (mês 1..12) ou TEST_CLAIM_KEY
+    ymKey: string; // "YYYY-MM", "MANUAL-..." ou TEST_CLAIM_KEY
+    customLabel?: string | null;
     year: number;
     month: number; // 0..11 (padrão JS Date)
     winnerId: string;
@@ -40,9 +41,23 @@ export interface PrizeClaimRecord {
     skippedPrevWinnerName?: string | null;
 }
 
+export interface ManualBalloonGrant {
+    id: string;
+    userId: string;
+    userName: string;
+    label: string;
+    year: number;
+    month: number; // 0..11
+    score: number;
+    totalPresences: number;
+    specialPresences: number;
+    createdAt: string;
+}
+
 export interface SystemPrizeState {
     prizes: string[];
     claims: Record<string, PrizeClaimRecord>;
+    manualGrants?: ManualBalloonGrant[];
     testActive?: boolean;
     testRound?: number;
 }
@@ -123,6 +138,7 @@ export async function getSystemPrizeState(): Promise<SystemPrizeState> {
         return {
             prizes,
             claims: parsed?.claims && typeof parsed.claims === "object" ? parsed.claims : {},
+            manualGrants: Array.isArray(parsed?.manualGrants) ? parsed.manualGrants : [],
             testActive: Boolean(parsed?.testActive),
             testRound: typeof parsed?.testRound === "number" ? parsed.testRound : 1,
         };
@@ -439,13 +455,27 @@ export async function getMyPendingBalloonStatus(userId: string) {
         }
     }
 
+    // 1º Disparos manuais/retroativos pendentes para este servo(a) (ainda não estourados)
+    const manualGrants = state.manualGrants || [];
+    const pendingGrant = manualGrants.find((g) => g.userId === userId && !state.claims[g.id]);
+    if (pendingGrant) {
+        return {
+            eligible: true,
+            alreadyClaimed: false,
+            ymKey: pendingGrant.id,
+            customLabel: pendingGrant.label,
+            year: pendingGrant.year,
+            month: pendingGrant.month,
+            score: pendingGrant.score,
+            totalPresences: pendingGrant.totalPresences,
+            specialPresences: pendingGrant.specialPresences,
+        };
+    }
+
     const { year: curYear, month: curMonth } = getBrazilCurrentYearMonth();
     const closedMonths = listClosedMonthsSinceStart(curYear, curMonth);
 
-    if (closedMonths.length === 0) {
-        return { eligible: false };
-    }
-
+    // 2º Meses oficiais fechados (>= 2026-11) vencidos por este servo e ainda não estourados
     for (const m of closedMonths) {
         if (state.claims[m.ymKey]) continue;
         const resolution = await resolveMonthlyWinner(m.year, m.month, state);
@@ -461,6 +491,29 @@ export async function getMyPendingBalloonStatus(userId: string) {
                 specialPresences: resolution.winner.specialPresences,
             };
         }
+    }
+
+    // 3º Caso já tenha estourado um balão manual ainda pendente de entrega, exibe o lembrete do prêmio
+    const myUndeliveredManualClaim = manualGrants
+        .map((g) => state.claims[g.id])
+        .find((c) => c && c.winnerId === userId && !c.delivered);
+    if (myUndeliveredManualClaim) {
+        return {
+            eligible: true,
+            alreadyClaimed: true,
+            ymKey: myUndeliveredManualClaim.ymKey,
+            customLabel: myUndeliveredManualClaim.customLabel || undefined,
+            year: myUndeliveredManualClaim.year,
+            month: myUndeliveredManualClaim.month,
+            score: myUndeliveredManualClaim.score,
+            totalPresences: myUndeliveredManualClaim.totalPresences,
+            specialPresences: myUndeliveredManualClaim.specialPresences,
+            claim: myUndeliveredManualClaim,
+        };
+    }
+
+    if (closedMonths.length === 0) {
+        return { eligible: false };
     }
 
     const latest = closedMonths[0];
@@ -489,13 +542,57 @@ export async function popWinnerBalloon(
     userId: string,
     year: number,
     monthZeroBased: number,
-    balloonIndex: number
+    balloonIndex: number,
+    requestedYmKey?: string
 ): Promise<PrizeClaimRecord> {
     if (!Number.isInteger(balloonIndex) || balloonIndex < 0 || balloonIndex >= BALLOON_COUNT) {
         throw new Error(`Escolha um balão válido (1 a ${BALLOON_COUNT}).`);
     }
 
     const state = await getSystemPrizeState();
+
+    // 1. Verifica se é um disparo manual/retroativo destinado a este usuário
+    const manualGrants = state.manualGrants || [];
+    const matchingGrant = requestedYmKey
+        ? manualGrants.find((g) => g.id === requestedYmKey && g.userId === userId)
+        : manualGrants.find(
+              (g) =>
+                  g.userId === userId &&
+                  !state.claims[g.id] &&
+                  g.year === year &&
+                  g.month === monthZeroBased
+          );
+
+    if (matchingGrant) {
+        if (state.claims[matchingGrant.id]) {
+            return state.claims[matchingGrant.id];
+        }
+        const shuffledManual = getMonthlyBalloonOrder(
+            state.prizes,
+            `${matchingGrant.id}:${matchingGrant.userId}`
+        );
+        const manualClaim: PrizeClaimRecord = {
+            ymKey: matchingGrant.id,
+            customLabel: matchingGrant.label,
+            year: matchingGrant.year,
+            month: matchingGrant.month,
+            winnerId: userId,
+            winnerName: matchingGrant.userName,
+            score: matchingGrant.score,
+            totalPresences: matchingGrant.totalPresences,
+            specialPresences: matchingGrant.specialPresences,
+            balloonIndex,
+            prizeWon: shuffledManual[balloonIndex],
+            allBalloons: shuffledManual,
+            claimedAt: new Date().toISOString(),
+            delivered: false,
+            deliveredAt: null,
+            skippedPrevWinnerName: null,
+        };
+        state.claims[matchingGrant.id] = manualClaim;
+        await saveSystemPrizeState(state);
+        return manualClaim;
+    }
 
     // Suporte isolado para a conta Serva Teste quando o modo de teste está ativo
     if (state.testActive) {
@@ -634,6 +731,72 @@ export async function clearTestBalloon(): Promise<void> {
     await saveSystemPrizeState(state);
 }
 
+const PT_MONTH_NAMES = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+];
+
+/**
+ * Dispara balões manualmente para um(a) servo(a) específico(a) (ex: meses anteriores pendentes)
+ */
+export async function createManualBalloonGrant(data: {
+    userId: string;
+    year: number;
+    month: number; // 0..11
+    customLabel?: string;
+}): Promise<ManualBalloonGrant> {
+    const user = await prisma.user.findUnique({
+        where: { id: data.userId },
+        select: { id: true, name: true, role: true },
+    });
+    if (!user || user.role === "INATIVO") {
+        throw new Error("Servo(a) não encontrado(a) ou inativo(a).");
+    }
+
+    const state = await getSystemPrizeState();
+    state.manualGrants = state.manualGrants || [];
+
+    const label =
+        (data.customLabel || "").trim() ||
+        `${PT_MONTH_NAMES[data.month] || "Mês"}/${data.year}`;
+
+    // Evita duplicar o mesmo disparo pendente para a mesma pessoa e mesmo rótulo
+    const existingPending = state.manualGrants.find(
+        (g) => g.userId === user.id && g.label === label && !state.claims[g.id]
+    );
+    if (existingPending) {
+        return existingPending;
+    }
+
+    // Busca pontuação real daquele mês caso exista no histórico
+    const monthRanking = await computeRawMonthRanking(data.year, data.month);
+    const statsInMonth = monthRanking.find((r) => r.userId === user.id);
+
+    const grant: ManualBalloonGrant = {
+        id: `MANUAL-${data.year}-${String(data.month + 1).padStart(2, "0")}-${user.id.slice(0, 8)}-${Date.now().toString(36)}`,
+        userId: user.id,
+        userName: user.name,
+        label,
+        year: data.year,
+        month: data.month,
+        score: statsInMonth?.score || 0,
+        totalPresences: statsInMonth?.totalPresences || 0,
+        specialPresences: statsInMonth?.specialPresences || 0,
+        createdAt: new Date().toISOString(),
+    };
+
+    state.manualGrants.push(grant);
+    await saveSystemPrizeState(state);
+    return grant;
+}
+
+export async function removeManualBalloonGrant(grantId: string): Promise<void> {
+    const state = await getSystemPrizeState();
+    state.manualGrants = (state.manualGrants || []).filter((g) => g.id !== grantId);
+    // Se ainda não foi entregue e o admin quis cancelar um disparo pendente, mantém claims já estourados intactos
+    await saveSystemPrizeState(state);
+}
+
 /**
  * Retorna visão completa de prêmios, último mês fechado e histórico de ganhadores para o Admin
  */
@@ -644,13 +807,17 @@ export async function getAdminPrizeOverview() {
     const lastClosedKey = formatYmKey(lastClosed.year, lastClosed.month);
     const notStartedYet = lastClosedKey < PRIZE_START_YM;
 
-    const claimsList = Object.values(state.claims).sort((a, b) => b.ymKey.localeCompare(a.ymKey));
+    const claimsList = Object.values(state.claims).sort((a, b) =>
+        (b.claimedAt || b.ymKey).localeCompare(a.claimedAt || a.ymKey)
+    );
+    const pendingManualGrants = (state.manualGrants || []).filter((g) => !state.claims[g.id]);
 
     if (notStartedYet) {
         const currentPreview = await resolveMonthlyWinner(curYear, curMonth, state);
         return {
             prizes: state.prizes,
             claims: claimsList,
+            pendingManualGrants,
             testActive: Boolean(state.testActive),
             prizeStartYm: PRIZE_START_YM,
             notStartedYet: true,
@@ -679,6 +846,7 @@ export async function getAdminPrizeOverview() {
     return {
         prizes: state.prizes,
         claims: claimsList,
+        pendingManualGrants,
         testActive: Boolean(state.testActive),
         prizeStartYm: PRIZE_START_YM,
         notStartedYet: false,

@@ -2,6 +2,7 @@ import { apiClient } from "./client";
 
 export interface PrizeClaimRecord {
     ymKey: string;
+    customLabel?: string | null;
     year: number;
     month: number;
     winnerId: string;
@@ -18,10 +19,24 @@ export interface PrizeClaimRecord {
     skippedPrevWinnerName?: string | null;
 }
 
+export interface ManualBalloonGrant {
+    id: string;
+    userId: string;
+    userName: string;
+    label: string;
+    year: number;
+    month: number;
+    score: number;
+    totalPresences: number;
+    specialPresences: number;
+    createdAt: string;
+}
+
 export interface MyPendingPrizeResponse {
     eligible: boolean;
     alreadyClaimed?: boolean;
     ymKey?: string;
+    customLabel?: string;
     year?: number;
     month?: number;
     score?: number;
@@ -33,6 +48,7 @@ export interface MyPendingPrizeResponse {
 export interface AdminPrizeOverview {
     prizes: string[];
     claims: PrizeClaimRecord[];
+    pendingManualGrants?: ManualBalloonGrant[];
     testActive?: boolean;
     prizeStartYm?: string;
     notStartedYet?: boolean;
@@ -65,12 +81,14 @@ export async function getMyPendingPrize(): Promise<MyPendingPrizeResponse> {
 export async function popWinnerBalloon(
     year: number,
     month: number,
-    balloonIndex: number
+    balloonIndex: number,
+    ymKey?: string
 ): Promise<PrizeClaimRecord> {
     const res = await apiClient.post<PrizeClaimRecord>("/prizes/pop", {
         year,
         month,
         balloonIndex,
+        ymKey,
     });
     return res.data;
 }
@@ -98,6 +116,20 @@ export async function setPrizeDelivered(
         { delivered }
     );
     return res.data;
+}
+
+export async function createManualBalloonGrant(data: {
+    userId: string;
+    year: number;
+    month: number;
+    customLabel?: string;
+}): Promise<ManualBalloonGrant> {
+    const res = await apiClient.post<ManualBalloonGrant>("/prizes/admin/grants", data);
+    return res.data;
+}
+
+export async function deleteManualBalloonGrant(grantId: string): Promise<void> {
+    await apiClient.delete(`/prizes/admin/grants/${encodeURIComponent(grantId)}`);
 }
 
 export async function startOrResetTestBalloon(): Promise<void> {

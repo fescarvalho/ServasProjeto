@@ -15,5 +15,7 @@ router.put("/admin/config", authMiddleware, adminMiddleware, prizeController.upd
 router.patch("/admin/claims/:ymKey/delivered", authMiddleware, adminMiddleware, prizeController.toggleClaimDelivered);
 router.post("/admin/test/start", authMiddleware, adminMiddleware, prizeController.startTestBalloon);
 router.delete("/admin/test", authMiddleware, adminMiddleware, prizeController.clearTestBalloon);
+router.post("/admin/grants", authMiddleware, adminMiddleware, prizeController.createManualGrant);
+router.delete("/admin/grants/:grantId", authMiddleware, adminMiddleware, prizeController.deleteManualGrant);
 
 export default router;

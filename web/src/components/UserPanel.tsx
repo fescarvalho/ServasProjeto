@@ -941,6 +941,8 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
             totalPresences={pendingPrize.totalPresences}
             month={pendingPrize.month}
             year={pendingPrize.year}
+            ymKey={pendingPrize.ymKey}
+            customLabel={pendingPrize.customLabel}
             userName={formatServoName(user.name, user.id)}
             initialClaim={pendingPrize.claim || null}
             onClaimed={handleBalloonClaimed}

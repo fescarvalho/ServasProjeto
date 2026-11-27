@@ -9,6 +9,8 @@ interface WinnerModalProps {
     totalPresences?: number;
     month: number;
     year: number;
+    ymKey?: string;
+    customLabel?: string;
     userName: string;
     initialClaim?: PrizeClaimRecord | null;
     onClaimed?: (claim: PrizeClaimRecord) => void;
@@ -88,12 +90,15 @@ export function WinnerModal({
     totalPresences,
     month,
     year,
+    ymKey,
+    customLabel,
     userName,
     initialClaim = null,
     onClaimed,
     onClose,
 }: WinnerModalProps) {
     const monthName = MONTHS[month] || "";
+    const headerBadgeLabel = customLabel || `${monthName}/${year}`;
     const [claim, setClaim] = useState<PrizeClaimRecord | null>(initialClaim);
     const [poppingIdx, setPoppingIdx] = useState<number | null>(null);
     const [burstingIdx, setBurstingIdx] = useState<number | null>(null);
@@ -104,7 +109,7 @@ export function WinnerModal({
         setErrorMsg("");
         setPoppingIdx(idx);
         try {
-            const result = await popWinnerBalloon(year, month, idx);
+            const result = await popWinnerBalloon(year, month, idx, ymKey);
             setBurstingIdx(idx);
             setTimeout(() => {
                 setClaim(result);
@@ -203,7 +208,7 @@ export function WinnerModal({
                         marginBottom: "6px",
                     }}
                 >
-                    🏆 Destaque de {monthName}/{year}
+                    🏆 Destaque de {headerBadgeLabel}
                 </div>
 
                 <h2 style={{ color: "#4A3222", margin: "0 0 4px 0", fontSize: "1.4rem", fontWeight: 900 }}>
@@ -211,14 +216,22 @@ export function WinnerModal({
                 </h2>
 
                 <p style={{ color: "#5C4028", fontSize: "0.86rem", lineHeight: 1.4, margin: "0 0 10px 0" }}>
-                    Você conquistou a premiação mensal com{" "}
-                    <strong>{score} pontos</strong>
-                    {totalPresences ? (
+                    {score > 0 ? (
                         <>
-                            {" "}em <strong>{totalPresences} {totalPresences === 1 ? "escala" : "escalas"}</strong>
+                            Você conquistou a premiação de <strong>{headerBadgeLabel}</strong> com{" "}
+                            <strong>{score} pontos</strong>
+                            {totalPresences ? (
+                                <>
+                                    {" "}em <strong>{totalPresences} {totalPresences === 1 ? "escala" : "escalas"}</strong>
+                                </>
+                            ) : null}
+                            !
                         </>
-                    ) : null}
-                    !
+                    ) : (
+                        <>
+                            Você conquistou a premiação especial referente a <strong>{headerBadgeLabel}</strong>!
+                        </>
+                    )}
                 </p>
 
                 {!claim ? (
