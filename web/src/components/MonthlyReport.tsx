@@ -1,5 +1,3 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import { ClipboardList, Download } from "lucide-react";
 import { Mass } from "../types/types";
 import { formatRole } from "../constants/roles";
@@ -10,8 +8,12 @@ interface MonthlyReportProps {
 }
 
 export function MonthlyReport({ masses }: MonthlyReportProps) {
-  const generateMonthlyPDF = () => {
+  const generateMonthlyPDF = async () => {
     registerUsersFromMasses(masses);
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ]);
     const doc = new jsPDF();
     const now = new Date();
 

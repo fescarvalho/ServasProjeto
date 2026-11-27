@@ -12,12 +12,12 @@ export const BALLOON_COUNT = 10;
 export const DEFAULT_BALLOON_PRIZES: string[] = [
     "🍪 Kit de biscoitos artesanais",
     "🍣 Vale lanche / vale japonês",
-    "💸 Pix de R$ 30,00",
+    "⛪ Voucher de R$ 40,00 na loja do Santuário",
     "🍫 Chocolates",
     "📖 Livro católico",
     "🍪 Voucher de R$ 40,00 na Camilla Cookies",
     "☕ Caneca",
-    "💸 Pix de R$ 40,00",
+    "🍰 Voucher de R$ 30,00 na Paula Confeitaria",
     "📿 Terço",
     "🎁 Presente surpresa",
 ];

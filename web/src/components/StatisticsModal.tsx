@@ -12,8 +12,6 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import { getMassPoints } from "../utils/ranking.utils";
 import { formatRole } from "../constants/roles";
 import { formatServoName, registerUsersFromMasses } from "../utils/format.utils";
@@ -228,7 +226,11 @@ export function StatisticsModal({ masses, onClose }: StatisticsModalProps) {
       ? `Acumulado Anual — ${selectedYear}`
       : `${MONTHS[selectedMonth]} de ${selectedYear}`;
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import("jspdf"),
+      import("jspdf-autotable"),
+    ]);
     const doc = new jsPDF();
     doc.setFontSize(16);
     doc.setTextColor(74, 50, 34);

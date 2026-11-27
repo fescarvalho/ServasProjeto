@@ -5,6 +5,17 @@ const PHOTO_DATA_PREFIX = "__MASS_PHOTO_DATA__:";
 const PHOTO_META_PREFIX = "__MASS_PHOTO_META__:";
 const PHOTO_RETENTION_DAYS = 7;
 const PHOTO_RETENTION_MS = PHOTO_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+const PHOTO_CLEANUP_INTERVAL_MS = 30 * 60 * 1000; // Limpa fotos expiradas no máximo a cada 30 min
+const PHOTO_META_CACHE_TTL_MS = 15 * 1000; // Cache curto do índice de fotos para acelerar GET /masses
+
+let lastPhotoCleanupAt = 0;
+let cachedPhotoMetaMap: Record<string, MassPhotoMeta> | null = null;
+let cachedPhotoMetaExpiresAt = 0;
+
+function invalidatePhotoMetaCache(): void {
+    cachedPhotoMetaMap = null;
+    cachedPhotoMetaExpiresAt = 0;
+}
 
 export interface MassPhotoMeta {
     uploadedById: string;
@@ -85,20 +96,30 @@ async function saveMassPhotoMetaIndex(map: Record<string, MassPhotoMeta>, existi
 
 /**
  * Remove automaticamente fotos com mais de 7 dias e retorna o índice atualizado
+ * (Com throttle de limpeza pesada no banco para deixar GET /masses muito mais rápido)
  */
-export async function cleanupExpiredMassPhotos(): Promise<Record<string, MassPhotoMeta>> {
-    const cutoffDate = new Date(Date.now() - PHOTO_RETENTION_MS);
+export async function cleanupExpiredMassPhotos(force = false): Promise<Record<string, MassPhotoMeta>> {
+    const nowMs = Date.now();
 
-    try {
-        await prisma.notice.deleteMany({
-            where: {
-                active: false,
-                text: { startsWith: PHOTO_DATA_PREFIX },
-                createdAt: { lt: cutoffDate },
-            },
-        });
-    } catch (err) {
-        console.error("[MassPhotoCleanup] Erro ao limpar fotos expiradas:", err);
+    if (!force && cachedPhotoMetaMap && nowMs < cachedPhotoMetaExpiresAt) {
+        return cachedPhotoMetaMap;
+    }
+
+    const cutoffDate = new Date(nowMs - PHOTO_RETENTION_MS);
+
+    if (force || nowMs - lastPhotoCleanupAt >= PHOTO_CLEANUP_INTERVAL_MS) {
+        lastPhotoCleanupAt = nowMs;
+        try {
+            await prisma.notice.deleteMany({
+                where: {
+                    active: false,
+                    text: { startsWith: PHOTO_DATA_PREFIX },
+                    createdAt: { lt: cutoffDate },
+                },
+            });
+        } catch (err) {
+            console.error("[MassPhotoCleanup] Erro ao limpar fotos expiradas:", err);
+        }
     }
 
     const { recordId, map } = await getMassPhotoMetaIndex();
@@ -121,6 +142,8 @@ export async function cleanupExpiredMassPhotos(): Promise<Record<string, MassPho
         }
     }
 
+    cachedPhotoMetaMap = map;
+    cachedPhotoMetaExpiresAt = Date.now() + PHOTO_META_CACHE_TTL_MS;
     return map;
 }
 
@@ -364,9 +387,12 @@ export async function saveMassPhoto(
         },
     });
 
-    const currentMap = await cleanupExpiredMassPhotos();
+    invalidatePhotoMetaCache();
+    const currentMap = await cleanupExpiredMassPhotos(true);
     currentMap[massId] = metaEntry;
     await saveMassPhotoMetaIndex(currentMap);
+    cachedPhotoMetaMap = currentMap;
+    cachedPhotoMetaExpiresAt = Date.now() + PHOTO_META_CACHE_TTL_MS;
 
     return metaEntry;
 }
@@ -375,6 +401,7 @@ export async function saveMassPhoto(
  * Delete team photo of a mass
  */
 export async function deleteMassPhoto(massId: string): Promise<void> {
+    invalidatePhotoMetaCache();
     const prefix = `${PHOTO_DATA_PREFIX}${massId}:`;
     await prisma.notice.deleteMany({
         where: {
@@ -388,6 +415,8 @@ export async function deleteMassPhoto(massId: string): Promise<void> {
         delete map[massId];
         await saveMassPhotoMetaIndex(map, recordId);
     }
+    cachedPhotoMetaMap = map;
+    cachedPhotoMetaExpiresAt = Date.now() + PHOTO_META_CACHE_TTL_MS;
 }
 
 /**

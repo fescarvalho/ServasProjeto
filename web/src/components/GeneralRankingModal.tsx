@@ -2,7 +2,6 @@ import { useRef, useState } from "react";
 import { X, Trophy, Shield, Award, Crown, Share2 } from "lucide-react";
 import { Mass } from "../types/types";
 import { formatServoName, registerUsersFromMasses } from "../utils/format.utils";
-import html2canvas from "html2canvas";
 
 interface GeneralRankingModalProps {
   masses: Mass[];
@@ -44,6 +43,7 @@ export function GeneralRankingModal({ masses, onClose }: GeneralRankingModalProp
     // Pequeno timeout para garantir que o estado de "isSharing" (se usado para esconder algo) seja refletido
     setTimeout(async () => {
       try {
+        const { default: html2canvas } = await import("html2canvas");
         const canvas = await html2canvas(rankingRef.current!, {
           backgroundColor: "#ffffff",
           scale: 2,

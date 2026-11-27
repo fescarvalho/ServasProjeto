@@ -181,14 +181,24 @@ export function setGlobalShortNames(
     }
 }
 
+let lastRegisteredMassesRef: Mass[] | null = null;
+let lastRegisteredExtrasLen = -1;
+
 /**
  * Fallback local usando os inscritos das missas caso o cache de /users/metadata ainda não tenha carregado
+ * (Memoizado por referência de array para custo zero em re-renderizações)
  */
 export function registerUsersFromMasses(
     masses: Mass[],
     extraUsers?: { id: string; name: string }[]
 ): void {
     if (hasAuthoritativeServerMap) return;
+    const extrasLen = extraUsers ? extraUsers.length : 0;
+    if (masses === lastRegisteredMassesRef && extrasLen === lastRegisteredExtrasLen) {
+        return;
+    }
+    lastRegisteredMassesRef = masses;
+    lastRegisteredExtrasLen = extrasLen;
     const seen = new Map<string, { id: string; name: string }>();
     for (const m of masses || []) {
         for (const s of m.signups || []) {

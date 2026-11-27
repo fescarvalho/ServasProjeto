@@ -5,7 +5,6 @@ import { theme } from "../theme/theme";
 import { calculateRanking, getMassPoints, ServaRanking } from "../utils/ranking.utils";
 import { formatRole, getUserGender } from "../constants/roles";
 import { formatServoName, registerUsersFromMasses } from "../utils/format.utils";
-import html2canvas from "html2canvas";
 
 interface RankingModalProps {
   masses: Mass[];
@@ -78,6 +77,7 @@ export function RankingModal({ masses, onClose, currentUserId, currentUserName }
     // Small delay to let the DOM reflow before capture
     setTimeout(async () => {
       try {
+        const { default: html2canvas } = await import("html2canvas");
         const canvas = await html2canvas(rankingRef.current!, {
           backgroundColor: "#ffffff",
           scale: 2,

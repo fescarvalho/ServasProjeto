@@ -40,7 +40,6 @@ import {
 } from "lucide-react";
 import { Mass, MassPhotoData, User, Signup } from "../types/types";
 import { formatRole, setGlobalUserGenders, getUserGender } from "../constants/roles";
-import { useMasses } from "../hooks/useMasses";
 import { useSignup } from "../hooks/useSignup";
 import { getRoleWeight, setGlobalShortNames, formatServoName, registerUsersFromMasses } from "../utils/format.utils";
 import { getMassPoints } from "../utils/ranking.utils";
@@ -48,6 +47,12 @@ import { toLocalDate, toLocalDateTime } from "../utils/date.utils";
 import { APP_CONFIG } from "../constants/config";
 import { getUsersList, getNotices } from "../services/api/notice.service";
 import {
+  createMass,
+  deleteMass,
+  togglePublish,
+  toggleOpen,
+  patchMass,
+  uploadScheduleImage,
   getMassPhoto,
   uploadMassPhoto,
   deleteMassPhoto,
@@ -350,8 +355,6 @@ interface AdminPanelProps {
 
 export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps) {
   const isAdmin = user.role === "ADMIN";
-
-  const { createMass, deleteMass, togglePublish, toggleOpen, patchMass, uploadScheduleImage } = useMasses();
 
   // AI States
   const [isAiLoading, setIsAiLoading] = useState(false);

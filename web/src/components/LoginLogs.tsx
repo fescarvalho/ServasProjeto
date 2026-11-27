@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { History } from "lucide-react";
 import { getLoginLogs, LoginLog } from "../services/api/admin.service";
+import { formatServoName } from "../utils/format.utils";
 
 export function LoginLogs() {
     const [logs, setLogs] = useState<LoginLog[]>([]);
@@ -133,7 +134,7 @@ export function LoginLogs() {
                                             fontWeight: 500,
                                         }}
                                     >
-                                        {log.user.name}
+                                        {formatServoName(log.user.name, log.userId)}
                                     </td>
                                     <td
                                         style={{

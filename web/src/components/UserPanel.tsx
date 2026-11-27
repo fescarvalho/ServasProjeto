@@ -875,11 +875,13 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
     return massD < now;
   };
 
-  const confirmedScore = masses.reduce((acc, mass) => {
-    const mySignup = mass.signups.find((s) => s.userId === user.id);
-    if (mySignup && mySignup.present && (mySignup as any).status !== "RESERVA") return acc + 1;
-    return acc;
-  }, 0);
+  const confirmedScore = useMemo(() => {
+    return masses.reduce((acc, mass) => {
+      const mySignup = mass.signups.find((s) => s.userId === user.id);
+      if (mySignup && mySignup.present && (mySignup as any).status !== "RESERVA") return acc + 1;
+      return acc;
+    }, 0);
+  }, [masses, user.id]);
 
   const currentMonthScore = useMemo(() => {
     const now = new Date();
@@ -888,8 +890,11 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
   }, [masses, user.id]);
 
   const rankTitle = useMemo(() => {
-    if (confirmedScore >= 25) return "Guardiã(o) do Altar";
-    if (confirmedScore >= 10) return "Servo(a) Fiel";
+    if (confirmedScore >= 100) return "Lenda de Santa Terezinha";
+    if (confirmedScore >= 50) return "Guardiã(o) do Altar";
+    if (confirmedScore >= 30) return "Coluna do Santuário";
+    if (confirmedScore >= 15) return "Servo(a) Fiel";
+    if (confirmedScore >= 5) return "Servo(a) Dedicado(a)";
     return "Iniciante do Altar";
   }, [confirmedScore]);
 
@@ -925,7 +930,12 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
     >
       <Suspense fallback={null}>
         {showBadges && (
-          <BadgesModal count={confirmedScore} onClose={() => setShowBadges(false)} />
+          <BadgesModal
+            masses={masses}
+            userId={user.id}
+            userName={user.name}
+            onClose={() => setShowBadges(false)}
+          />
         )}
         {showRanking && (
           <RankingModal

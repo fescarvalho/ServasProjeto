@@ -83,10 +83,26 @@ export function buildShortNamesData(users: { id: string; name: string }[]): {
     return { byId, byFullName };
 }
 
+const META_CACHE_TTL_MS = 15 * 1000;
+let cachedUserMeta: SystemUserMeta | null = null;
+let cachedUserMetaExpiresAt = 0;
+let cachedShortNamesData: { byId: Record<string, string>; byFullName: Record<string, string> } | null = null;
+let cachedShortNamesExpiresAt = 0;
+
+function invalidateUserCaches(): void {
+    cachedUserMeta = null;
+    cachedUserMetaExpiresAt = 0;
+    cachedShortNamesData = null;
+    cachedShortNamesExpiresAt = 0;
+}
+
 export async function getActiveShortNamesData(): Promise<{
     byId: Record<string, string>;
     byFullName: Record<string, string>;
 }> {
+    if (cachedShortNamesData && Date.now() < cachedShortNamesExpiresAt) {
+        return cachedShortNamesData;
+    }
     const activeUsers = await prisma.user.findMany({
         where: {
             role: { notIn: ["INATIVO", "ADMIN"] },
@@ -94,7 +110,10 @@ export async function getActiveShortNamesData(): Promise<{
         },
         select: { id: true, name: true },
     });
-    return buildShortNamesData(activeUsers);
+    const computed = buildShortNamesData(activeUsers);
+    cachedShortNamesData = computed;
+    cachedShortNamesExpiresAt = Date.now() + META_CACHE_TTL_MS;
+    return computed;
 }
 
 export interface UnavailabilityItem {
@@ -157,6 +176,9 @@ export function isExemptFromAutoInactivation(email?: string | null, name?: strin
  * Lê os metadados persistidos (gênero, indisponibilidades e data de reativação)
  */
 export async function getSystemUserMeta(): Promise<SystemUserMeta> {
+    if (cachedUserMeta && Date.now() < cachedUserMetaExpiresAt) {
+        return cachedUserMeta;
+    }
     try {
         const record = await prisma.notice.findFirst({
             where: {
@@ -172,12 +194,15 @@ export async function getSystemUserMeta(): Promise<SystemUserMeta> {
 
         const jsonStr = record.text.slice(META_PREFIX.length);
         const parsed = JSON.parse(jsonStr);
-        return {
+        const result: SystemUserMeta = {
             genders: parsed.genders || {},
             unavailabilities: parsed.unavailabilities || {},
             reactivatedAt: parsed.reactivatedAt || {},
             suspensions: parsed.suspensions || {},
         };
+        cachedUserMeta = result;
+        cachedUserMetaExpiresAt = Date.now() + META_CACHE_TTL_MS;
+        return result;
     } catch (err) {
         console.error("[UserMeta] Erro ao ler metadados:", err);
         return { genders: {}, unavailabilities: {}, reactivatedAt: {}, suspensions: {} };
@@ -185,6 +210,7 @@ export async function getSystemUserMeta(): Promise<SystemUserMeta> {
 }
 
 async function saveSystemUserMeta(meta: SystemUserMeta): Promise<void> {
+    invalidateUserCaches();
     const payload = META_PREFIX + JSON.stringify(meta);
     const existing = await prisma.notice.findFirst({
         where: {
@@ -470,6 +496,8 @@ export async function updateUser(
     }
     if (metaChanged) {
         await saveSystemUserMeta(meta);
+    } else {
+        invalidateUserCaches();
     }
 
     return {
