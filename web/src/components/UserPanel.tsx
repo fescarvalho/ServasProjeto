@@ -632,34 +632,46 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
   }, []);
 
   // --- Lógica da Premiação Mensal (3 Balões) ---
-  // Verifica no servidor se o(a) servo(a) venceu a premiação do último mês fechado (com regra de não repetir mês seguido)
+  // Continua abrindo os 3 balões em TODOS os logins/acessos até a vencedora estourar um balão!
   useEffect(() => {
     if (!user?.id) return;
     let cancelled = false;
 
-    getMyPendingPrize()
-      .then((res) => {
-        if (cancelled) return;
-        if (!res?.eligible) {
-          setPendingPrize(null);
-          return;
-        }
-        setPendingPrize(res);
-
-        // Se ainda não estourou o balão, abre o modal automaticamente!
-        if (!res.alreadyClaimed) {
-          setShowWinnerModal(true);
-        } else if (res.claim) {
-          const seenKey = `winner_claim_seen_${res.claim.ymKey}_${user.id}`;
-          if (!localStorage.getItem(seenKey)) {
-            setShowWinnerModal(true);
+    const checkPendingBalloon = () => {
+      getMyPendingPrize()
+        .then((res) => {
+          if (cancelled) return;
+          if (!res?.eligible) {
+            setPendingPrize(null);
+            return;
           }
-        }
-      })
-      .catch(() => {});
+          setPendingPrize(res);
+
+          // Enquanto NÃO tiver estourado o balão, SEMPRE abre o modal (mesmo após vários logins ou reabrir o app)
+          if (!res.alreadyClaimed) {
+            setShowWinnerModal(true);
+          } else if (res.claim) {
+            const seenKey = `winner_claim_seen_${res.claim.ymKey}_${user.id}`;
+            if (!localStorage.getItem(seenKey)) {
+              setShowWinnerModal(true);
+            }
+          }
+        })
+        .catch(() => {});
+    };
+
+    checkPendingBalloon();
+
+    const handleVisPrize = () => {
+      if (document.visibilityState === "visible" && navigator.onLine) {
+        checkPendingBalloon();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisPrize);
 
     return () => {
       cancelled = true;
+      document.removeEventListener("visibilitychange", handleVisPrize);
     };
   }, [user?.id]);
 

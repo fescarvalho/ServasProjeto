@@ -236,7 +236,9 @@ export function PrizeManagerModal({ onClose, onUpdated }: PrizeManagerModalProps
                                     >
                                         <Trophy size={14} />
                                         <span>
-                                            Último mês encerrado: {MONTHS[lastMonth.month]}/{lastMonth.year}
+                                            {lastMonth.isInProgressPreview
+                                                ? `Disputa em andamento: ${MONTHS[lastMonth.month]}/${lastMonth.year}`
+                                                : `Último mês encerrado: ${MONTHS[lastMonth.month]}/${lastMonth.year}`}
                                         </span>
                                     </div>
 
@@ -247,7 +249,9 @@ export function PrizeManagerModal({ onClose, onUpdated }: PrizeManagerModalProps
                                     ) : (
                                         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                                             <div style={{ fontSize: "0.92rem", fontWeight: 800, color: "#4A3222" }}>
-                                                🏅 Vencedor(a) Elegível: {lastMonth.winner.name}
+                                                {lastMonth.isInProgressPreview
+                                                    ? `🏅 Líder parcial até agora: ${lastMonth.winner.name}`
+                                                    : `🏅 Vencedor(a) Elegível: ${lastMonth.winner.name}`}
                                             </div>
                                             <div style={{ fontSize: "0.78rem", color: "#5C4028" }}>
                                                 {lastMonth.winner.score} pts • {lastMonth.winner.totalPresences} escalas totais •{" "}
@@ -276,7 +280,28 @@ export function PrizeManagerModal({ onClose, onUpdated }: PrizeManagerModalProps
                                                 </div>
                                             )}
 
-                                            {lastMonth.claim ? (
+                                            {lastMonth.isInProgressPreview ? (
+                                                <div
+                                                    style={{
+                                                        marginTop: "4px",
+                                                        padding: "8px 10px",
+                                                        borderRadius: "8px",
+                                                        background: "#FEF3C7",
+                                                        border: "1px solid #FDE68A",
+                                                        fontSize: "0.78rem",
+                                                        color: "#92400E",
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        gap: "6px",
+                                                        fontWeight: 600,
+                                                    }}
+                                                >
+                                                    <Clock size={14} style={{ flexShrink: 0 }} />
+                                                    <span>
+                                                        Os 3 balões serão liberados automaticamente em <strong>01/12/2026</strong>, após o fechamento de Novembro/2026.
+                                                    </span>
+                                                </div>
+                                            ) : lastMonth.claim ? (
                                                 <div
                                                     style={{
                                                         marginTop: "4px",

@@ -33,10 +33,13 @@ export interface MyPendingPrizeResponse {
 export interface AdminPrizeOverview {
     prizes: [string, string, string];
     claims: PrizeClaimRecord[];
+    prizeStartYm?: string;
+    notStartedYet?: boolean;
     lastClosedMonth: {
         ymKey: string;
         year: number;
         month: number;
+        isInProgressPreview?: boolean;
         winner: {
             userId: string;
             name: string;

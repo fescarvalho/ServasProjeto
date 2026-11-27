@@ -3,6 +3,9 @@ import { prisma } from "../config/database";
 
 const PRIZE_META_PREFIX = "__SYS_PRIZE_STATE__:";
 
+// A premiação dos balões passa a valer somente a partir do fechamento de Novembro/2026 (liberado em 01/12/2026)
+export const PRIZE_START_YM = "2026-11";
+
 export const DEFAULT_BALLOON_PRIZES: [string, string, string] = [
     "🍫 Kit Chocolate Especial",
     "🧋 Vale Açaí / Lanche",
@@ -240,16 +243,18 @@ export async function resolveMonthlyWinner(
     const state = existingState || (await getSystemPrizeState());
     const ymKey = formatYmKey(year, monthZeroBased);
 
-    // Determinar quem venceu o mês imediatamente anterior
+    // Determinar quem venceu o mês imediatamente anterior (somente a partir do início oficial PRIZE_START_YM)
     const prev = getPreviousMonth(year, monthZeroBased);
     const prevKey = formatYmKey(prev.year, prev.month);
     let prevWinnerId: string | null = null;
 
-    if (state.claims[prevKey]) {
-        prevWinnerId = state.claims[prevKey].winnerId;
-    } else if (depth > 0) {
-        const prevRes = await resolveMonthlyWinner(prev.year, prev.month, state, depth - 1);
-        prevWinnerId = prevRes.winner?.userId || null;
+    if (prevKey >= PRIZE_START_YM) {
+        if (state.claims[prevKey]) {
+            prevWinnerId = state.claims[prevKey].winnerId;
+        } else if (depth > 0) {
+            const prevRes = await resolveMonthlyWinner(prev.year, prev.month, state, depth - 1);
+            prevWinnerId = prevRes.winner?.userId || null;
+        }
     }
 
     const ranking = await computeRawMonthRanking(year, monthZeroBased);
@@ -331,27 +336,65 @@ function shuffleThreePrizes(prizes: [string, string, string]): [string, string, 
     return arr;
 }
 
+function listClosedMonthsSinceStart(
+    curYear: number,
+    curMonthZeroBased: number
+): { year: number; month: number; ymKey: string }[] {
+    const result: { year: number; month: number; ymKey: string }[] = [];
+    let cursor = getPreviousMonth(curYear, curMonthZeroBased);
+    // Limita a até 12 meses fechados para trás, parando em PRIZE_START_YM
+    for (let i = 0; i < 12; i++) {
+        const ymKey = formatYmKey(cursor.year, cursor.month);
+        if (ymKey < PRIZE_START_YM) break;
+        result.push({ year: cursor.year, month: cursor.month, ymKey });
+        cursor = getPreviousMonth(cursor.year, cursor.month);
+    }
+    return result; // mais recente primeiro
+}
+
 /**
- * Verifica se o servo autenticado tem balão pendente (ou já estourado) referente ao último mês fechado
+ * Verifica se o servo autenticado tem balão pendente (ou já estourado) a partir de Novembro/2026.
+ * Enquanto não estourar um balão, continua retornando alreadyClaimed=false em todos os logins!
  */
 export async function getMyPendingBalloonStatus(userId: string) {
     const { year: curYear, month: curMonth } = getBrazilCurrentYearMonth();
-    const target = getPreviousMonth(curYear, curMonth);
-    const state = await getSystemPrizeState();
-    const resolution = await resolveMonthlyWinner(target.year, target.month, state);
+    const closedMonths = listClosedMonthsSinceStart(curYear, curMonth);
 
-    if (!resolution.winner || resolution.winner.userId !== userId) {
+    // Antes de 01/12/2026 não há nenhum mês fechado >= 2026-11
+    if (closedMonths.length === 0) {
         return { eligible: false };
     }
 
-    const existingClaim = state.claims[resolution.ymKey] || null;
+    const state = await getSystemPrizeState();
+
+    // 1º Prioridade: qualquer mês fechado (>= 2026-11) vencido por este servo que AINDA NÃO teve balão estourado
+    for (const m of closedMonths) {
+        if (state.claims[m.ymKey]) continue;
+        const resolution = await resolveMonthlyWinner(m.year, m.month, state);
+        if (resolution.winner && resolution.winner.userId === userId) {
+            return {
+                eligible: true,
+                alreadyClaimed: false,
+                ymKey: m.ymKey,
+                year: m.year,
+                month: m.month,
+                score: resolution.winner.score,
+                totalPresences: resolution.winner.totalPresences,
+                specialPresences: resolution.winner.specialPresences,
+            };
+        }
+    }
+
+    // 2º Caso já tenha estourado o balão do último mês fechado, retorna o prêmio para exibir status até ser entregue
+    const latest = closedMonths[0];
+    const existingClaim = state.claims[latest.ymKey];
     if (existingClaim && existingClaim.winnerId === userId) {
         return {
             eligible: true,
             alreadyClaimed: true,
-            ymKey: resolution.ymKey,
-            year: target.year,
-            month: target.month,
+            ymKey: latest.ymKey,
+            year: latest.year,
+            month: latest.month,
             score: existingClaim.score,
             totalPresences: existingClaim.totalPresences,
             specialPresences: existingClaim.specialPresences,
@@ -359,16 +402,7 @@ export async function getMyPendingBalloonStatus(userId: string) {
         };
     }
 
-    return {
-        eligible: true,
-        alreadyClaimed: false,
-        ymKey: resolution.ymKey,
-        year: target.year,
-        month: target.month,
-        score: resolution.winner.score,
-        totalPresences: resolution.winner.totalPresences,
-        specialPresences: resolution.winner.specialPresences,
-    };
+    return { eligible: false };
 }
 
 /**
@@ -393,6 +427,10 @@ export async function popWinnerBalloon(
 
     const state = await getSystemPrizeState();
     const ymKey = formatYmKey(year, monthZeroBased);
+
+    if (ymKey < PRIZE_START_YM) {
+        throw new Error("A premiação por balões é válida somente a partir de Novembro/2026.");
+    }
 
     // Idempotência: se já estourou antes, retorna o mesmo prêmio sem permitir novo sorteio
     if (state.claims[ymKey]) {
@@ -474,17 +512,51 @@ export async function getAdminPrizeOverview() {
     const state = await getSystemPrizeState();
     const { year: curYear, month: curMonth } = getBrazilCurrentYearMonth();
     const lastClosed = getPreviousMonth(curYear, curMonth);
-    const lastMonthResolution = await resolveMonthlyWinner(lastClosed.year, lastClosed.month, state);
+    const lastClosedKey = formatYmKey(lastClosed.year, lastClosed.month);
+    const notStartedYet = lastClosedKey < PRIZE_START_YM;
 
     const claimsList = Object.values(state.claims).sort((a, b) => b.ymKey.localeCompare(a.ymKey));
+
+    if (notStartedYet) {
+        // Enquanto Novembro/2026 ainda está em andamento, mostra a prévia parcial de Novembro/2026 sem liberar balão de Outubro
+        const currentPreview = await resolveMonthlyWinner(curYear, curMonth, state);
+        return {
+            prizes: state.prizes,
+            claims: claimsList,
+            prizeStartYm: PRIZE_START_YM,
+            notStartedYet: true,
+            lastClosedMonth: {
+                ymKey: currentPreview.ymKey,
+                year: curYear,
+                month: curMonth,
+                isInProgressPreview: true,
+                winner: currentPreview.winner
+                    ? {
+                          userId: currentPreview.winner.userId,
+                          name: currentPreview.winner.name,
+                          score: currentPreview.winner.score,
+                          totalPresences: currentPreview.winner.totalPresences,
+                          specialPresences: currentPreview.winner.specialPresences,
+                      }
+                    : null,
+                skippedPrevWinner: null,
+                claim: null,
+            },
+        };
+    }
+
+    const lastMonthResolution = await resolveMonthlyWinner(lastClosed.year, lastClosed.month, state);
 
     return {
         prizes: state.prizes,
         claims: claimsList,
+        prizeStartYm: PRIZE_START_YM,
+        notStartedYet: false,
         lastClosedMonth: {
             ymKey: lastMonthResolution.ymKey,
             year: lastClosed.year,
             month: lastClosed.month,
+            isInProgressPreview: false,
             winner: lastMonthResolution.winner
                 ? {
                       userId: lastMonthResolution.winner.userId,
