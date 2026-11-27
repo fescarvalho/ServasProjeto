@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { X, Copy, ExternalLink, CheckCircle, AlertCircle, Calendar, MessageSquare, Megaphone } from "lucide-react";
 import { Mass, FUNCOES } from "../types/types";
 import { formatRole } from "../constants/roles";
+import { formatServoName, registerUsersFromMasses } from "../utils/format.utils";
 import api from "../services/api";
 
 interface ReminderModalProps {
@@ -25,6 +26,7 @@ export function ReminderModal({ masses, onClose }: ReminderModalProps) {
     }, [template, masses]);
 
     const generateTemplateText = (type: TemplateType) => {
+        registerUsersFromMasses(masses);
         let text = "";
 
         if (type === "SUNDAY_SCALE") {
@@ -49,7 +51,7 @@ export function ReminderModal({ masses, onClose }: ReminderModalProps) {
                     FUNCOES.forEach(funcao => {
                         const inscritos = mass.signups.filter(s => s.role === funcao && s.status === "CONFIRMADO");
                         inscritos.forEach(serva => {
-                            text += `   • ${formatRole(funcao, serva.user.name, serva.userId)}: ${serva.user.name}\n`;
+                            text += `   • ${formatRole(funcao, serva.user.name, serva.userId)}: ${formatServoName(serva.user.name, serva.userId)}\n`;
                         });
                     });
                     text += "\n";

@@ -40,7 +40,7 @@ import { Mass, MassPhotoData, User, Signup } from "../types/types";
 import { formatRole, setGlobalUserGenders, getUserGender } from "../constants/roles";
 import { useMasses } from "../hooks/useMasses";
 import { useSignup } from "../hooks/useSignup";
-import { getRoleWeight } from "../utils/format.utils";
+import { getRoleWeight, setGlobalShortNames } from "../utils/format.utils";
 import { getMassPoints } from "../utils/ranking.utils";
 import { toLocalDate, toLocalDateTime } from "../utils/date.utils";
 import { APP_CONFIG } from "../constants/config";
@@ -414,7 +414,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
   const [dismissedUnavBanner, setDismissedUnavBanner] = useState(false);
   const [suspensionsMap, setSuspensionsMap] = useState<Record<string, ScaleSuspension>>({});
   const [dismissedAbsenceBanner, setDismissedAbsenceBanner] = useState(false);
-  const [todayBirthdayPeople, setTodayBirthdayPeople] = useState<{ id: string; name: string; age?: number | null }[]>([]);
+  const [todayBirthdayPeople, setTodayBirthdayPeople] = useState<{ id: string; name: string; fullName?: string; age?: number | null }[]>([]);
   const [dismissedBirthdayBanner, setDismissedBirthdayBanner] = useState(false);
   const [showMonthlyAbsencesModal, setShowMonthlyAbsencesModal] = useState(false);
   const [suspensionModalServa, setSuspensionModalServa] = useState<{
@@ -457,6 +457,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
     getUserMetadata()
       .then((meta) => {
         if (meta?.genders) setGlobalUserGenders(meta.genders);
+        if (meta?.shortNames) setGlobalShortNames(meta.shortNames, meta.shortNamesByFull);
         if (meta?.unavailabilities) setUnavailabilitiesMap(meta.unavailabilities);
         if (meta?.suspensions) setSuspensionsMap(meta.suspensions);
       })
@@ -480,6 +481,7 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
       setServaLoading(true);
       const [list, meta] = await Promise.all([getServasList(), getUserMetadata()]);
       if (meta?.genders) setGlobalUserGenders(meta.genders);
+      if (meta?.shortNames) setGlobalShortNames(meta.shortNames, meta.shortNamesByFull);
       if (meta?.unavailabilities) setUnavailabilitiesMap(meta.unavailabilities);
       if (meta?.suspensions) setSuspensionsMap(meta.suspensions);
       setServasList(list.filter(s => s.role !== "ADMIN"));
@@ -2127,7 +2129,10 @@ export function AdminPanel({ masses, user, onUpdate, onLogout }: AdminPanelProps
       {/* ANIVERSARIANTE(S) DO DIA */}
       {isAdmin && !dismissedBirthdayBanner && todayBirthdayPeople.length > 0 && (() => {
         const namesLabel = todayBirthdayPeople
-          .map((p) => (p.age ? `${p.name} (${p.age} anos)` : p.name))
+          .map((p) => {
+            const adminName = p.fullName || p.name;
+            return p.age ? `${adminName} (${p.age} anos)` : adminName;
+          })
           .join(" • ");
         const waNames =
           todayBirthdayPeople.length === 1

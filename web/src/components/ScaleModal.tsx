@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import { Mass, FUNCOES } from "../types/types";
 import { formatRole } from "../constants/roles";
+import { formatServoName, registerUsersFromMasses } from "../utils/format.utils";
 
 interface ScaleModalProps {
   masses: Mass[];
@@ -8,6 +9,8 @@ interface ScaleModalProps {
 }
 
 export function ScaleModal({ masses, onClose }: ScaleModalProps) {
+  registerUsersFromMasses(masses);
+
   const generateText = () => {
     let fullText = "*✝️ GRUPO DE SERVOS E SERVAS SANTA TEREZINHA ✝️*\n\n";
     masses.forEach((mass) => {
@@ -24,7 +27,7 @@ export function ScaleModal({ masses, onClose }: ScaleModalProps) {
       FUNCOES.forEach((funcao) => {
         const inscritos = mass.signups.filter((s) => s.role === funcao && s.status !== "RESERVA");
         inscritos.forEach((serva) => {
-          fullText += `   • ${formatRole(funcao, serva.user.name, serva.userId)}: ${serva.user.name}\n`;
+          fullText += `   • ${formatRole(funcao, serva.user.name, serva.userId)}: ${formatServoName(serva.user.name, serva.userId)}\n`;
         });
       });
       fullText += "\n";

@@ -1,6 +1,7 @@
 
 import { Crown, Sparkles, X } from "lucide-react";
 import { theme } from "../theme/theme";
+import { formatServoName } from "../utils/format.utils";
 
 interface WinnerModalProps {
     score: number;
@@ -84,7 +85,7 @@ export function WinnerModal({ score, month, year, userName, onClose }: WinnerMod
                 </div>
 
                 <h2 style={{ color: theme.colors.warningDark, margin: "0 0 10px 0", fontSize: "1.8rem", fontWeight: "900" }}>
-                    Parabéns, {userName.split(" ")[0]}!
+                    Parabéns, {formatServoName(userName)}!
                 </h2>
 
                 <p style={{ color: theme.colors.textMain, fontSize: "1.1rem", lineHeight: "1.5", margin: "0 0 20px 0" }}>

@@ -41,9 +41,10 @@ export async function getUsersList(req: Request, res: Response) {
 export async function getUserMeta(req: Request, res: Response) {
     try {
         res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
-        const [meta, isAdmin] = await Promise.all([
+        const [meta, isAdmin, shortNamesData] = await Promise.all([
             userService.getSystemUserMeta(),
             isRequestAdmin(req.userId),
+            userService.getActiveShortNamesData(),
         ]);
         const todayBr = userService.getBrazilTodayStr();
         const activeSuspensions: Record<string, userService.ScaleSuspension> = {};
@@ -61,6 +62,8 @@ export async function getUserMeta(req: Request, res: Response) {
                 myUnavailabilities: req.userId ? meta.unavailabilities[req.userId] || [] : [],
                 suspensions: activeSuspensions,
                 mySuspension,
+                shortNames: shortNamesData.byId,
+                shortNamesByFull: shortNamesData.byFullName,
             });
         }
         return success(res, {
@@ -71,6 +74,8 @@ export async function getUserMeta(req: Request, res: Response) {
                     : {},
             myUnavailabilities: req.userId ? meta.unavailabilities[req.userId] || [] : [],
             mySuspension,
+            shortNames: shortNamesData.byId,
+            shortNamesByFull: shortNamesData.byFullName,
         });
     } catch (err) {
         console.error("Get user meta error:", err);

@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { Mass, MassPhotoData, UserData, Notice, SwapRequest } from "../types/types";
 import { formatRole, getUserGender, setGlobalUserGenders } from "../constants/roles";
+import { formatServoName, setGlobalShortNames, registerUsersFromMasses } from "../utils/format.utils";
 import { getGoogleCalendarUrl, downloadMassICS } from "../utils/calendar.utils";
 import {
   compressMassPhotoFile,
@@ -178,6 +179,10 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
     getUserMetadata()
       .then((meta) => {
         if (meta?.genders) setGlobalUserGenders(meta.genders);
+        if (meta?.shortNames) {
+          setGlobalShortNames(meta.shortNames, meta.shortNamesByFull);
+          setShortNamesRev((v) => v + 1);
+        }
         if (meta && "mySuspension" in meta) {
           const susp = meta.mySuspension || null;
           setMySuspension(susp);
@@ -192,6 +197,9 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
       })
       .catch(() => { });
   }, [user?.id]);
+
+  const [, setShortNamesRev] = useState(0);
+  registerUsersFromMasses(masses, [user]);
 
   const todayBrStr = useMemo(() => {
     return new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
@@ -357,7 +365,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
           photo: {
             massId: mass.id,
             uploadedById: localPending.userId,
-            uploadedByName: `${localPending.userName} (salva offline)`,
+            uploadedByName: `${formatServoName(localPending.userName, localPending.userId)} (salva offline)`,
             uploadedAt: localPending.capturedAt,
             imageDataUrl: localPending.imageDataUrl,
           },
@@ -491,7 +499,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
           <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#166534", fontSize: "0.76rem", fontWeight: 700 }}>
             <Camera size={14} />
             <span>
-              Foto da equipe enviada{mass.photoUploadedBy ? ` por ${mass.photoUploadedBy.split(" ")[0]}` : ""}
+              Foto da equipe enviada{mass.photoUploadedBy ? ` por ${formatServoName(mass.photoUploadedBy)}` : ""}
             </span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -901,7 +909,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
             score={winnerDetails.score}
             month={winnerDetails.month}
             year={winnerDetails.year}
-            userName={user.name}
+            userName={formatServoName(user.name, user.id)}
             onClose={handleCloseWinnerModal}
           />
         )}
@@ -1149,7 +1157,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
           backdropFilter: "blur(5px)"
         }}>
           <p style={{ margin: 0, fontSize: "1rem", fontWeight: "500", fontStyle: "normal", color: "#FDFBF7" }}>
-            Olá, <strong style={{ fontWeight: "800", color: "#E6C786" }}>{user.name.split(" ")[0]}</strong>
+            Olá, <strong style={{ fontWeight: "800", color: "#E6C786" }}>{formatServoName(user.name, user.id)}</strong>
           </p>
         </div>
 
@@ -1400,7 +1408,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
               const people = notice.birthdayPeople && notice.birthdayPeople.length > 0 ? notice.birthdayPeople : [];
               const isMyBirthday = people.some((p) => p.id === user.id);
               const others = people.filter((p) => p.id !== user.id);
-              const namesForWa = (others.length > 0 ? others : people).map((p) => p.name);
+              const namesForWa = (others.length > 0 ? others : people).map((p) => formatServoName(p.name, p.id));
               const formattedWaNames =
                 namesForWa.length <= 1
                   ? namesForWa[0] || ""
@@ -1490,7 +1498,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                             boxShadow: "0 1px 4px rgba(74, 50, 34, 0.08)",
                           }}
                         >
-                          🎉 {person.name}
+                          🎉 {formatServoName(person.name, person.id)}
                         </span>
                       ))}
                     </div>
@@ -1757,7 +1765,7 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                   return (
                     <div key={sr.id} style={{ padding: "12px 15px", borderBottom: `1px solid ${theme.colors.warningLight}`, display: "flex", flexDirection: "column", gap: "6px" }}>
                       <div style={{ fontSize: "0.9rem", color: theme.colors.textMain }}>
-                        <strong>{sr.signup.user.name}</strong> não pode atender a <strong>{sr.signup.mass.name || massDate}</strong>
+                        <strong>{formatServoName(sr.signup.user.name, sr.signup.user?.id || sr.requesterId)}</strong> não pode atender a <strong>{sr.signup.mass.name || massDate}</strong>
                       </div>
                       <div style={{ fontSize: "0.8rem", color: theme.colors.textSecondary }}>{massDate} · Função: {formatRole(sr.signup.role)}</div>
                       {isMyRequest ? (
@@ -2719,7 +2727,13 @@ export function UserPanel({ masses, user, onToggleSignup, onLogout, onUpdate }: 
                     }}
                   />
                   <div style={{ marginTop: "10px", fontSize: "0.78rem", color: "#5A4332", fontWeight: 600 }}>
-                    Enviada por <strong>{viewingPhotoMass.photo.uploadedByName}</strong> em{" "}
+                    Enviada por{" "}
+                    <strong>
+                      {viewingPhotoMass.photo.uploadedByName.endsWith("(salva offline)")
+                        ? viewingPhotoMass.photo.uploadedByName
+                        : formatServoName(viewingPhotoMass.photo.uploadedByName, viewingPhotoMass.photo.uploadedById)}
+                    </strong>{" "}
+                    em{" "}
                     {new Date(viewingPhotoMass.photo.uploadedAt).toLocaleString("pt-BR", {
                       timeZone: "America/Sao_Paulo",
                       day: "2-digit",

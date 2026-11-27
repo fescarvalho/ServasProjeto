@@ -31,6 +31,8 @@ export interface UserMetadataResponse {
     myUnavailabilities?: UnavailabilityItem[];
     suspensions?: Record<string, ScaleSuspension>;
     mySuspension?: ScaleSuspension | null;
+    shortNames?: Record<string, string>;
+    shortNamesByFull?: Record<string, string>;
 }
 
 /**

@@ -73,7 +73,7 @@ export interface Notice {
   active: boolean;
   createdAt: string;
   isBirthday?: boolean;
-  birthdayPeople?: { id: string; name: string; age?: number | null }[];
+  birthdayPeople?: { id: string; name: string; fullName?: string; age?: number | null }[];
 }
 
 export interface SwapRequest {

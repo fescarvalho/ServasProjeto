@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { X, Trophy, Shield, Award, Crown, Share2 } from "lucide-react";
 import { Mass } from "../types/types";
+import { formatServoName, registerUsersFromMasses } from "../utils/format.utils";
 import html2canvas from "html2canvas";
 
 interface GeneralRankingModalProps {
@@ -9,24 +10,26 @@ interface GeneralRankingModalProps {
 }
 
 export function GeneralRankingModal({ masses, onClose }: GeneralRankingModalProps) {
+  registerUsersFromMasses(masses);
   const rankingRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
-  const scores: Record<string, number> = {};
+  const scores: Record<string, { userId: string; name: string; count: number }> = {};
 
   masses.forEach(mass => {
     mass.signups.forEach(signup => {
-      // @ts-ignore
+      const uid = signup.userId || signup.user?.name || "unknown";
       const name = signup.user?.name || "Servo(a) Desconhecido(a)";
       // Só conta se o Admin deu presença (Check verde)
       if (signup.present) {
-        scores[name] = (scores[name] || 0) + 1;
+        if (!scores[uid]) {
+          scores[uid] = { userId: signup.userId, name, count: 0 };
+        }
+        scores[uid].count += 1;
       }
     });
   });
 
-  const ranking = Object.entries(scores)
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count);
+  const ranking = Object.values(scores).sort((a, b) => b.count - a.count);
 
   const getBadge = (count: number) => {
     if (count >= 15) return { icon: <Crown size={18} />, name: "Guardião(ã) do Altar", color: "#F7F5F0", border: "#4A3222" };
@@ -135,11 +138,11 @@ export function GeneralRankingModal({ masses, onClose }: GeneralRankingModalProp
               {ranking.map((item, index) => {
                 const badge = getBadge(item.count);
                 return (
-                  <div key={item.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "white", border: `1px solid #eee`, padding: "10px 15px", borderRadius: "12px", boxShadow: "0 2px 5px rgba(0,0,0,0.02)" }}>
+                  <div key={item.userId || item.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "white", border: `1px solid #eee`, padding: "10px 15px", borderRadius: "12px", boxShadow: "0 2px 5px rgba(0,0,0,0.02)" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                       <span style={{ fontWeight: "bold", color: "#999", minWidth: "20px" }}>{index + 1}º</span>
                       <div>
-                        <div style={{ fontWeight: "bold", color: "#333" }}>{item.name}</div>
+                        <div style={{ fontWeight: "bold", color: "#333" }}>{formatServoName(item.name, item.userId)}</div>
                         <div style={{ fontSize: "0.75rem", display: "flex", alignItems: "center", gap: "4px", color: badge.border }}>{badge.icon} {badge.name}</div>
                       </div>
                     </div>

@@ -3,6 +3,100 @@ import bcrypt from "bcryptjs";
 
 const META_PREFIX = "__SYS_USER_META__:";
 
+const NAME_PARTICLES = new Set(["da", "de", "do", "das", "dos", "e"]);
+
+export function normalizeNameToken(value: string): string {
+    return value
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+}
+
+/**
+ * Calcula o nome curto de exibição para cada servo(a):
+ * - Apenas o 1º nome quando for único no grupo;
+ * - Quando houver nomes iguais (ex: dois "Thiago", dois "João", duas "Maria Clara"),
+ *   adiciona o próximo nome/sobrenome significativo até diferenciar todos.
+ */
+export function buildShortNamesData(users: { id: string; name: string }[]): {
+    byId: Record<string, string>;
+    byFullName: Record<string, string>;
+} {
+    const entries = users
+        .filter((u) => u && u.id && u.name && u.name.trim())
+        .map((u) => {
+            const trimmed = u.name.trim();
+            const rawParts = trimmed.split(/\s+/);
+            const sigParts = rawParts.filter(
+                (w, idx) => idx === 0 || !NAME_PARTICLES.has(normalizeNameToken(w))
+            );
+            return {
+                id: u.id,
+                fullName: trimmed,
+                normFull: normalizeNameToken(trimmed),
+                sigParts: sigParts.length > 0 ? sigParts : rawParts,
+                depth: 1,
+            };
+        });
+
+    let changed = true;
+    while (changed) {
+        changed = false;
+        const groups = new Map<string, typeof entries>();
+
+        for (const entry of entries) {
+            const label = entry.sigParts.slice(0, entry.depth).join(" ");
+            const key = normalizeNameToken(label);
+            const bucket = groups.get(key);
+            if (bucket) {
+                bucket.push(entry);
+            } else {
+                groups.set(key, [entry]);
+            }
+        }
+
+        for (const bucket of groups.values()) {
+            // Só há colisão real se forem pessoas distintas (nomes completos distintos ou IDs distintos com mais partes)
+            const distinctIds = new Set(bucket.map((b) => b.id));
+            if (distinctIds.size > 1) {
+                for (const item of bucket) {
+                    if (item.depth < item.sigParts.length) {
+                        item.depth += 1;
+                        changed = true;
+                    }
+                }
+            }
+        }
+    }
+
+    const byId: Record<string, string> = {};
+    const byFullName: Record<string, string> = {};
+    for (const entry of entries) {
+        const shortLabel = entry.sigParts.slice(0, entry.depth).join(" ");
+        byId[entry.id] = shortLabel;
+        if (entry.normFull) {
+            byFullName[entry.normFull] = shortLabel;
+        }
+    }
+
+    return { byId, byFullName };
+}
+
+export async function getActiveShortNamesData(): Promise<{
+    byId: Record<string, string>;
+    byFullName: Record<string, string>;
+}> {
+    const activeUsers = await prisma.user.findMany({
+        where: {
+            role: { notIn: ["INATIVO", "ADMIN"] },
+            email: { notIn: ["teste@servas.com", "formacao@serva.com", "formacao2026@servos.com"] },
+        },
+        select: { id: true, name: true },
+    });
+    return buildShortNamesData(activeUsers);
+}
+
 export interface UnavailabilityItem {
     date: string; // YYYY-MM-DD
     reason?: string;

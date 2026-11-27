@@ -1,4 +1,5 @@
 import { prisma } from "../config/database";
+import { buildShortNamesData, getActiveShortNamesData } from "./user.service";
 
 function formatNameList(names: string[]): string {
     if (names.length === 0) return "";
@@ -17,21 +18,29 @@ function computeAge(birthDate: Date, today: Date): number | null {
  * Get all active notices
  */
 export async function getActiveNotices() {
-    const notices = await prisma.notice.findMany({
-        where: { active: true },
-        orderBy: { createdAt: "desc" },
-    });
+    const [notices, activeUsers] = await Promise.all([
+        prisma.notice.findMany({
+            where: { active: true },
+            orderBy: { createdAt: "desc" },
+        }),
+        prisma.user.findMany({
+            where: { role: { notIn: ["INATIVO", "ADMIN"] } },
+            select: { id: true, name: true, email: true, birthDate: true },
+        }),
+    ]);
+
+    const shortNames = buildShortNamesData(
+        activeUsers.filter(
+            (u) => !["teste@servas.com", "formacao@serva.com", "formacao2026@servos.com"].includes(u.email)
+        )
+    );
 
     const todayBrazilStr = new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" });
     const today = new Date(todayBrazilStr);
     const currentMonth = today.getMonth() + 1;
     const currentDay = today.getDate();
 
-    const usersWithBirthday = await prisma.user.findMany({
-        where: { birthDate: { not: null }, role: { not: "INATIVO" } }
-    });
-
-    const birthdayUsers = usersWithBirthday
+    const birthdayUsers = activeUsers
         .filter((u) => {
             if (!u.birthDate) return false;
             return (
@@ -42,11 +51,16 @@ export async function getActiveNotices() {
         .sort((a, b) => a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }));
 
     if (birthdayUsers.length > 0) {
-        const birthdayPeople = birthdayUsers.map((u) => ({
-            id: u.id,
-            name: u.name.trim(),
-            age: u.birthDate ? computeAge(u.birthDate, today) : null,
-        }));
+        const birthdayPeople = birthdayUsers.map((u) => {
+            const full = u.name.trim();
+            const short = shortNames.byId[u.id] || full.split(/\s+/)[0];
+            return {
+                id: u.id,
+                name: short,
+                fullName: full,
+                age: u.birthDate ? computeAge(u.birthDate, today) : null,
+            };
+        });
         const formattedNames = formatNameList(birthdayPeople.map((p) => p.name));
         const blessing =
             birthdayPeople.length > 1
@@ -139,7 +153,7 @@ export async function postMonthlyChampionNotice() {
         }
     });
 
-    const scores: Record<string, { count: number; score: number; absences: number; name: string }> = {};
+    const scores: Record<string, { id: string; count: number; score: number; absences: number; name: string }> = {};
 
     masses.forEach(mass => {
         const points = getMassPoints(mass.date, (mass as any).points);
@@ -149,7 +163,7 @@ export async function postMonthlyChampionNotice() {
             const userName = signup.user?.name || "Serva Desconhecida";
             if (userId) {
                 if (!scores[userId]) {
-                    scores[userId] = { count: 0, score: 0, absences: 0, name: userName };
+                    scores[userId] = { id: userId, count: 0, score: 0, absences: 0, name: userName };
                 }
                 if (signup.present) {
                     scores[userId].count += 1;
@@ -178,8 +192,11 @@ export async function postMonthlyChampionNotice() {
     const championCount = ranking[0].count;
     const championAbsences = ranking[0].absences;
     
+    const shortNames = await getActiveShortNamesData();
     const champions = ranking.filter(r => r.score === championScore && r.count === championCount && r.absences === championAbsences);
-    const championNames = champions.map(c => c.name.split(" ")[0]).join(" e ");
+    const championNames = formatNameList(
+        champions.map(c => shortNames.byId[c.id] || c.name.trim().split(/\s+/)[0])
+    );
     
     const text = `🏆 Parabéns ${championNames}! ${champions.length > 1 ? 'Vocês foram os Destaques do mês' : 'Você foi o Destaque do mês'} de ${previousMonthName} com ${championCount} presenças e ${championScore} pontos! Deus abençoe! 🏆`;
 

@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import webpush from "web-push";
+import { getActiveShortNamesData } from "../services/user.service";
 
 const prisma = new PrismaClient();
 
@@ -106,6 +107,7 @@ export const notifyCron = async (req: Request, res: Response): Promise<void> => 
             },
         });
 
+        const shortNames = await getActiveShortNamesData();
         let sentCount = 0;
 
         for (const mass of massesTomorrow) {
@@ -116,7 +118,9 @@ export const notifyCron = async (req: Request, res: Response): Promise<void> => 
             });
 
             for (const signup of mass.signups) {
-                const userName = signup.user.name ? signup.user.name.split(" ")[0] : "Serva";
+                const userName =
+                    shortNames.byId[signup.user.id] ||
+                    (signup.user.name ? signup.user.name.trim().split(/\s+/)[0] : "Servo(a)");
                 const payload = JSON.stringify({
                     title: "Lembrete de Escala",
                     body: `Olá ${userName}, você serve amanhã às ${massTime}!`,
@@ -167,9 +171,10 @@ export const notifyCron = async (req: Request, res: Response): Promise<void> => 
         });
 
         for (const user of birthdayGirls) {
-            const fullName = user.name.trim();
+            const displayName =
+                shortNames.byId[user.id] || user.name.trim().split(/\s+/)[0];
             const bdayPayload = JSON.stringify({
-                title: `🎂 Parabéns, ${fullName}! 🎉`,
+                title: `🎂 Parabéns, ${displayName}! 🎉`,
                 body: `Que a alegria de servir ao altar transborde em todos os dias da sua vida. Seu zelo e carinho nas missas no Santuário são um testemunho lindo de fé para todos nós. Que Deus te abençoe com muita saúde, paz e que sua caminhada seja sempre guiada pelo amor!`,
             });
 

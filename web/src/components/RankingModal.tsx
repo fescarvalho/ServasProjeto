@@ -4,6 +4,7 @@ import { X, Trophy, Medal, Calendar, Crown, Share2, CheckCircle2, MapPin, Receip
 import { theme } from "../theme/theme";
 import { calculateRanking, getMassPoints, ServaRanking } from "../utils/ranking.utils";
 import { formatRole, getUserGender } from "../constants/roles";
+import { formatServoName, registerUsersFromMasses } from "../utils/format.utils";
 import html2canvas from "html2canvas";
 
 interface RankingModalProps {
@@ -14,6 +15,7 @@ interface RankingModalProps {
 }
 
 export function RankingModal({ masses, onClose, currentUserId, currentUserName }: RankingModalProps) {
+  registerUsersFromMasses(masses);
   const rankingRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
@@ -414,7 +416,7 @@ export function RankingModal({ masses, onClose, currentUserId, currentUserName }
                             textUnderlineOffset: "3px",
                           }}
                         >
-                          {serva.name}
+                          {formatServoName(serva.name, serva.id)}
                         </span>
                         {isCurrentUser && !isSharing && (
                           <span style={{ background: "#FEF3C7", color: "#92400E", border: "1px solid #FDE68A", padding: "1px 6px", borderRadius: "6px", fontSize: "0.65rem", fontWeight: 800 }}>
@@ -487,7 +489,7 @@ export function RankingModal({ masses, onClose, currentUserId, currentUserName }
                   Extrato de Pontuação
                 </div>
                 <div style={{ fontWeight: 800, fontSize: "1rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {selectedServa.name}
+                  {formatServoName(selectedServa.name, selectedServa.id)}
                 </div>
                 <div style={{ fontSize: "0.75rem", opacity: 0.9 }}>
                   {months[selectedMonth]} {selectedYear} • {selectedServaScales.length} {selectedServaScales.length === 1 ? "escala confirmada" : "escalas confirmadas"} • <strong>{selectedServa.score} pts</strong>

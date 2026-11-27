@@ -2,6 +2,7 @@ import { Mass } from "../types/types";
 import { Cross, ArrowLeft, Calendar, Clock } from "lucide-react";
 import { theme } from "../theme/theme";
 import { formatRole } from "../constants/roles";
+import { formatServoName, registerUsersFromMasses } from "../utils/format.utils";
 
 interface OfficialDocumentProps {
   masses: Mass[];
@@ -9,6 +10,7 @@ interface OfficialDocumentProps {
 }
 
 export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
+  registerUsersFromMasses(masses);
   // --- FILTRO DE SEGURANÇA E RESERVA ---
   const missasValidas = masses.filter((mass) => {
     // 1. Filtra APENAS CONFIRMADAS para saber se a missa deve aparecer
@@ -241,9 +243,10 @@ export function OfficialDocument({ masses, onBack }: OfficialDocumentProps) {
                 if (!funcoes[role]) funcoes[role] = [];
 
                 // Adiciona o ícone se for substituição
+                const shortName = formatServoName(s.user.name, s.userId);
                 const nomeFormatado = (s as any).isSubstitution
-                  ? `${s.user.name} (Subst.)`
-                  : s.user.name;
+                  ? `${shortName} (Subst.)`
+                  : shortName;
 
                 funcoes[role].push(nomeFormatado);
               });
