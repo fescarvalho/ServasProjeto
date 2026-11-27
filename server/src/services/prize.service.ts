@@ -7,15 +7,23 @@ const PRIZE_META_PREFIX = "__SYS_PRIZE_STATE__:";
 export const PRIZE_START_YM = "2026-11";
 export const TEST_CLAIM_KEY = "TESTE-SIMULACAO";
 const TEST_ACCOUNT_EMAIL = "teste@servas.com";
+export const BALLOON_COUNT = 10;
 
-export const DEFAULT_BALLOON_PRIZES: [string, string, string] = [
-    "🍫 Kit Chocolate Especial",
-    "🧋 Vale Açaí / Lanche",
-    "📖 Kit Devocional Católico",
+export const DEFAULT_BALLOON_PRIZES: string[] = [
+    "🍪 Kit de biscoitos artesanais",
+    "🍣 Vale lanche / vale japonês",
+    "💸 Pix de R$ 30,00",
+    "🍫 Chocolates",
+    "📖 Livro católico",
+    "🍪 Voucher de R$ 40,00 na Camilla Cookies",
+    "☕ Caneca",
+    "💸 Pix de R$ 40,00",
+    "📿 Terço",
+    "🎁 Presente surpresa",
 ];
 
 export interface PrizeClaimRecord {
-    ymKey: string; // "YYYY-MM" (mês 1..12)
+    ymKey: string; // "YYYY-MM" (mês 1..12) ou TEST_CLAIM_KEY
     year: number;
     month: number; // 0..11 (padrão JS Date)
     winnerId: string;
@@ -23,9 +31,9 @@ export interface PrizeClaimRecord {
     score: number;
     totalPresences: number;
     specialPresences: number;
-    balloonIndex: number; // 0, 1 ou 2
+    balloonIndex: number; // 0..9
     prizeWon: string;
-    allBalloons: [string, string, string];
+    allBalloons: string[];
     claimedAt: string;
     delivered: boolean;
     deliveredAt?: string | null;
@@ -33,9 +41,10 @@ export interface PrizeClaimRecord {
 }
 
 export interface SystemPrizeState {
-    prizes: [string, string, string];
+    prizes: string[];
     claims: Record<string, PrizeClaimRecord>;
     testActive?: boolean;
+    testRound?: number;
 }
 
 export interface RankedMonthlyCandidate {
@@ -97,26 +106,30 @@ export async function getSystemPrizeState(): Promise<SystemPrizeState> {
         });
         if (!record) {
             return {
-                prizes: [...DEFAULT_BALLOON_PRIZES] as [string, string, string],
+                prizes: [...DEFAULT_BALLOON_PRIZES],
                 claims: {},
             };
         }
         const parsed = JSON.parse(record.text.slice(PRIZE_META_PREFIX.length));
         const rawPrizes = Array.isArray(parsed?.prizes) ? parsed.prizes : [];
-        const prizes: [string, string, string] = [
-            String(rawPrizes[0] || DEFAULT_BALLOON_PRIZES[0]).trim() || DEFAULT_BALLOON_PRIZES[0],
-            String(rawPrizes[1] || DEFAULT_BALLOON_PRIZES[1]).trim() || DEFAULT_BALLOON_PRIZES[1],
-            String(rawPrizes[2] || DEFAULT_BALLOON_PRIZES[2]).trim() || DEFAULT_BALLOON_PRIZES[2],
-        ];
+        const prizes: string[] =
+            rawPrizes.length === BALLOON_COUNT
+                ? rawPrizes.map(
+                      (p: any, idx: number) =>
+                          String(p || DEFAULT_BALLOON_PRIZES[idx]).trim() || DEFAULT_BALLOON_PRIZES[idx]
+                  )
+                : [...DEFAULT_BALLOON_PRIZES];
+
         return {
             prizes,
             claims: parsed?.claims && typeof parsed.claims === "object" ? parsed.claims : {},
             testActive: Boolean(parsed?.testActive),
+            testRound: typeof parsed?.testRound === "number" ? parsed.testRound : 1,
         };
     } catch (err) {
         console.error("[PrizeState] Erro ao ler estado de prêmios:", err);
         return {
-            prizes: [...DEFAULT_BALLOON_PRIZES] as [string, string, string],
+            prizes: [...DEFAULT_BALLOON_PRIZES],
             claims: {},
         };
     }
@@ -157,7 +170,6 @@ export async function computeRawMonthRanking(
     year: number,
     monthZeroBased: number
 ): Promise<RankedMonthlyCandidate[]> {
-    // Busca com margem de 2 dias para cobrir fuso horário e filtra exato por America/Sao_Paulo
     const rangeStart = new Date(Date.UTC(year, monthZeroBased, 1, 0, 0, 0) - 48 * 3600 * 1000);
     const rangeEnd = new Date(Date.UTC(year, monthZeroBased + 1, 1, 0, 0, 0) + 48 * 3600 * 1000);
 
@@ -247,7 +259,6 @@ export async function resolveMonthlyWinner(
     const state = existingState || (await getSystemPrizeState());
     const ymKey = formatYmKey(year, monthZeroBased);
 
-    // Determinar quem venceu o mês imediatamente anterior (somente a partir do início oficial PRIZE_START_YM)
     const prev = getPreviousMonth(year, monthZeroBased);
     const prevKey = formatYmKey(prev.year, prev.month);
     let prevWinnerId: string | null = null;
@@ -274,7 +285,6 @@ export async function resolveMonthlyWinner(
         };
     }
 
-    // Se já houve resgate registrado para este mês, honrar o registro salvo
     if (state.claims[ymKey]) {
         const claimedWinner =
             ranking.find((r) => r.userId === state.claims[ymKey].winnerId) || {
@@ -313,7 +323,6 @@ export async function resolveMonthlyWinner(
         break;
     }
 
-    // Caso extremo em que apenas 1 pessoa serviu no mês inteiro e era a vencedora anterior
     if (!winner && ranking.length > 0 && !prevWinnerId) {
         winner = ranking[0];
     }
@@ -329,15 +338,49 @@ export async function resolveMonthlyWinner(
     };
 }
 
-function shuffleThreePrizes(prizes: [string, string, string]): [string, string, string] {
-    const arr: [string, string, string] = [prizes[0], prizes[1], prizes[2]];
+function seededShufflePrizes(prizes: string[], seedKey: string): string[] {
+    const arr = [...prizes];
+    const secret = process.env.JWT_SECRET || "servas-santa-terezinha-balloons";
     for (let i = arr.length - 1; i > 0; i--) {
-        const j = crypto.randomInt(0, i + 1);
+        const digest = crypto
+            .createHash("sha256")
+            .update(`${secret}:monthly-balloons:${seedKey}:${i}`)
+            .digest();
+        const randInt = digest.readUInt32BE(0);
+        const j = randInt % (i + 1);
         const tmp = arr[i];
         arr[i] = arr[j];
         arr[j] = tmp;
     }
     return arr;
+}
+
+/**
+ * Gera a ordem dos 10 presentes para um mês específico (ymKey = "YYYY-MM"),
+ * mudando automaticamente a posição de todos os balões a cada novo mês!
+ */
+export function getMonthlyBalloonOrder(prizes: string[], ymKey: string): string[] {
+    const match = ymKey.match(/^(\d{4})-(\d{2})$/);
+    if (!match) {
+        return seededShufflePrizes(prizes, ymKey);
+    }
+    const year = Number(match[1]);
+    const monthZero = Number(match[2]) - 1;
+    const prev = getPreviousMonth(year, monthZero);
+    const prevOrder = seededShufflePrizes(prizes, formatYmKey(prev.year, prev.month));
+
+    let attempt = 0;
+    let currentOrder = seededShufflePrizes(prizes, ymKey);
+    // Garante permutação sem ponto fixo: NENHUM dos 10 balões permanece com o mesmo presente do mês anterior!
+    while (
+        attempt < 50 &&
+        currentOrder.length > 1 &&
+        currentOrder.some((p, idx) => p === prevOrder[idx])
+    ) {
+        attempt += 1;
+        currentOrder = seededShufflePrizes(prizes, `${ymKey}:rot${attempt}`);
+    }
+    return currentOrder;
 }
 
 function listClosedMonthsSinceStart(
@@ -346,14 +389,13 @@ function listClosedMonthsSinceStart(
 ): { year: number; month: number; ymKey: string }[] {
     const result: { year: number; month: number; ymKey: string }[] = [];
     let cursor = getPreviousMonth(curYear, curMonthZeroBased);
-    // Limita a até 12 meses fechados para trás, parando em PRIZE_START_YM
     for (let i = 0; i < 12; i++) {
         const ymKey = formatYmKey(cursor.year, cursor.month);
         if (ymKey < PRIZE_START_YM) break;
         result.push({ year: cursor.year, month: cursor.month, ymKey });
         cursor = getPreviousMonth(cursor.year, cursor.month);
     }
-    return result; // mais recente primeiro
+    return result;
 }
 
 /**
@@ -400,12 +442,10 @@ export async function getMyPendingBalloonStatus(userId: string) {
     const { year: curYear, month: curMonth } = getBrazilCurrentYearMonth();
     const closedMonths = listClosedMonthsSinceStart(curYear, curMonth);
 
-    // Antes de 01/12/2026 não há nenhum mês fechado >= 2026-11
     if (closedMonths.length === 0) {
         return { eligible: false };
     }
 
-    // 1º Prioridade: qualquer mês fechado (>= 2026-11) vencido por este servo que AINDA NÃO teve balão estourado
     for (const m of closedMonths) {
         if (state.claims[m.ymKey]) continue;
         const resolution = await resolveMonthlyWinner(m.year, m.month, state);
@@ -423,7 +463,6 @@ export async function getMyPendingBalloonStatus(userId: string) {
         }
     }
 
-    // 2º Caso já tenha estourado o balão do último mês fechado, retorna o prêmio para exibir status até ser entregue
     const latest = closedMonths[0];
     const existingClaim = state.claims[latest.ymKey];
     if (existingClaim && existingClaim.winnerId === userId) {
@@ -444,7 +483,7 @@ export async function getMyPendingBalloonStatus(userId: string) {
 }
 
 /**
- * Estoura um dos 3 balões (0, 1 ou 2) para o vencedor elegível do mês fechado
+ * Estoura um dos 10 balões (0 a 9) para o vencedor elegível do mês fechado
  */
 export async function popWinnerBalloon(
     userId: string,
@@ -452,8 +491,8 @@ export async function popWinnerBalloon(
     monthZeroBased: number,
     balloonIndex: number
 ): Promise<PrizeClaimRecord> {
-    if (![0, 1, 2].includes(balloonIndex)) {
-        throw new Error("Escolha um balão válido (1, 2 ou 3).");
+    if (!Number.isInteger(balloonIndex) || balloonIndex < 0 || balloonIndex >= BALLOON_COUNT) {
+        throw new Error(`Escolha um balão válido (1 a ${BALLOON_COUNT}).`);
     }
 
     const state = await getSystemPrizeState();
@@ -468,7 +507,10 @@ export async function popWinnerBalloon(
             if (state.claims[TEST_CLAIM_KEY]) {
                 return state.claims[TEST_CLAIM_KEY];
             }
-            const shuffledTest = shuffleThreePrizes(state.prizes);
+            const shuffledTest = getMonthlyBalloonOrder(
+                state.prizes,
+                `${TEST_CLAIM_KEY}:${state.testRound || 1}`
+            );
             const testClaim: PrizeClaimRecord = {
                 ymKey: TEST_CLAIM_KEY,
                 year: 2026,
@@ -505,7 +547,6 @@ export async function popWinnerBalloon(
         throw new Error("A premiação por balões é válida somente a partir de Novembro/2026.");
     }
 
-    // Idempotência: se já estourou antes, retorna o mesmo prêmio sem permitir novo sorteio
     if (state.claims[ymKey]) {
         if (state.claims[ymKey].winnerId !== userId) {
             throw new Error("A premiação deste mês pertence a outro(a) servo(a).");
@@ -518,7 +559,7 @@ export async function popWinnerBalloon(
         throw new Error("Você não está elegível para estourar o balão deste mês.");
     }
 
-    const shuffled = shuffleThreePrizes(state.prizes);
+    const shuffled = getMonthlyBalloonOrder(state.prizes, ymKey);
     const prizeWon = shuffled[balloonIndex];
 
     const claim: PrizeClaimRecord = {
@@ -546,15 +587,15 @@ export async function popWinnerBalloon(
 }
 
 /**
- * Atualiza os 3 presentes fixos configurados pelo Admin
+ * Atualiza os 10 presentes fixos configurados pelo Admin
  */
-export async function updateBalloonPrizes(prizes: [string, string, string]): Promise<[string, string, string]> {
-    if (!Array.isArray(prizes) || prizes.length !== 3) {
-        throw new Error("Informe exatamente os 3 presentes dos balões.");
+export async function updateBalloonPrizes(prizes: string[]): Promise<string[]> {
+    if (!Array.isArray(prizes) || prizes.length !== BALLOON_COUNT) {
+        throw new Error(`Informe exatamente os ${BALLOON_COUNT} presentes dos balões.`);
     }
-    const cleaned = prizes.map((p) => String(p || "").trim()) as [string, string, string];
+    const cleaned = prizes.map((p) => String(p || "").trim());
     if (cleaned.some((p) => !p)) {
-        throw new Error("Nenhum dos 3 presentes pode ficar em branco.");
+        throw new Error(`Nenhum dos ${BALLOON_COUNT} presentes pode ficar em branco.`);
     }
 
     const state = await getSystemPrizeState();
@@ -581,6 +622,7 @@ export async function setPrizeClaimDelivered(ymKey: string, delivered: boolean):
 export async function startOrResetTestBalloon(): Promise<void> {
     const state = await getSystemPrizeState();
     state.testActive = true;
+    state.testRound = (state.testRound || 0) + 1;
     delete state.claims[TEST_CLAIM_KEY];
     await saveSystemPrizeState(state);
 }
@@ -605,7 +647,6 @@ export async function getAdminPrizeOverview() {
     const claimsList = Object.values(state.claims).sort((a, b) => b.ymKey.localeCompare(a.ymKey));
 
     if (notStartedYet) {
-        // Enquanto Novembro/2026 ainda está em andamento, mostra a prévia parcial de Novembro/2026 sem liberar balão de Outubro
         const currentPreview = await resolveMonthlyWinner(curYear, curMonth, state);
         return {
             prizes: state.prizes,

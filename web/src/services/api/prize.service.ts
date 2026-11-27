@@ -11,7 +11,7 @@ export interface PrizeClaimRecord {
     specialPresences: number;
     balloonIndex: number;
     prizeWon: string;
-    allBalloons: [string, string, string];
+    allBalloons: string[];
     claimedAt: string;
     delivered: boolean;
     deliveredAt?: string | null;
@@ -31,7 +31,7 @@ export interface MyPendingPrizeResponse {
 }
 
 export interface AdminPrizeOverview {
-    prizes: [string, string, string];
+    prizes: string[];
     claims: PrizeClaimRecord[];
     testActive?: boolean;
     prizeStartYm?: string;
@@ -81,9 +81,9 @@ export async function getAdminPrizeOverview(): Promise<AdminPrizeOverview> {
 }
 
 export async function updateBalloonPrizes(
-    prizes: [string, string, string]
-): Promise<{ prizes: [string, string, string] }> {
-    const res = await apiClient.put<{ prizes: [string, string, string] }>("/prizes/admin/config", {
+    prizes: string[]
+): Promise<{ prizes: string[] }> {
+    const res = await apiClient.put<{ prizes: string[] }>("/prizes/admin/config", {
         prizes,
     });
     return res.data;

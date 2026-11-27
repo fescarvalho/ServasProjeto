@@ -22,25 +22,64 @@ const MONTHS = [
 
 const BALLOON_STYLES = [
     {
-        label: "Balão 1",
         gradient: "radial-gradient(circle at 32% 28%, #FDE68A 0%, #F59E0B 48%, #B45309 100%)",
-        shadow: "0 12px 24px rgba(217, 119, 6, 0.38)",
+        shadow: "0 8px 16px rgba(217, 119, 6, 0.34)",
         knotColor: "#B45309",
         delay: "0s",
     },
     {
-        label: "Balão 2",
         gradient: "radial-gradient(circle at 32% 28%, #FCA5A5 0%, #DC2626 50%, #991B1B 100%)",
-        shadow: "0 12px 24px rgba(185, 28, 28, 0.36)",
+        shadow: "0 8px 16px rgba(185, 28, 28, 0.32)",
         knotColor: "#991B1B",
+        delay: "0.2s",
+    },
+    {
+        gradient: "radial-gradient(circle at 32% 28%, #E6C786 0%, #8C6530 52%, #4A3222 100%)",
+        shadow: "0 8px 16px rgba(74, 50, 34, 0.34)",
+        knotColor: "#4A3222",
+        delay: "0.4s",
+    },
+    {
+        gradient: "radial-gradient(circle at 32% 28%, #86EFAC 0%, #16A34A 50%, #166534 100%)",
+        shadow: "0 8px 16px rgba(22, 163, 74, 0.3)",
+        knotColor: "#166534",
+        delay: "0.6s",
+    },
+    {
+        gradient: "radial-gradient(circle at 32% 28%, #93C5FD 0%, #2563EB 50%, #1E40AF 100%)",
+        shadow: "0 8px 16px rgba(37, 99, 235, 0.3)",
+        knotColor: "#1E40AF",
+        delay: "0.8s",
+    },
+    {
+        gradient: "radial-gradient(circle at 32% 28%, #F9A8D4 0%, #DB2777 50%, #9D174D 100%)",
+        shadow: "0 8px 16px rgba(219, 39, 119, 0.3)",
+        knotColor: "#9D174D",
+        delay: "0.15s",
+    },
+    {
+        gradient: "radial-gradient(circle at 32% 28%, #C4B5FD 0%, #7C3AED 50%, #5B21B6 100%)",
+        shadow: "0 8px 16px rgba(124, 58, 237, 0.3)",
+        knotColor: "#5B21B6",
         delay: "0.35s",
     },
     {
-        label: "Balão 3",
-        gradient: "radial-gradient(circle at 32% 28%, #E6C786 0%, #8C6530 52%, #4A3222 100%)",
-        shadow: "0 12px 24px rgba(74, 50, 34, 0.38)",
-        knotColor: "#4A3222",
-        delay: "0.7s",
+        gradient: "radial-gradient(circle at 32% 28%, #FDBA74 0%, #EA580C 50%, #9A3412 100%)",
+        shadow: "0 8px 16px rgba(234, 88, 12, 0.32)",
+        knotColor: "#9A3412",
+        delay: "0.55s",
+    },
+    {
+        gradient: "radial-gradient(circle at 32% 28%, #5EEAD4 0%, #0D9488 50%, #115E59 100%)",
+        shadow: "0 8px 16px rgba(13, 148, 136, 0.3)",
+        knotColor: "#115E59",
+        delay: "0.75s",
+    },
+    {
+        gradient: "radial-gradient(circle at 32% 28%, #FDE047 0%, #CA8A04 50%, #854D0E 100%)",
+        shadow: "0 8px 16px rgba(202, 138, 4, 0.34)",
+        knotColor: "#854D0E",
+        delay: "0.95s",
     },
 ];
 
@@ -94,7 +133,7 @@ export function WinnerModal({
                 justifyContent: "center",
                 alignItems: "center",
                 zIndex: 9999,
-                padding: "16px",
+                padding: "14px",
                 backdropFilter: "blur(5px)",
             }}
         >
@@ -102,12 +141,14 @@ export function WinnerModal({
                 style={{
                     background: "linear-gradient(155deg, #FFFBF0 0%, #FFFFFF 55%, #FAF4E6 100%)",
                     width: "100%",
-                    maxWidth: "430px",
-                    maxHeight: "92vh",
+                    maxWidth: "460px",
+                    maxHeight: "90vh",
                     overflowY: "auto",
+                    WebkitOverflowScrolling: "touch",
                     borderRadius: "24px",
-                    padding: "26px 22px",
+                    padding: "22px 16px",
                     position: "relative",
+                    boxSizing: "border-box",
                     boxShadow: "0 16px 48px rgba(74, 50, 34, 0.45)",
                     display: "flex",
                     flexDirection: "column",
@@ -121,13 +162,13 @@ export function WinnerModal({
                     onClick={onClose}
                     style={{
                         position: "absolute",
-                        top: 14,
-                        right: 14,
+                        top: 12,
+                        right: 12,
                         background: "rgba(74,50,34,0.08)",
                         border: "none",
                         borderRadius: "50%",
-                        width: 32,
-                        height: 32,
+                        width: 30,
+                        height: 30,
                         cursor: "pointer",
                         color: theme.colors.textSecondary,
                         display: "flex",
@@ -136,21 +177,21 @@ export function WinnerModal({
                     }}
                     title="Fechar"
                 >
-                    <X size={18} />
+                    <X size={17} />
                 </button>
 
-                <div style={{ position: "relative", marginBottom: "10px" }}>
-                    <Crown size={54} color="#B45309" fill="#F59E0B" />
+                <div style={{ position: "relative", marginBottom: "8px" }}>
+                    <Crown size={46} color="#B45309" fill="#F59E0B" />
                     <Sparkles
-                        size={22}
+                        size={20}
                         color={theme.colors.primary}
-                        style={{ position: "absolute", top: -6, right: -14, animation: "spin 4s linear infinite" }}
+                        style={{ position: "absolute", top: -6, right: -12, animation: "spin 4s linear infinite" }}
                     />
                 </div>
 
                 <div
                     style={{
-                        fontSize: "0.72rem",
+                        fontSize: "0.7rem",
                         fontWeight: 800,
                         textTransform: "uppercase",
                         letterSpacing: "0.08em",
@@ -159,17 +200,17 @@ export function WinnerModal({
                         border: "1px solid #FDE68A",
                         padding: "3px 10px",
                         borderRadius: "999px",
-                        marginBottom: "8px",
+                        marginBottom: "6px",
                     }}
                 >
                     🏆 Destaque de {monthName}/{year}
                 </div>
 
-                <h2 style={{ color: "#4A3222", margin: "0 0 6px 0", fontSize: "1.55rem", fontWeight: 900 }}>
+                <h2 style={{ color: "#4A3222", margin: "0 0 4px 0", fontSize: "1.4rem", fontWeight: 900 }}>
                     Parabéns, {formatServoName(userName)}! 🎉
                 </h2>
 
-                <p style={{ color: "#5C4028", fontSize: "0.92rem", lineHeight: 1.45, margin: "0 0 12px 0" }}>
+                <p style={{ color: "#5C4028", fontSize: "0.86rem", lineHeight: 1.4, margin: "0 0 10px 0" }}>
                     Você conquistou a premiação mensal com{" "}
                     <strong>{score} pontos</strong>
                     {totalPresences ? (
@@ -186,29 +227,29 @@ export function WinnerModal({
                             style={{
                                 background: "#FFFFFF",
                                 border: "1px dashed #D4A44C",
-                                borderRadius: "14px",
-                                padding: "12px 14px",
+                                borderRadius: "12px",
+                                padding: "10px 12px",
                                 width: "100%",
                                 boxSizing: "border-box",
-                                marginBottom: "16px",
+                                marginBottom: "12px",
                             }}
                         >
-                            <div style={{ fontWeight: 800, fontSize: "0.9rem", color: "#4A3222", marginBottom: "3px" }}>
-                                🎈 Escolha 1 balão para estourar!
+                            <div style={{ fontWeight: 800, fontSize: "0.86rem", color: "#4A3222", marginBottom: "2px" }}>
+                                🎈 Escolha 1 dos 10 balõezinhos para estourar!
                             </div>
-                            <div style={{ fontSize: "0.78rem", color: "#785A3C", lineHeight: 1.35 }}>
-                                Cada balão esconde um presente surpresa diferente. Toque no seu escolhido para descobrir o que você ganhou!
+                            <div style={{ fontSize: "0.75rem", color: "#785A3C", lineHeight: 1.35 }}>
+                                Cada balão esconde um presente surpresa diferente. Toque no seu número da sorte!
                             </div>
                         </div>
 
-                        {/* 3 BALÕES FLUTUANTES */}
+                        {/* GRADE 5x2 COM OS 10 BALÕEZINHOS */}
                         <div
                             style={{
                                 display: "grid",
-                                gridTemplateColumns: "repeat(3, 1fr)",
-                                gap: "12px",
+                                gridTemplateColumns: "repeat(5, 1fr)",
+                                gap: "10px 6px",
                                 width: "100%",
-                                padding: "10px 4px 18px 4px",
+                                padding: "6px 2px 14px 2px",
                                 boxSizing: "border-box",
                             }}
                         >
@@ -226,7 +267,7 @@ export function WinnerModal({
                                         style={{
                                             background: "transparent",
                                             border: "none",
-                                            padding: "4px 0",
+                                            padding: "2px 0",
                                             cursor: isDisabled ? "default" : "pointer",
                                             display: "flex",
                                             flexDirection: "column",
@@ -234,15 +275,15 @@ export function WinnerModal({
                                             animation: isBurstingThis
                                                 ? "balloonPop 0.38s ease-out forwards"
                                                 : `balloonFloat 2.8s ease-in-out ${b.delay} infinite`,
-                                            opacity: poppingIdx !== null && poppingIdx !== idx ? 0.45 : 1,
+                                            opacity: poppingIdx !== null && poppingIdx !== idx ? 0.42 : 1,
                                             transition: "opacity 0.2s, transform 0.15s",
                                         }}
                                     >
-                                        {/* Corpo do balão */}
+                                        {/* Corpo do balãozinho */}
                                         <div
                                             style={{
-                                                width: "76px",
-                                                height: "92px",
+                                                width: "48px",
+                                                height: "58px",
                                                 borderRadius: "50% 50% 48% 48% / 55% 55% 45% 45%",
                                                 background: b.gradient,
                                                 boxShadow: b.shadow,
@@ -252,61 +293,48 @@ export function WinnerModal({
                                                 justifyContent: "center",
                                                 color: "#FFFFFF",
                                                 fontWeight: 900,
-                                                fontSize: "1.35rem",
+                                                fontSize: "0.95rem",
+                                                textShadow: "0 1px 3px rgba(0,0,0,0.35)",
                                             }}
                                         >
-                                            {/* Brilho do balão */}
+                                            {/* Brilho */}
                                             <div
                                                 style={{
                                                     position: "absolute",
-                                                    top: "14px",
-                                                    left: "16px",
-                                                    width: "14px",
-                                                    height: "24px",
+                                                    top: "8px",
+                                                    left: "10px",
+                                                    width: "9px",
+                                                    height: "15px",
                                                     borderRadius: "50%",
                                                     background: "rgba(255,255,255,0.42)",
                                                     transform: "rotate(-25deg)",
                                                 }}
                                             />
                                             {isLoadingThis ? (
-                                                <Loader2 size={24} className="animate-spin" />
+                                                <Loader2 size={18} className="animate-spin" />
                                             ) : (
-                                                <span>?</span>
+                                                <span>{idx + 1}</span>
                                             )}
                                         </div>
-                                        {/* Nó do balão */}
+                                        {/* Nó */}
                                         <div
                                             style={{
                                                 width: 0,
                                                 height: 0,
-                                                borderLeft: "6px solid transparent",
-                                                borderRight: "6px solid transparent",
-                                                borderBottom: `8px solid ${b.knotColor}`,
+                                                borderLeft: "4px solid transparent",
+                                                borderRight: "4px solid transparent",
+                                                borderBottom: `6px solid ${b.knotColor}`,
                                                 marginTop: "-1px",
                                             }}
                                         />
                                         {/* Fitinha */}
                                         <div
                                             style={{
-                                                width: "1.5px",
-                                                height: "22px",
+                                                width: "1.2px",
+                                                height: "12px",
                                                 background: "rgba(74, 50, 34, 0.35)",
-                                                marginBottom: "6px",
                                             }}
                                         />
-                                        <span
-                                            style={{
-                                                fontSize: "0.76rem",
-                                                fontWeight: 800,
-                                                color: "#4A3222",
-                                                background: "#FFF",
-                                                border: "1px solid #E5DEC9",
-                                                padding: "3px 9px",
-                                                borderRadius: "999px",
-                                            }}
-                                        >
-                                            {b.label}
-                                        </span>
                                     </button>
                                 );
                             })}
@@ -330,8 +358,8 @@ export function WinnerModal({
                             </div>
                         )}
 
-                        <div style={{ fontSize: "0.74rem", color: "#8C7360" }}>
-                            Toque em qualquer um dos 3 balões acima para estourar!
+                        <div style={{ fontSize: "0.73rem", color: "#8C7360" }}>
+                            Toque em qualquer um dos 10 balões numerados acima para estourar!
                         </div>
                     </>
                 ) : (
@@ -350,7 +378,7 @@ export function WinnerModal({
                                 background: "linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)",
                                 border: "2px solid #D97706",
                                 borderRadius: "18px",
-                                padding: "18px 16px",
+                                padding: "16px 14px",
                                 boxShadow: "0 8px 24px rgba(217, 119, 6, 0.25)",
                             }}
                         >
@@ -359,7 +387,7 @@ export function WinnerModal({
                                     display: "inline-flex",
                                     alignItems: "center",
                                     gap: "6px",
-                                    fontSize: "0.74rem",
+                                    fontSize: "0.73rem",
                                     fontWeight: 800,
                                     textTransform: "uppercase",
                                     letterSpacing: "0.06em",
@@ -372,7 +400,7 @@ export function WinnerModal({
                             </div>
                             <div
                                 style={{
-                                    fontSize: "1.3rem",
+                                    fontSize: "1.22rem",
                                     fontWeight: 900,
                                     color: "#4A3222",
                                     lineHeight: 1.3,
@@ -381,7 +409,7 @@ export function WinnerModal({
                             >
                                 {claim.prizeWon}
                             </div>
-                            <div style={{ fontSize: "0.8rem", color: "#78350F", fontWeight: 600 }}>
+                            <div style={{ fontSize: "0.79rem", color: "#78350F", fontWeight: 600 }}>
                                 {claim.delivered
                                     ? "✅ Presente já entregue pela coordenação!"
                                     : "✨ A coordenação já foi avisada automaticamente do seu prêmio!"}
@@ -394,15 +422,15 @@ export function WinnerModal({
                                     background: "#FAF8F5",
                                     border: "1px solid #E5DEC9",
                                     borderRadius: "12px",
-                                    padding: "10px 12px",
-                                    fontSize: "0.76rem",
+                                    padding: "10px 10px",
+                                    fontSize: "0.72rem",
                                     color: "#785A3C",
                                 }}
                             >
-                                <div style={{ fontWeight: 700, marginBottom: "4px" }}>
-                                    Nos outros balões estavam:
+                                <div style={{ fontWeight: 700, marginBottom: "6px" }}>
+                                    O que havia nos outros balões:
                                 </div>
-                                <div style={{ display: "flex", justifyContent: "center", gap: "8px", flexWrap: "wrap" }}>
+                                <div style={{ display: "flex", justifyContent: "center", gap: "5px", flexWrap: "wrap" }}>
                                     {otherPrizes.map((op) => (
                                         <span
                                             key={op.idx}
@@ -410,11 +438,11 @@ export function WinnerModal({
                                                 background: "#FFF",
                                                 border: "1px solid #E5DEC9",
                                                 borderRadius: "999px",
-                                                padding: "3px 9px",
+                                                padding: "2px 8px",
                                                 fontWeight: 600,
                                             }}
                                         >
-                                            Balão {op.idx + 1}: {op.prize}
+                                            <strong>#{op.idx + 1}:</strong> {op.prize}
                                         </span>
                                     ))}
                                 </div>
@@ -426,16 +454,16 @@ export function WinnerModal({
                             onClick={onClose}
                             style={{
                                 width: "100%",
-                                padding: "13px",
+                                padding: "12px",
                                 borderRadius: "12px",
                                 border: "none",
                                 background: theme.colors.primaryGradient,
                                 color: "white",
                                 fontWeight: 800,
-                                fontSize: "0.95rem",
+                                fontSize: "0.92rem",
                                 cursor: "pointer",
                                 boxShadow: theme.colors.shadowPrimary,
-                                marginTop: "4px",
+                                marginTop: "2px",
                             }}
                         >
                             Que benção! Fechar ✨
@@ -453,7 +481,7 @@ export function WinnerModal({
           }
           @keyframes balloonFloat {
             0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-8px); }
+            50% { transform: translateY(-6px); }
           }
           @keyframes balloonPop {
             0% { transform: scale(1); opacity: 1; }
